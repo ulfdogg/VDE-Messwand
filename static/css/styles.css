@@ -1,0 +1,295 @@
+/* Grundstil für die gesamte Seite */
+body {
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #1a1a1a; /* Dunkler Hintergrund */
+    color: #f1f1f1; /* Helle Schrift */
+    display: flex;
+    justify-content: center; /* Zentriert den gesamten Inhalt */
+    align-items: center;
+    height: 100vh; /* Höhe des Viewports */
+    text-align: center;
+    flex-direction: column; /* Damit das Bild und der Inhalt untereinander sind */
+}
+
+/* Container für das Logo */
+.logo-container {
+    width: 100%; /* Breite des Containers */
+    height: auto; /* Höhe wird automatisch berechnet */
+    display: flex;
+    justify-content: center; /* Zentriert das Logo horizontal */
+    align-items: center; /* Zentriert das Logo vertikal */
+    margin-bottom: 20px; /* Abstand zum Seiteninhalt */
+    max-width: 600px; /* Maximalbreite des Containers */
+}
+
+/* Logo-Bild wird an Containergröße angepasst */
+.logo {
+    width: 100%; /* Bild wird auf die volle Breite des Containers gestreckt */
+    height: 100%; /* Bild wird auf die volle Höhe des Containers gestreckt */
+    object-fit: contain; /* Bewahrt das Seitenverhältnis des Bildes */
+}
+
+/* Dark Mode für die Seite */
+.dark-mode {
+    background-color: #121212; /* Dunklerer Hintergrund für Dark Mode */
+    color: #e0e0e0; /* Helle Textfarbe */
+}
+
+/* Hintergrund für alle Container */
+.container {
+    padding: 20px;
+    width: 100%;
+    max-width: 600px; /* Maximalbreite des Containers */
+    background-color: #2c2c2c;
+    border-radius: 12px; /* Abgerundete Ecken */
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.5); /* Schatten für den Container */
+}
+
+/* Überschriften */
+h1, h2 {
+    color: #e53935; /* Dunkelrot für Überschriften */
+    text-align: center;
+    text-shadow: 0 0 10px rgba(255, 0, 0, 0.7); /* Roter Glow Effekt */
+}
+
+/* Fehlertext */
+.error {
+    color: #ff4040;
+    font-size: 1.2rem;
+    margin-bottom: 20px;
+}
+
+/* Glowing Button für Interaktive Elemente */
+button {
+    background-color: #d32f2f; /* Dunkelrote Hintergrundfarbe */
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 1.2rem;
+    padding: 15px 30px;
+    cursor: pointer;
+    box-shadow: 0 0 15px rgba(211, 47, 47, 0.5); /* Roter Glow */
+    transition: all 0.3s ease-in-out;
+}
+
+button:hover {
+    background-color: #b71c1c; /* Dunkleres Rot beim Hover */
+    box-shadow: 0 0 30px rgba(211, 47, 47, 0.8); /* Stärkerer Glow beim Hover */
+}
+
+/* Touch Eingabe Unterstützung */
+button:active {
+    transform: scale(0.95); /* Button skaliert leicht bei Berührung */
+}
+
+/* Größere Buttons für Touch Eingabe */
+button.large {
+    font-size: 1.5rem;
+    padding: 20px 40px;
+}
+
+/* Styling für Eingabefelder */
+input, select, textarea {
+    background-color: #333; /* Dunkler Hintergrund für Eingabefelder */
+    color: #fff;
+    border: 1px solid #444;
+    border-radius: 8px;
+    padding: 10px;
+    width: 100%;
+    font-size: 1rem;
+}
+
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: #e53935; /* Roter Rand bei Fokus */
+    box-shadow: 0 0 5px rgba(229, 57, 53, 0.8); /* Leichter Roter Glow bei Fokus */
+}
+
+/* Styling für große Eingabefelder */
+textarea {
+    height: 120px;
+}
+
+/* Container für die Fehlerauswahl */
+.selected-errors {
+    display: flex;
+    flex-direction: column;
+    margin-top: 20px;
+}
+
+.selected-errors div {
+    background-color: #2c2c2c;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(255, 0, 0, 0.3); /* Roter Schatten für Fehlerauswahl */
+}
+
+/* Styling für das Ergebnis-Overlay */
+.results-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7); /* Halbtransparentes Overlay */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #fff;
+    font-size: 2rem;
+    z-index: 999;
+}
+
+.results-overlay button {
+    background-color: #d32f2f;
+    padding: 20px 40px;
+    font-size: 1.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.results-overlay button:hover {
+    background-color: #b71c1c;
+}
+
+/* Schönerer Bereich für den Code-Eingabe-Formular */
+.code-entry-form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 20px;
+}
+
+.code-entry-form input {
+    width: 200px;
+    margin: 10px 0;
+}
+
+.code-entry-form input[type="text"] {
+    text-align: center;
+    padding: 10px;
+    font-size: 1.2rem;
+}
+
+/* Zentrierte Eingabefelder und NumPad */
+.code-input {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.code-input input {
+    width: 60px;
+    height: 60px;
+    margin: 0 5px;
+    font-size: 2rem;
+    text-align: center;
+    background-color: #444;
+    border: 1px solid #555;
+    border-radius: 8px;
+}
+
+/* Zahlenpad */
+.numpad {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.row {
+    display: flex;
+    justify-content: center;
+}
+
+/* Buttons im NumPad */
+.num-button {
+    background-color: #d32f2f; /* Dunkelroter Hintergrund */
+    color: white;
+    font-size: 1.8rem; /* Größere Schriftgröße */
+    padding: 25px; /* Größere Tasten für Touchscreens */
+    border: none;
+    border-radius: 12px; /* Abgerundete Ecken */
+    margin: 10px; /* Etwas mehr Abstand zwischen den Buttons */
+    cursor: pointer;
+    width: 80px; /* Breitere Buttons für Touchscreen-Optimierung */
+    height: 80px; /* Gleiche Höhe wie Breite für ein Quadrat */
+    transition: all 0.3s ease; /* Sanfte Übergänge für Effekte */
+    display: flex;
+    justify-content: center;
+    align-items: center; /* Zentriert den Text */
+}
+
+/* Hover-Effekt */
+.num-button:hover {
+    background-color: #b71c1c; /* Dunkleres Rot beim Hover */
+    box-shadow: 0 0 20px rgba(211, 47, 47, 0.7); /* Stärkerer Glow-Effekt */
+}
+
+/* Visueller Effekt beim Klicken (Touch) */
+.num-button:active {
+    transform: scale(0.95); /* Button wird leicht kleiner, wenn er gedrückt wird */
+}
+
+/* Styling für den Submit-Button */
+.submit-btn {
+    background-color: #388e3c; /* Grüner Hintergrund */
+    font-size: 2rem; /* Größere Schrift für den Submit-Button */
+    padding: 30px; /* Größerer Abstand */
+    border-radius: 12px;
+    width: 90px; /* Breitere Buttons für Touch */
+    height: 90px;
+    transition: all 0.3s ease;
+}
+
+/* Hover-Effekt für den Submit-Button */
+.submit-btn:hover {
+    background-color: #2e7d32; /* Dunkleres Grün bei Hover */
+    box-shadow: 0 0 25px rgba(56, 142, 60, 0.7); /* Glow-Effekt */
+}
+
+/* Disable Submit Button Styling */
+.submit-btn:disabled {
+    background-color: #444; /* Grauer Button, wenn deaktiviert */
+    cursor: not-allowed; /* Kein Zeiger-Cursor */
+    box-shadow: none; /* Kein Schatten */
+}
+
+/* Stil für den Zurücksetzen-Button (C) */
+.num-button:focus {
+    outline: none; /* Entfernt den Standard-Fokusrahmen */
+    border-color: #e53935; /* Roter Rand bei Fokus */
+    box-shadow: 0 0 5px rgba(229, 57, 53, 0.8); /* Roter Glow bei Fokus */
+}
+
+/* Mobile Optimierung */
+@media (max-width: 768px) {
+    body {
+        font-size: 14px;
+    }
+
+    h1, h2 {
+        font-size: 1.5rem;
+    }
+
+    button, .results-overlay button {
+        font-size: 1.2rem;
+        padding: 15px 30px;
+    }
+
+    .container {
+        padding: 10px;
+    }
+
+    .code-entry-form input[type="text"] {
+        width: 150px;
+        font-size: 1rem;
+    }
+
+    .selected-errors div {
+        font-size: 1rem;
+    }
+}

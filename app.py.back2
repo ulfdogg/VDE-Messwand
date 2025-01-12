@@ -1,0 +1,237 @@
+from flask import Flask, render_template, request, redirect, url_for
+import random
+import logging
+
+app = Flask(__name__)
+
+# Logger konfigurieren
+logging.basicConfig(level=logging.DEBUG)
+
+# Erwarteter Code
+EXPECTED_CODE = "346"
+
+# Fehlerdefinitionen und Widerstandswerte
+resistor_values = {
+    "Stromkreis 1 - Durchgängigkeit des Schutzleitersystems": {
+        "Schutzleiter unterbrochen": "Unendlich (keine Verbindung)",
+        "Hoher Übergangswiderstand": "47 Ω",
+        "Schutzleiter nicht angeschlossen": "Unendlich (keine Verbindung)",
+        "Schutzleiter mit Phase verbunden": "0 Ω (Kurzschluss)",
+        "Korrosion im Schutzleiteranschluss": "82 Ω"
+    },
+    "Stromkreis 1 - Isolationswiderstandsmessung": {
+        "Isolationswiderstand zu niedrig": "330 kΩ",
+        "Fehlerhafter Isolationstest": "Unendlich (Messgerät Fehler)",
+        "Kurzschluss zwischen L und N": "0 Ω",
+        "Isolationsfehler bei PE": "560 kΩ",
+        "Feuchtigkeitseinfluss": "1 MΩ"
+    },
+    "Stromkreis 1 - Z-S Messung": {
+        "Hoher Schleifenwiderstand": "68 Ω",
+        "Schleifenwiderstand nicht messbar": "Unendlich (keine Verbindung)",
+        "Fehlerhafter ZS-Wert": "0 Ω oder Unendlich (keine Verbindung)",
+        "Kein Kurzschlussstrom": "Unendlich (keine Verbindung)",
+        "Schleifenimpedanz unsicher": "56 Ω"
+    },
+    "Stromkreis 1 - Spannungsfall": {
+        "Spannungsfall zu hoch": "82 Ω",
+        "Kabelquerschnitt zu gering": "110 Ω"
+    },
+    "Stromkreis 2 - Durchgängigkeit des Schutzleitersystems": {
+        "Schutzleiter unterbrochen": "Unendlich (keine Verbindung)",
+        "Hoher Übergangswiderstand": "47 Ω",
+        "Schutzleiter nicht angeschlossen": "Unendlich (keine Verbindung)",
+        "Schutzleiter mit Phase verbunden": "0 Ω (Kurzschluss)",
+        "Korrosion im Schutzleiteranschluss": "82 Ω"
+    },
+    "Stromkreis 2 - Isolationswiderstandsmessung": {
+        "Isolationswiderstand zu niedrig": "330 kΩ",
+        "Fehlerhafter Isolationstest": "Unendlich (Messgerät Fehler)",
+        "Kurzschluss zwischen L und N": "0 Ω",
+        "Isolationsfehler bei PE": "560 kΩ",
+        "Feuchtigkeitseinfluss": "1 MΩ"
+    },
+    "Stromkreis 2 - Z-S Messung": {
+        "Hoher Schleifenwiderstand": "68 Ω",
+        "Schleifenwiderstand nicht messbar": "Unendlich (keine Verbindung)",
+        "Fehlerhafter ZS-Wert": "0 Ω oder Unendlich (keine Verbindung)",
+        "Kein Kurzschlussstrom": "Unendlich (keine Verbindung)",
+        "Schleifenimpedanz unsicher": "56 Ω"
+    },
+    "Stromkreis 2 - Spannungsfall": {
+        "Spannungsfall zu hoch": "82 Ω",
+        "Kabelquerschnitt zu gering": "110 Ω"
+    },
+    "Stromkreis 3 - CEE 16 A Fehler": {
+        "Phasendreher": "Keine Widerstände, nur Phasen vertauscht",
+        "Neutralleiterabbruch": "Unendlich",
+        "PE Abbruch": "Unendlich",
+        "Hohe Netzimpedanz": "330 Ω",
+        "Zschleifenimpedanz zu hoch": "150 Ω"
+    },
+    "Stromkreis 4 - Perilex Fehler": {
+        "Phasendreher": "Keine Widerstände, nur Phasen vertauscht",
+        "Neutralleiterabbruch": "Unendlich",
+        "PE Abbruch": "Unendlich",
+        "Hohe Netzimpedanz": "330 Ω",
+        "Zschleifenimpedanz zu hoch": "150 Ω"
+    },
+    "Stromkreis 5 - RCBO Steckdose": {
+        "Schutzleiter unterbrochen": "Unendlich",
+        "Hoher Übergangswiderstand": "47 Ω",
+        "Isolationswiderstand zu niedrig": "330 kΩ",
+        "Schleifenwiderstand zu hoch": "68 Ω",
+        "Spannungsfall zu hoch": "82 Ω"
+    }
+}
+
+errors = {
+    "Stromkreis 1 - Durchgängigkeit des Schutzleitersystems": [
+        "Schutzleiter unterbrochen",
+        "Hoher Übergangswiderstand",
+        "Schutzleiter nicht angeschlossen",
+        "Schutzleiter mit Phase verbunden",
+        "Korrosion im Schutzleiteranschluss"
+    ],
+    "Stromkreis 1 - Isolationswiderstandsmessung": [
+        "Isolationswiderstand zu niedrig",
+        "Fehlerhafter Isolationstest",
+        "Kurzschluss zwischen L und N",
+        "Isolationsfehler bei PE",
+        "Feuchtigkeitseinfluss"
+    ],
+    "Stromkreis 1 - Z-S Messung": [
+        "Hoher Schleifenwiderstand",
+        "Schleifenwiderstand nicht messbar",
+        "Fehlerhafter ZS-Wert",
+        "Kein Kurzschlussstrom",
+        "Schleifenimpedanz unsicher"
+    ],
+    "Stromkreis 1 - Spannungsfall": [
+        "Spannungsfall zu hoch",
+        "Kabelquerschnitt zu gering"
+    ],
+    "Stromkreis 2 - Durchgängigkeit des Schutzleitersystems": [
+        "Schutzleiter unterbrochen",
+        "Hoher Übergangswiderstand",
+        "Schutzleiter nicht angeschlossen",
+        "Schutzleiter mit Phase verbunden",
+        "Korrosion im Schutzleiteranschluss"
+    ],
+    "Stromkreis 2 - Isolationswiderstandsmessung": [
+        "Isolationswiderstand zu niedrig",
+        "Fehlerhafter Isolationstest",
+        "Kurzschluss zwischen L und N",
+        "Isolationsfehler bei PE",
+        "Feuchtigkeitseinfluss"
+    ],
+    "Stromkreis 2 - Z-S Messung": [
+        "Hoher Schleifenwiderstand",
+        "Schleifenwiderstand nicht messbar",
+        "Fehlerhafter ZS-Wert",
+        "Kein Kurzschlussstrom",
+        "Schleifenimpedanz unsicher"
+    ],
+    "Stromkreis 2 - Spannungsfall": [
+        "Spannungsfall zu hoch",
+        "Kabelquerschnitt zu gering"
+    ],
+    "Stromkreis 3 - CEE 16 A Fehler": [
+        "Phasendreher",
+        "Neutralleiterabbruch",
+        "PE Abbruch",
+        "Hohe Netzimpedanz",
+        "Zschleifenimpedanz zu hoch"
+    ],
+    "Stromkreis 4 - Perilex Fehler": [
+        "Phasendreher",
+        "Neutralleiterabbruch",
+        "PE Abbruch",
+        "Hohe Netzimpedanz",
+        "Zschleifenimpedanz zu hoch"
+    ],
+    "Stromkreis 5 - RCBO Steckdose": [
+        "Schutzleiter unterbrochen",
+        "Hoher Übergangswiderstand",
+        "Isolationswiderstand zu niedrig",
+        "Schleifenwiderstand zu hoch",
+        "Spannungsfall zu hoch"
+    ]
+}
+
+# Globale Variablen
+selected_errors = {}
+measurement_done = False
+
+@app.route("/")
+def home():
+    return render_template("home.html", measurement_done=measurement_done)
+
+@app.route("/start", methods=["POST"])
+def start():
+    global measurement_done, selected_errors
+
+    if not measurement_done:
+        logging.debug("Starte Messung...")
+
+        # Verfügbare Stromkreise
+        available_categories = list(errors.keys())
+        num_categories = min(len(available_categories), 3)  # Maximal 3 oder weniger, wenn nicht genug Kategorien
+
+        if num_categories == 0:
+            logging.error("Keine verfügbaren Kategorien für Fehler.")
+            return render_template("home.html", error="Keine Fehlerkategorien verfügbar.")
+
+        selected_categories = random.sample(available_categories, num_categories)  # Wähle 3 zufällige Kategorien aus
+
+        selected_errors = {}
+        for category in selected_categories:
+            error = random.choice(errors[category])  # Zufälliger Fehler (nur 1 pro Kategorie)
+            selected_errors[category] = {
+                error: resistor_values[category].get(error, "Kein Wert verfügbar")
+            }
+
+        measurement_done = True  # Messung abgeschlossen
+        logging.debug(f"Ausgewählte Fehler: {selected_errors}")
+
+    return render_template("measurement.html", selected_errors=selected_errors)
+
+@app.route("/reset", methods=["POST"])
+def reset():
+    global measurement_done, selected_errors
+    measurement_done = False
+    selected_errors = {}
+    logging.debug("Messung zurückgesetzt.")
+    return redirect(url_for("home"))
+
+@app.route("/solutions", methods=["GET", "POST"])
+@app.route("/solutions", methods=["GET", "POST"])
+def solutions():
+    if request.method == "POST":
+        # Werte aus den Formularfeldern holen und sicherstellen, dass sie nicht None sind
+        code1 = request.form.get("code1", "")
+        code2 = request.form.get("code2", "")
+        code3 = request.form.get("code3", "")
+
+        # Überprüfen, ob eines der Felder leer ist
+        if not code1 or not code2 or not code3:
+            logging.debug("Nicht alle Felder wurden ausgefüllt.")
+            return render_template("code_entry.html", error="Bitte alle Felder ausfüllen.")
+
+        # Die Codes zusammenfügen
+        entered_code = code1 + code2 + code3
+        logging.debug(f"Eingegebener Code: {entered_code}")
+
+        # Überprüfen, ob der eingegebene Code korrekt ist
+        if entered_code == EXPECTED_CODE:
+            logging.debug("Code korrekt, zeige Fehler an.")
+            return render_template("errors.html", errors=selected_errors)
+        else:
+            logging.debug("Ungültiger Code eingegeben.")
+            return render_template("code_entry.html", error="Ungültiger Code!")
+
+    return render_template("code_entry.html", error=None)
+
+
+if __name__ == "__main__":
+    app.run(debug=True, host='0.0.0.0', port=5000)

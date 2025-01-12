@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fehlerübersicht</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+	<link rel="icon" href="static/images/favicon-32x32.png" type="image/png">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <link rel="apple-touch-icon" href="static/images/icon-192x192.png">
+    <script src="static/js/main.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Fehlerübersicht</h1>
+        {% for category, details in errors.items() %}
+        <div class="error-category">
+            <h2>{{ category }}</h2>
+            <ul>
+                {% for error, value in details.items() %}
+                <li><strong>{{ error }}:</strong> {{ value }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endfor %}
+        <div class="button-container">
+            <form action="/reset" method="post">
+                <button type="submit" class="reset-btn">Neue Messung starten</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

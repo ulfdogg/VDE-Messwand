@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Eingabe</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+	<link rel="icon" href="static/images/favicon-32x32.png" type="image/png">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <link rel="apple-touch-icon" href="static/images/icon-192x192.png">
+    <script src="static/js/main.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Bitte Code eingeben</h1>
+        {% if error %}
+        <p class="error">{{ error }}</p>
+        {% endif %}
+        <form action="/solutions" method="post">
+            <div class="code-input">
+                <input id="digit1" type="password" name="code1" maxlength="1" readonly required>
+                <input id="digit2" type="password" name="code2" maxlength="1" readonly required>
+                <input id="digit3" type="password" name="code3" maxlength="1" readonly required>
+            </div>
+            <div class="numpad">
+                <div class="row">
+                    {% for num in range(1, 4) %}
+                    <button type="button" class="num-button" onclick="addNumber('{{ num }}')">{{ num }}</button>
+                    {% endfor %}
+                </div>
+                <div class="row">
+                    {% for num in range(4, 7) %}
+                    <button type="button" class="num-button" onclick="addNumber('{{ num }}')">{{ num }}</button>
+                    {% endfor %}
+                </div>
+                <div class="row">
+                    {% for num in range(7, 10) %}
+                    <button type="button" class="num-button" onclick="addNumber('{{ num }}')">{{ num }}</button>
+                    {% endfor %}
+                </div>
+                <div class="row">
+                    <button type="button" class="num-button" onclick="resetCode()">C</button>
+                    <button type="button" class="num-button" onclick="addNumber('0')">0</button>
+                    <button type="submit" class="num-button submit-btn" id="submit-btn" disabled>✓</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        const inputs = document.querySelectorAll(".code-input input");
+        const submitBtn = document.getElementById("submit-btn");
+
+        function addNumber(num) {
+            for (let input of inputs) {
+                if (!input.value) {
+                    input.value = num;
+                    break;
+                }
+            }
+            submitBtn.disabled = Array.from(inputs).some(input => !input.value);
+        }
+
+        function resetCode() {
+            inputs.forEach(input => (input.value = ""));
+            submitBtn.disabled = true;
+        }
+    </script>
+</body>
+</html>

@@ -1,20 +1,28 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Solutions</title>
-    <link rel="stylesheet" href="/static/styles.css">
+    <title>Fehlerlösungen</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+	<link rel="icon" href="static/images/favicon-32x32.png" type="image/png">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <link rel="apple-touch-icon" href="static/images/icon-192x192.png">
+    <script src="static/js/main.js"></script>
 </head>
 <body>
     <div class="container">
-        <h1>Solutions</h1>
-        <ul>
-            {% for result in results %}
-            <li>{{ result }}</li>
-            {% endfor %}
-        </ul>
-        <a href="/" class="btn">Back to Home</a>
+        <h1>Fehler und Widerstände</h1>
+        {% for category, errors in selected_errors.items() %}
+        <div class="error-category">
+            <h2>{{ category }}</h2>
+            <ul>
+                <li><strong>{{ errors }}:</strong> {{ resistor_values[category][errors] }} Ohm</li>
+            </ul>
+        </div>
+        {% endfor %}
+        <a href="/" class="back-btn">Zurück</a>
     </div>
 </body>
 </html>
