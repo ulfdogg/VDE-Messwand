@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Manuelle Fehler - VDE Messwand{% endblock %}
+
+{% block content %}
+<div class="glass-card">
+    <h1>Manuelle Fehler Zuschaltung</h1>
+    
+    <div style="max-width: 600px; margin: 0 auto;">
+        {% for kreis, errors in fehlerkreise.items() %}
+        <div class="form-group">
+            <label for="kreis{{ kreis }}">
+                {% if kreis == 7 %}
+                    Schutzleiter ({{ errors|length }} Fehler):
+                {% else %}
+                    Stromkreis {{ kreis }} ({{ errors|length }} Fehler):
+                {% endif %}
+            </label>
+            <select id="kreis{{ kreis }}" class="form-control">
+                <option value="">Kein Fehler</option>
+                {% for i in range(errors|length) %}
+                <option value="{{ i }}">
+                    {% if kreis == 7 %}
+                        Schutzleiter Fehler {{ i + 1 }}
+                    {% else %}
+                        Fehler {{ i + 1 }}
+                    {% endif %}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endfor %}
+        
+        <div class="btn-group">
+            <button class="btn" onclick="setManualErrors()">
+                Fehler Zuschalten
+            </button>
+            <button class="btn btn-secondary" onclick="resetRelays()">
+                Alle Zurücksetzen
+            </button>
+        </div>
+    </div>
+    
+    <div style="text-align: center; margin-top: 30px; opacity: 0.8;">
+        <p>Wählen Sie für jeden Stromkreis maximal einen Fehler aus.</p>
+        <p>Bereits zugeschaltete Fehler werden automatisch zurückgesetzt.</p>
+    </div>
+</div>
+{% endblock %}

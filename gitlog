@@ -1,0 +1,240 @@
+// Debug function for manual mode
+function debugLog(message) {
+    console.log('DEBUG:', message);
+    const debugOutput = document.getElementById('debug-output');
+    if (debugOutput) {
+        debugOutput.innerHTML = new Date().toLocaleTimeString() + ': ' + message + '<br>' + debugOutput.innerHTML;
+    }
+}
+
+function setManualErrors() {
+    const errors = {};
+    let activeCount = 0;
+    const selectedErrors = [];
+
+    for (let i = 1; i <= 7; i++) {
+        const element = document.getElementById('stromkreis' + i);
+        if (element) {
+            const val = element.value;
+            if (val !== '') {
+                const relayId = parseInt(val);
+                if (!isNaN(relayId)) {
+                    errors['stromkreis' + i] = relayId;
+                    activeCount++;
+                    const selectedOption = element.options[element.selectedIndex];
+                    selectedErrors.push(`Stromkreis ${i}: ${selectedOption.text} (Relais ${relayId})`);
+                }
+            }
+        }
+    }
+
+    if (activeCount === 0) {
+        alert('⚠ Keine Fehler ausgewählt!');
+        return;
+    }
+
+    // Kein Confirm mehr!
+    const requestBody = JSON.stringify({errors: errors});
+
+    fetch('/set_manual_errors', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        },
+        body: requestBody
+    })
+    .then(resp => resp.json())
+    .then(data => {
+        if (data.success) {
+            alert(`✅ ${data.activated_count} Fehler erfolgreich zugeschaltet!\nAktive Relais: ${data.active_relays.join(', ')}`);
+            updateStatusDisplay();
+        } else {
+            alert(`❌ Fehler beim Zuschalten: ${data.error || 'Unbekannter Fehler'}`);
+        }
+    })
+    .catch(error => {
+        alert('🚫 Verbindungsfehler: ' + error);
+    });
+}
+
+function resetRelays() {
+    if (!confirm('🔄 Alle Relais zurücksetzen?\n\nDies deaktiviert alle aktiven Fehler.')) {
+        return;
+    }
+    
+    fetch('/reset_relays', {method: 'POST'})
+    .then(resp => resp.json())
+    .then(data => {
+        for (let i = 1; i <= 7; i++) {
+            const selectElement = document.getElementById('stromkreis' + i);
+            const descriptionDiv = document.getElementById('description' + i);
+            if (selectElement) selectElement.value = '';
+            if (descriptionDiv) descriptionDiv.innerHTML = '<em>Kein Fehler ausgewählt</em>';
+        }
+        updateStatusDisplay();
+        alert('✅ Alle Relais zurückgesetzt!');
+    })
+    .catch(error => {
+        alert('🚫 Verbindungsfehler beim Reset!');
+    });
+}
+
+function updateStatusDisplay() {
+    const statusText = document.getElementById('status-text');
+    const activeErrors = [];
+    for (let i = 1; i <= 7; i++) {
+        const selectEl = document.getElementById('stromkreis' + i);
+        if (selectEl && selectEl.value !== '') {
+            const relayId = parseInt(selectEl.value);
+            const selectedOption = selectEl.options[selectEl.selectedIndex];
+            const errorName = selectedOption.text.split(' (')[0];
+            activeErrors.push(`Stromkreis ${i}: ${errorName} (Relais ${relayId})`);
+        }
+    }
+    if (activeErrors.length === 0) {
+        statusText.textContent = 'Keine Fehler aktiv';
+        statusText.style.color = '#4CAF50';
+    } else {
+        statusText.innerHTML = `<strong>${activeErrors.length} Fehler ausgewählt:</strong><br>• ` + activeErrors.join('<br>• ');
+        statusText.style.color = '#ff9800';
+    }
+}
+
+// Reset-Funktion (optional ausgelagert)
+function resetRelays() {
+    if (!confirm('🔄 Alle Relais zurücksetzen?\n\nDies deaktiviert alle aktiven Fehler.')) {
+        return;
+    }
+    
+    debugLog('Resetting relays...');
+    
+    fetch('/reset_relays', {method: 'POST'})
+    .then(resp => resp.json())
+    .then(data => {
+        debugLog('Reset response: ' + JSON.stringify(data));
+        for (let i = 1; i <= 7; i++) {
+            const selectElement = document.getElementById('stromkreis' + i);
+            const descriptionDiv = document.getElementById('description' + i);
+            if (selectElement) selectElement.value = '';
+            if (descriptionDiv) descriptionDiv.innerHTML = '<em>Kein Fehler ausgewählt</em>';
+        }
+        updateStatusDisplay();
+        alert('✅ Alle Relais zurückgesetzt!');
+    })
+    .catch(error => {
+        debugLog('Reset error: ' + error);
+        alert('🚫 Verbindungsfehler beim Reset!');
+    });
+}
+
+// Statusanzeige aktualisieren
+function updateStatusDisplay() {
+    const statusText = document.getElementById('status-text');
+    const activeErrors = [];
+    for (let i = 1; i <= 7; i++) {
+        const selectEl = document.getElementById('stromkreis' + i);
+        if (selectEl && selectEl.value !== '') {
+            const relayId = parseInt(selectEl.value);
+            const selectedOption = selectEl.options[selectEl.selectedIndex];
+            const errorName = selectedOption.text.split(' (')[0];
+            activeErrors.push(`Stromkreis ${i}: ${errorName} (Relais ${relayId})`);
+        }
+    }
+    if (activeErrors.length === 0) {
+        statusText.textContent = 'Keine Fehler aktiv';
+        statusText.style.color = '#4CAF50';
+    } else {
+        statusText.innerHTML = `<strong>${activeErrors.length} Fehler ausgewählt:</strong><br>• ` + activeErrors.join('<br>• ');
+        statusText.style.color = '#ff9800';
+    }
+}
+function startExam(examNumber) {
+    fetch('/start_exam', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+        body: JSON.stringify({exam_number: examNumber})
+    })
+    .then(resp => resp.json())
+    .then(data => {
+        if (data.success) {
+            // Timer anzeigen, Start-Button ausblenden, Fertig-Button einblenden
+            document.getElementById('startBtn').style.display = 'none';
+            document.getElementById('finishBtn').style.display = 'inline-block';
+            document.getElementById('timerDisplay').style.display = 'block';
+            // Optional: Fehler anzeigen
+            alert('✅ Prüfung gestartet!\nFehler: ' + data.error_details.map(e => e.name).join(', '));
+            startTimer();
+        } else {
+            alert('❌ Fehler beim Start: ' + (data.error || 'Unbekannt'));
+        }
+    })
+    .catch(err => {
+        alert('🚫 Verbindungsfehler: ' + err);
+    });
+}
+
+// Timer für Prüfungsmodus
+let timerSeconds = 20 * 60;
+let timerInterval;
+function startTimer() {
+    timerSeconds = 20 * 60;
+    updateTimerDisplay();
+    timerInterval = setInterval(() => {
+        timerSeconds--;
+        updateTimerDisplay();
+        if (timerSeconds <= 0) {
+            clearInterval(timerInterval);
+            finishExam();
+        }
+    }, 1000);
+}
+function updateTimerDisplay() {
+    const min = Math.floor(timerSeconds / 60);
+    const sec = timerSeconds % 60;
+    document.getElementById('timer').textContent = `${min}:${sec.toString().padStart(2, '0')}`;
+}
+
+function finishExam() {
+    // Stoppe Timer
+    if (timerInterval) clearInterval(timerInterval);
+    document.getElementById('finishBtn').style.display = 'none';
+    document.getElementById('timerDisplay').style.display = 'none';
+    // Hole Prüfungsnummer aus HTML
+    const examNumber = document.querySelector('.exam-number').textContent.replace('Prüfungsnummer:','').trim();
+    const duration = 20 * 60 - timerSeconds;
+    fetch('/finish_exam', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+        body: JSON.stringify({exam_number: examNumber, duration: duration})
+    })
+    .then(resp => resp.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ Prüfung beendet!');
+            document.getElementById('startBtn').style.display = 'inline-block';
+        } else {
+            alert('❌ Fehler beim Beenden: ' + (data.error || 'Unbekannt'));
+        }
+    })
+    .catch(err => {
+        alert('🚫 Verbindungsfehler: ' + err);
+    });
+}
+
+function runTest() {
+    fetch('/run_test', {method: 'POST'})
+    .then(resp => resp.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ Test erfolgreich durchgeführt!');
+        } else {
+            alert('❌ Test fehlgeschlagen: ' + (data.error || 'Unbekannt'));
+        }
+    })
+    .catch(err => {
+        alert('🚫 Verbindungsfehler: ' + err);
+    });
+}
+// Optional: showCurrentSelections und testConnection können auch ausgelagert werden, falls benötigt.
+// Die Event-Listener für Select-Felder und DOMContentLoaded sollten weiterhin im Template bleiben (oder hier ergänzt werden, wenn ausgelagert).

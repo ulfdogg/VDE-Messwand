@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Login - VDE Messwand{% endblock %}
+
+{% block content %}
+<div class="navigation-bar">
+    <a href="{{ url_for('index') }}" class="nav-btn home-btn" title="Zur Startseite">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-text">Home</span>
+    </a>
+</div>
+
+<div class="glass-card">
+    <h1>Admin Bereich</h1>
+    
+    <div style="max-width: 400px; margin: 0 auto;">
+        <div class="form-group">
+            <label for="adminCode">Zugriffscode:</label>
+            <input type="password" id="adminCode" class="form-control code-display" placeholder="Code eingeben" readonly>
+        </div>
+        
+        <div class="keypad-container">
+            <div class="numeric-keypad">
+                <div class="keypad-row">
+                    <button class="keypad-btn" onclick="addDigit('1')">1</button>
+                    <button class="keypad-btn" onclick="addDigit('2')">2</button>
+                    <button class="keypad-btn" onclick="addDigit('3')">3</button>
+                </div>
+                <div class="keypad-row">
+                    <button class="keypad-btn" onclick="addDigit('4')">4</button>
+                    <button class="keypad-btn" onclick="addDigit('5')">5</button>
+                    <button class="keypad-btn" onclick="addDigit('6')">6</button>
+                </div>
+                <div class="keypad-row">
+                    <button class="keypad-btn" onclick="addDigit('7')">7</button>
+                    <button class="keypad-btn" onclick="addDigit('8')">8</button>
+                    <button class="keypad-btn" onclick="addDigit('9')">9</button>
+                </div>
+                <div class="keypad-row">
+                    <button class="keypad-btn keypad-clear" onclick="clearCode()">C</button>
+                    <button class="keypad-btn" onclick="addDigit('0')">0</button>
+                    <button class="keypad-btn keypad-delete" onclick="deleteDigit()">&#x232b;</button>
+                </div>
+            </div>
+            <button class="keypad-enter" onclick="adminLogin()">&#x23CE;</button>
+        </div>
+    </div>
+</div>
+
+<script>
+function addDigit(digit) {
+    const codeInput = document.getElementById('adminCode');
+    if (codeInput.value.length < 10) { // Limit to 10 digits
+        codeInput.value += digit;
+        // Add visual feedback
+        const btn = event.target;
+        btn.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+            btn.style.transform = '';
+        }, 150);
+    }
+}
+
+function deleteDigit() {
+    const codeInput = document.getElementById('adminCode');
+    codeInput.value = codeInput.value.slice(0, -1);
+    
+    // Add visual feedback
+    const btn = event.target;
+    btn.style.transform = 'scale(0.95)';
+    setTimeout(() => {
+        btn.style.transform = '';
+    }, 150);
+}
+
+function clearCode() {
+    const codeInput = document.getElementById('adminCode');
+    codeInput.value = '';
+
+    // Add visual feedback
+    const btn = event.target;
+    btn.style.transform = 'scale(0.95)';
+    setTimeout(() => {
+        btn.style.transform = '';
+    }, 150);
+}
+</script>
+
+<style>
+.navigation-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    color: #ffffff;
+    text-decoration: none;
+    transition: all 0.3s;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.nav-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 68, 68, 0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(255, 68, 68, 0.2);
+}
+
+.nav-icon {
+    font-size: 1.3em;
+}
+
+.home-btn {
+    background: rgba(255, 68, 68, 0.2);
+    border-color: rgba(255, 68, 68, 0.4);
+}
+
+.home-btn:hover {
+    background: rgba(255, 68, 68, 0.3);
+    border-color: rgba(255, 68, 68, 0.6);
+}
+
+@media (max-width: 768px) {
+    .nav-text {
+        display: none;
+    }
+
+    .nav-btn {
+        padding: 12px 15px;
+    }
+}
+
+/* Keypad Container mit Enter-Button */
+.keypad-container {
+    display: flex;
+    justify-content: center;
+    align-items: stretch;
+    gap: 15px;
+}
+
+.keypad-enter {
+    width: 70px;
+    background: rgba(76, 175, 80, 0.3);
+    border: 2px solid rgba(76, 175, 80, 0.5);
+    border-radius: 15px;
+    color: #4caf50;
+    font-size: 2.5rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.keypad-enter:hover {
+    background: rgba(76, 175, 80, 0.5);
+    border-color: rgba(76, 175, 80, 0.8);
+    transform: scale(1.05);
+    box-shadow: 0 4px 20px rgba(76, 175, 80, 0.4);
+}
+
+.keypad-enter:active {
+    transform: scale(0.95);
+}
+</style>
+{% endblock %}

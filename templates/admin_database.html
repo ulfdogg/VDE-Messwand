@@ -1,0 +1,396 @@
+{% extends "base.html" %}
+{% block title %}Datenbank - VDE Messwand{% endblock %}
+{% block content %}
+<div class="navigation-bar">
+    <a href="javascript:history.back()" class="nav-btn back-btn" title="Einen Schritt zurück">
+        <span class="nav-icon">←</span>
+        <span class="nav-text">Zurück</span>
+    </a>
+    <a href="{{ url_for('index') }}" class="nav-btn home-btn" title="Zur Startseite">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-text">Home</span>
+    </a>
+</div>
+
+<div class="glass-card">
+    <h1>Prüfungsdatenbank</h1>
+    <div class="btn-group">
+        <button class="btn btn-danger" onclick="clearDatabase()">
+            Datenbank Leeren
+        </button>
+        <button class="btn btn-secondary" onclick="exportDatabase()">
+            Export CSV
+        </button>
+    </div>
+    
+    {% if examinations %}
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Prüfungsnummer</th>
+                    <th>Zugeschaltete Fehler</th>
+                    <th>Zeitstempel</th>
+                    <th>Dauer</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for exam in examinations %}
+                <tr>
+                    <td><strong>{{ exam.exam_number }}</strong></td>
+                    <td class="error-cell">
+                        <div class="error-list">
+                            {% if exam.relay_descriptions and exam.relay_descriptions|length > 0 %}
+                                {% for relay_desc in exam.relay_descriptions %}
+                                <div class="error-item">
+                                    {% if relay_desc.is_group %}
+                                    <span class="error-category">GRUPPE</span>
+                                    {% else %}
+                                    <span class="error-category">R{{ relay_desc.number }}</span>
+                                    {% endif %}
+                                    <span class="error-name">{{ relay_desc.name }}</span>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="error-item">
+                                    <span class="no-errors">Keine Relais aktiviert</span>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="timestamp">
+                            <div class="date">{{ exam.formatted_date }}</div>
+                            <div class="time">{{ exam.formatted_time }}</div>
+                        </div>
+                    </td>
+                    <td>
+                        {% if exam.is_completed %}
+                            <span class="duration">{{ exam.formatted_duration }}</span>
+                        {% else %}
+                            <span class="duration-incomplete">Nicht beendet</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if exam.is_completed %}
+                            <span class="status-complete">✓ Abgeschlossen</span>
+                        {% else %}
+                            <span class="status-incomplete">⚠ Unterbrochen</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="database-stats">
+        <div class="stat-item">
+            <strong>Gesamt Prüfungen:</strong> {{ examinations|length }}
+        </div>
+        <div class="stat-item">
+            <strong>Abgeschlossene:</strong> {{ completed_count }}
+        </div>
+        <div class="stat-item">
+            <strong>Unterbrochene:</strong> {{ incomplete_count }}
+        </div>
+    </div>
+    
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">📋</div>
+        <h3>Keine Prüfungsdaten vorhanden</h3>
+        <p>Es wurden noch keine Prüfungen durchgeführt.</p>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.navigation-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    color: #ffffff;
+    text-decoration: none;
+    transition: all 0.3s;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.nav-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 68, 68, 0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(255, 68, 68, 0.2);
+}
+
+.nav-icon {
+    font-size: 1.3em;
+}
+
+.back-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.back-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.home-btn {
+    background: rgba(255, 68, 68, 0.2);
+    border-color: rgba(255, 68, 68, 0.4);
+}
+
+.home-btn:hover {
+    background: rgba(255, 68, 68, 0.3);
+    border-color: rgba(255, 68, 68, 0.6);
+}
+
+@media (max-width: 768px) {
+    .nav-text {
+        display: none;
+    }
+
+    .nav-btn {
+        padding: 12px 15px;
+    }
+}
+
+.error-cell {
+    max-width: 400px;
+}
+
+.error-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.error-item {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 8px 12px;
+    border-left: 4px solid #ff4444;
+}
+
+.error-category {
+    display: inline-block;
+    background: #ff4444;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: bold;
+    margin-right: 8px;
+}
+
+.error-name {
+    font-weight: 600;
+    color: #ffffff;
+    display: block;
+    margin: 4px 0 2px 0;
+}
+
+.error-description {
+    font-size: 0.9em;
+    opacity: 0.8;
+    font-style: italic;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.no-errors {
+    opacity: 0.6;
+    font-style: italic;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.timestamp {
+    text-align: center;
+}
+
+.date {
+    font-weight: 600;
+    margin-bottom: 2px;
+    color: #ffffff;
+}
+
+.time {
+    font-size: 0.9em;
+    opacity: 0.8;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.duration {
+    font-weight: 600;
+    color: #ff4444;
+}
+
+.duration-incomplete {
+    color: #ff6b6b;
+    font-style: italic;
+}
+
+.status-complete {
+    color: #51cf66;
+    font-weight: 600;
+}
+
+.status-incomplete {
+    color: #ff6b6b;
+    font-weight: 600;
+}
+
+.database-stats {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 20px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stat-item {
+    text-align: center;
+    color: #ffffff;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #ffffff;
+}
+
+.empty-icon {
+    font-size: 4em;
+    margin-bottom: 20px;
+    opacity: 0.5;
+}
+
+.empty-state h3 {
+    margin-bottom: 10px;
+    opacity: 0.8;
+    color: #ffffff;
+}
+
+.empty-state p {
+    opacity: 0.6;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.table-container {
+    overflow-x: auto;
+    margin: 20px 0;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.data-table th {
+    background: rgba(255, 68, 68, 0.2);
+    padding: 15px;
+    text-align: left;
+    font-weight: 600;
+    color: #ff4444;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.data-table td {
+    padding: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    vertical-align: top;
+    color: #ffffff;
+}
+
+.data-table tr:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+</style>
+
+<script>
+function clearDatabase() {
+    if (confirm('Sind Sie sicher, dass Sie die gesamte Datenbank löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden!')) {
+        fetch('/clear_database', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Datenbank erfolgreich geleert!');
+                location.reload();
+            } else {
+                alert('Fehler beim Leeren der Datenbank!');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Fehler beim Leeren der Datenbank!');
+        });
+    }
+}
+
+function exportDatabase() {
+    // Erstelle CSV-Export
+    const table = document.querySelector('.data-table');
+    if (!table) {
+        alert('Keine Daten zum Exportieren vorhanden!');
+        return;
+    }
+    
+    let csv = 'Prüfungsnummer,Fehler,Kategorie,Zeitstempel,Dauer (Sek),Status\n';
+    
+    const rows = table.querySelectorAll('tbody tr');
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        const examNumber = cells[0].textContent.trim();
+        const timestamp = cells[2].textContent.trim().replace(/\n/g, ' ');
+        const duration = cells[3].textContent.trim();
+        const status = cells[4].textContent.trim();
+        
+        // Extrahiere Fehlerinformationen
+        const errorItems = cells[1].querySelectorAll('.error-item');
+        if (errorItems.length > 0) {
+            errorItems.forEach(errorItem => {
+                const category = errorItem.querySelector('.error-category').textContent;
+                const name = errorItem.querySelector('.error-name').textContent;
+                csv += `"${examNumber}","${name}","${category}","${timestamp}","${duration}","${status}"\n`;
+            });
+        } else {
+            csv += `"${examNumber}","Keine Fehler","","${timestamp}","${duration}","${status}"\n`;
+        }
+    });
+    
+    // Download CSV
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `vde_pruefungen_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+</script>
+{% endblock %}

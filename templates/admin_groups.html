@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relais-Gruppen Verwaltung - VDE Messwand</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .stat-box {
+            text-align: center;
+            padding: 15px;
+        }
+
+        .stat-box .number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #ff4444;
+            text-shadow: 0 0 20px rgba(255, 68, 68, 0.5);
+        }
+
+        .stat-box .label {
+            color: rgba(255, 255, 255, 0.7);
+            margin-top: 5px;
+        }
+
+        .section-title {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            color: #ff4444;
+            border-bottom: 3px solid rgba(255, 68, 68, 0.3);
+            padding-bottom: 10px;
+        }
+
+        .group-list {
+            display: grid;
+            gap: 20px;
+        }
+
+        .group-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+
+        .group-card:hover {
+            border-color: rgba(255, 68, 68, 0.4);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .group-card.config-group {
+            border-color: rgba(255, 193, 7, 0.4);
+            background: rgba(255, 193, 7, 0.05);
+        }
+
+        .group-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .group-name {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #ffffff;
+        }
+
+        .group-badge {
+            background: rgba(255, 68, 68, 0.3);
+            color: #ff4444;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            border: 1px solid rgba(255, 68, 68, 0.5);
+        }
+
+        .config-badge {
+            background: rgba(255, 193, 7, 0.3);
+            color: #ffc107;
+            border-color: rgba(255, 193, 7, 0.5);
+        }
+
+        .group-relays {
+            margin: 10px 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .relay-chip {
+            background: rgba(255, 68, 68, 0.2);
+            color: #ff4444;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.9em;
+            border: 1px solid rgba(255, 68, 68, 0.3);
+        }
+
+        .group-description {
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 10px;
+            font-style: italic;
+        }
+
+        .group-actions {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: rgba(30, 30, 30, 0.98);
+            backdrop-filter: blur(20px);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            color: #ff4444;
+        }
+
+        .relay-selector {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .relay-checkbox {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .relay-checkbox:hover {
+            border-color: rgba(255, 68, 68, 0.5);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .relay-checkbox input[type="checkbox"] {
+            width: auto;
+            margin-right: 5px;
+            accent-color: #ff4444;
+        }
+
+        .relay-checkbox.selected {
+            background: rgba(255, 68, 68, 0.3);
+            color: white;
+            border-color: rgba(255, 68, 68, 0.6);
+        }
+
+        .relay-checkbox.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+            justify-content: flex-end;
+        }
+
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .navigation-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .nav-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            color: #ffffff;
+            text-decoration: none;
+            transition: all 0.3s;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 68, 68, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(255, 68, 68, 0.2);
+        }
+
+        .nav-icon {
+            font-size: 1.3em;
+        }
+
+        .back-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .home-btn {
+            background: rgba(255, 68, 68, 0.2);
+            border-color: rgba(255, 68, 68, 0.4);
+        }
+
+        .home-btn:hover {
+            background: rgba(255, 68, 68, 0.3);
+            border-color: rgba(255, 68, 68, 0.6);
+        }
+
+        @media (max-width: 768px) {
+            .stats {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .relay-selector {
+                grid-template-columns: repeat(4, 1fr);
+            }
+
+            .nav-text {
+                display: none;
+            }
+
+            .nav-btn {
+                padding: 12px 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="navigation-bar">
+            <a href="javascript:history.back()" class="nav-btn back-btn" title="Einen Schritt zurück">
+                <span class="nav-icon">←</span>
+                <span class="nav-text">Zurück</span>
+            </a>
+            <a href="{{ url_for('index') }}" class="nav-btn home-btn" title="Zur Startseite">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-text">Home</span>
+            </a>
+        </div>
+
+        <div class="glass-card">
+            <h1>🔗 Relais-Gruppen Verwaltung</h1>
+            <p style="text-align: center; opacity: 0.8; margin-bottom: 30px;">
+                Verwalten Sie Relais-Gruppen, die immer zusammen geschaltet werden
+            </p>
+
+            <div class="stats">
+                <div class="stat-box">
+                    <div class="number">{{ total_groups }}</div>
+                    <div class="label">Gruppen gesamt</div>
+                </div>
+                <div class="stat-box">
+                    <div class="number">{{ grouped_relays }}</div>
+                    <div class="label">Gruppierte Relais</div>
+                </div>
+                <div class="stat-box">
+                    <div class="number">{{ available_relays|length }}</div>
+                    <div class="label">Verfügbare Relais</div>
+                </div>
+            </div>
+
+            <div id="messageBox" class="message"></div>
+
+            <div class="toolbar">
+                <h2 class="section-title" style="margin: 0;">Definierte Gruppen</h2>
+                <button class="btn" onclick="openAddModal()">➕ Neue Gruppe</button>
+            </div>
+
+            <div class="group-list" id="groupList">
+                {% if groups %}
+                    {% for group_id, group_data in groups.items() %}
+                    <div class="group-card {% if group_id in ['CEE_GRUPPE_1'] %}config-group{% endif %}">
+                        <div class="group-header">
+                            <span class="group-name">{{ group_data.name }}</span>
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                {% if group_data.category %}
+                                <span class="group-badge" style="background: rgba(76, 175, 80, 0.3); color: #4caf50; border-color: rgba(76, 175, 80, 0.5);">
+                                    {{ group_data.category }}
+                                </span>
+                                {% endif %}
+                                <span class="group-badge {% if group_id in ['CEE_GRUPPE_1'] %}config-badge{% endif %}">
+                                    {{ group_data.relays|length }} Relais
+                                </span>
+                            </div>
+                        </div>
+                        <div class="group-relays">
+                            {% for relay in group_data.relays %}
+                            <span class="relay-chip">Relais {{ relay }}</span>
+                            {% endfor %}
+                        </div>
+                        {% if group_data.stromkreis %}
+                        <div class="group-description" style="color: rgba(255, 193, 7, 0.9);">
+                            ⚡ Stromkreis: {{ group_data.stromkreis }}
+                        </div>
+                        {% endif %}
+                        {% if group_data.description %}
+                        <div class="group-description">{{ group_data.description }}</div>
+                        {% endif %}
+                        <div class="group-actions">
+                            {% if group_id not in ['CEE_GRUPPE_1'] %}
+                            <button class="btn btn-secondary" onclick="openEditModal('{{ group_id }}')">✏️ Bearbeiten</button>
+                            <button class="btn btn-danger" onclick="deleteGroup('{{ group_id }}')">🗑️ Löschen</button>
+                            {% else %}
+                            <span style="color: rgba(255, 255, 255, 0.5); font-style: italic;">
+                                📌 In config.py definiert (nicht editierbar)
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p style="text-align: center; color: rgba(255, 255, 255, 0.5); padding: 40px; font-style: italic;">
+                        Noch keine Gruppen definiert. Erstellen Sie eine neue Gruppe!
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div id="groupModal" class="modal">
+        <div class="modal-content">
+            <h2 class="modal-header" id="modalTitle">Neue Gruppe erstellen</h2>
+            
+            <form id="groupForm">
+                <input type="hidden" id="groupId" name="group_id">
+                
+                <div class="form-group">
+                    <label for="groupName">Gruppenname *</label>
+                    <input type="text" id="groupName" name="name" class="form-control" required placeholder="z.B. Herd 3-Phasen">
+                </div>
+
+                <div class="form-group">
+                    <label for="groupDescription">Beschreibung</label>
+                    <textarea id="groupDescription" name="description" class="form-control" rows="3" placeholder="Optional: Beschreibung der Gruppe"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="groupCategory">Kategorie</label>
+                    <select id="groupCategory" name="category" class="form-control">
+                        <option value="">Keine Kategorie</option>
+                        {% for kat in kategorien %}
+                        <option value="{{ kat }}">{{ kat }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="groupStromkreis">Stromkreis</label>
+                    <input type="text" id="groupStromkreis" name="stromkreis" class="form-control" placeholder="z.B. L1, L2, L3...">
+                </div>
+
+                <div class="form-group">
+                    <label>Relais auswählen * (mindestens 2)</label>
+                    <div class="relay-selector" id="relaySelector"></div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Abbrechen</button>
+                    <button type="submit" class="btn">💾 Speichern</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let currentGroups = {{ groups|tojson }};
+        let availableRelays = {{ available_relays|tojson }};
+        let isEditMode = false;
+
+        function showMessage(message, type) {
+            const msgBox = document.getElementById('messageBox');
+            msgBox.textContent = message;
+            msgBox.className = type === 'success' ? 'status-success' : 'status-error';
+            msgBox.style.display = 'block';
+            setTimeout(() => {
+                msgBox.style.display = 'none';
+            }, 5000);
+        }
+
+        function openAddModal() {
+            isEditMode = false;
+            document.getElementById('modalTitle').textContent = 'Neue Gruppe erstellen';
+            document.getElementById('groupForm').reset();
+            document.getElementById('groupId').value = '';
+            loadRelaySelector([]);
+            document.getElementById('groupModal').classList.add('active');
+        }
+
+        function openEditModal(groupId) {
+            isEditMode = true;
+            const group = currentGroups[groupId];
+
+            document.getElementById('modalTitle').textContent = 'Gruppe bearbeiten';
+            document.getElementById('groupId').value = groupId;
+            document.getElementById('groupName').value = group.name;
+            document.getElementById('groupDescription').value = group.description || '';
+            document.getElementById('groupCategory').value = group.category || '';
+            document.getElementById('groupStromkreis').value = group.stromkreis || '';
+
+            loadRelaySelector(group.relays, groupId);
+            document.getElementById('groupModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('groupModal').classList.remove('active');
+        }
+
+        function loadRelaySelector(selectedRelays, currentGroupId = null) {
+            const selector = document.getElementById('relaySelector');
+            selector.innerHTML = '';
+
+            let occupiedRelays = new Set();
+            for (let [gid, gdata] of Object.entries(currentGroups)) {
+                if (gid !== currentGroupId) {
+                    gdata.relays.forEach(r => occupiedRelays.add(r));
+                }
+            }
+
+            for (let i = 0; i < 64; i++) {
+                const isSelected = selectedRelays.includes(i);
+                const isOccupied = occupiedRelays.has(i);
+                const isDisabled = isOccupied && !isSelected;
+
+                const div = document.createElement('div');
+                div.className = 'relay-checkbox';
+                if (isSelected) div.classList.add('selected');
+                if (isDisabled) div.classList.add('disabled');
+
+                div.innerHTML = `
+                    <input type="checkbox" 
+                           id="relay_${i}" 
+                           value="${i}" 
+                           ${isSelected ? 'checked' : ''} 
+                           ${isDisabled ? 'disabled' : ''}
+                           onchange="toggleRelaySelection(${i})">
+                    <label for="relay_${i}" style="cursor: pointer; color: #fff;">${i}</label>
+                `;
+
+                selector.appendChild(div);
+            }
+        }
+
+        function toggleRelaySelection(relayNum) {
+            const checkbox = document.getElementById(`relay_${relayNum}`);
+            const div = checkbox.parentElement;
+            
+            if (checkbox.checked) {
+                div.classList.add('selected');
+            } else {
+                div.classList.remove('selected');
+            }
+        }
+
+        document.getElementById('groupForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData(e.target);
+            const selectedRelays = Array.from(document.querySelectorAll('#relaySelector input:checked'))
+                .map(cb => parseInt(cb.value));
+
+            if (selectedRelays.length < 2) {
+                showMessage('Eine Gruppe muss mindestens 2 Relais enthalten!', 'error');
+                return;
+            }
+
+            const groupId = document.getElementById('groupId').value || 
+                           formData.get('name').toUpperCase().replace(/\s+/g, '_');
+
+            const data = {
+                group_id: groupId,
+                name: formData.get('name'),
+                description: formData.get('description'),
+                category: formData.get('category'),
+                stromkreis: formData.get('stromkreis'),
+                relays: selectedRelays
+            };
+
+            const endpoint = isEditMode ? '/api/groups/update' : '/api/groups/add';
+
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage(result.message, 'success');
+                    closeModal();
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showMessage(result.message, 'error');
+                }
+            } catch (error) {
+                showMessage('Fehler beim Speichern: ' + error.message, 'error');
+            }
+        });
+
+        async function deleteGroup(groupId) {
+            if (!confirm('Gruppe wirklich löschen?')) return;
+
+            try {
+                const response = await fetch('/api/groups/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ group_id: groupId })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage(result.message, 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showMessage(result.message, 'error');
+                }
+            } catch (error) {
+                showMessage('Fehler beim Löschen: ' + error.message, 'error');
+            }
+        }
+
+        document.getElementById('groupModal').addEventListener('click', (e) => {
+            if (e.target.id === 'groupModal') {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>

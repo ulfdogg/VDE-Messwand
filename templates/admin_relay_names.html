@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relais-Benennung - VDE Messwand</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-group label {
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 600;
+        }
+
+        .filter-group select,
+        .filter-group input {
+            padding: 10px 15px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            font-size: 1em;
+            min-width: 150px;
+        }
+
+        .filter-group select:focus,
+        .filter-group input:focus {
+            border-color: #ff4444;
+            box-shadow: 0 0 15px rgba(255, 68, 68, 0.3);
+        }
+
+        .stats-bar {
+            display: flex;
+            justify-content: space-around;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #ff4444;
+            text-shadow: 0 0 20px rgba(255, 68, 68, 0.5);
+        }
+
+        .stat-label {
+            color: rgba(255, 255, 255, 0.7);
+            margin-top: 5px;
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .relay-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .relay-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 15px;
+            transition: all 0.3s;
+        }
+
+        .relay-card:hover {
+            border-color: rgba(255, 68, 68, 0.4);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .relay-card.grouped {
+            background: rgba(255, 193, 7, 0.05);
+            border-color: rgba(255, 193, 7, 0.4);
+        }
+
+        .relay-card.named {
+            border-color: rgba(40, 167, 69, 0.4);
+        }
+
+        .relay-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .relay-number {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #ff4444;
+        }
+
+        .relay-badge {
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+
+        .badge-grouped {
+            background: rgba(255, 193, 7, 0.3);
+            color: #ffc107;
+            border: 1px solid rgba(255, 193, 7, 0.5);
+        }
+
+        .badge-stromkreis {
+            background: rgba(108, 117, 125, 0.3);
+            color: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .relay-input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            font-size: 1em;
+            margin-top: 8px;
+            transition: all 0.3s;
+        }
+
+        .relay-input:focus {
+            outline: none;
+            border-color: #ff4444;
+            box-shadow: 0 0 15px rgba(255, 68, 68, 0.3);
+        }
+
+        .relay-input:disabled {
+            background: rgba(255, 255, 255, 0.05);
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .relay-info {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.9em;
+            margin-top: 8px;
+            font-style: italic;
+        }
+
+        .group-info {
+            color: #ffc107;
+            font-weight: bold;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 768px) {
+            .relay-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .filter-group {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .filter-group select,
+            .filter-group input {
+                width: 100%;
+            }
+            
+            .stats-bar {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .nav-text {
+                display: none;
+            }
+
+            .nav-btn {
+                padding: 12px 15px;
+            }
+        }
+
+        .navigation-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .nav-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            color: #ffffff;
+            text-decoration: none;
+            transition: all 0.3s;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 68, 68, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(255, 68, 68, 0.2);
+        }
+
+        .nav-icon {
+            font-size: 1.3em;
+        }
+
+        .back-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .home-btn {
+            background: rgba(255, 68, 68, 0.2);
+            border-color: rgba(255, 68, 68, 0.4);
+        }
+
+        .home-btn:hover {
+            background: rgba(255, 68, 68, 0.3);
+            border-color: rgba(255, 68, 68, 0.6);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="navigation-bar">
+            <a href="javascript:history.back()" class="nav-btn back-btn" title="Einen Schritt zurück">
+                <span class="nav-icon">←</span>
+                <span class="nav-text">Zurück</span>
+            </a>
+            <a href="{{ url_for('index') }}" class="nav-btn home-btn" title="Zur Startseite">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-text">Home</span>
+            </a>
+        </div>
+
+        <div class="glass-card">
+            <h1>📝 Relais-Benennung</h1>
+            <p style="text-align: center; opacity: 0.8; margin-bottom: 30px;">
+                Benennen Sie einzelne Relais individuell
+            </p>
+
+            <div class="toolbar">
+                <div class="filter-group">
+                    <label>Filtern:</label>
+                    <select id="filterStromkreis" onchange="applyFilter()">
+                        <option value="all">Alle Stromkreise</option>
+                        {% for sk_num, sk_data in stromkreise.items() %}
+                        <option value="{{ sk_num }}">{{ sk_data.name }}</option>
+                        {% endfor %}
+                    </select>
+                    
+                    <select id="filterStatus" onchange="applyFilter()">
+                        <option value="all">Alle Relais</option>
+                        <option value="named">Nur benannte</option>
+                        <option value="unnamed">Nur unbenannte</option>
+                        <option value="editable">Nur editierbare</option>
+                    </select>
+
+                    <input type="text" id="searchBox" placeholder="Suchen..." oninput="applyFilter()">
+                </div>
+
+                <button class="btn" onclick="saveAllChanges()">💾 Alle speichern</button>
+            </div>
+
+            <div id="messageBox" class="message"></div>
+
+            <div class="stats-bar">
+                <div class="stat-item">
+                    <div class="stat-number" id="totalRelays">64</div>
+                    <div class="stat-label">Relais gesamt</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="namedRelays">0</div>
+                    <div class="stat-label">Benannt</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="groupedRelays">0</div>
+                    <div class="stat-label">In Gruppen</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="editableRelays">0</div>
+                    <div class="stat-label">Editierbar</div>
+                </div>
+            </div>
+
+            <div class="quick-actions">
+                <button class="btn btn-danger" onclick="clearAllNames()">🗑️ Alle Namen löschen</button>
+                <button class="btn btn-secondary" onclick="exportNames()">📥 Namen exportieren</button>
+            </div>
+
+            <div class="relay-grid" id="relayGrid">
+                {% for relay in relay_info %}
+                <div class="relay-card {% if relay.group %}grouped{% elif relay.name %}named{% endif %}" 
+                     data-relay="{{ relay.number }}"
+                     data-stromkreis="{{ relay.stromkreis or 'none' }}"
+                     data-status="{% if relay.group %}grouped{% elif relay.name %}named{% else %}unnamed{% endif %}"
+                     data-editable="{{ 'true' if relay.editable else 'false' }}">
+                    
+                    <div class="relay-header">
+                        <span class="relay-number">Relais {{ relay.number }}</span>
+                        {% if relay.group %}
+                        <span class="relay-badge badge-grouped">Gruppe</span>
+                        {% elif relay.stromkreis %}
+                        <span class="relay-badge badge-stromkreis">{{ relay.stromkreis[:15] }}</span>
+                        {% endif %}
+                    </div>
+
+                    {% if relay.group %}
+                        <div class="relay-info group-info">
+                            🔗 Teil der Gruppe: {{ relay.group }}
+                        </div>
+                        <input type="text" class="relay-input" value="{{ relay.group }}" disabled>
+                    {% else %}
+                        <input type="text"
+                               class="relay-input"
+                               id="relay_{{ relay.number }}"
+                               value="{{ relay.name }}"
+                               placeholder="Name eingeben..."
+                               data-original="{{ relay.name }}"
+                               oninput="markChanged({{ relay.number }})">
+
+                        <div class="form-group" style="margin-top: 10px;">
+                            <label style="font-size: 0.85em; color: rgba(255, 255, 255, 0.7);">Kategorie:</label>
+                            <select class="relay-input"
+                                    id="category_{{ relay.number }}"
+                                    data-original="{{ relay.category or '' }}"
+                                    onchange="markChanged({{ relay.number }})"
+                                    style="padding: 8px; font-size: 0.9em;">
+                                <option value="">Keine Kategorie</option>
+                                {% for kat in kategorien %}
+                                <option value="{{ kat }}" {% if relay.category == kat %}selected{% endif %}>{{ kat }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="form-group" style="margin-top: 8px;">
+                            <label style="font-size: 0.85em; color: rgba(255, 255, 255, 0.7);">Stromkreis:</label>
+                            <input type="text"
+                                   class="relay-input"
+                                   id="stromkreis_{{ relay.number }}"
+                                   value="{{ relay.stromkreis or '' }}"
+                                   placeholder="z.B. L1, L2, L3..."
+                                   data-original="{{ relay.stromkreis or '' }}"
+                                   oninput="markChanged({{ relay.number }})"
+                                   style="padding: 8px; font-size: 0.9em;">
+                        </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let changedRelays = new Set();
+        let allRelayInfo = {{ relay_info|tojson }};
+
+        function updateStats() {
+            const named = allRelayInfo.filter(r => r.name && !r.group).length;
+            const grouped = allRelayInfo.filter(r => r.group).length;
+            const editable = allRelayInfo.filter(r => r.editable).length;
+
+            document.getElementById('namedRelays').textContent = named;
+            document.getElementById('groupedRelays').textContent = grouped;
+            document.getElementById('editableRelays').textContent = editable;
+        }
+
+        function markChanged(relayNum) {
+            const nameInput = document.getElementById(`relay_${relayNum}`);
+            const categorySelect = document.getElementById(`category_${relayNum}`);
+            const stromkreisInput = document.getElementById(`stromkreis_${relayNum}`);
+
+            // Prüfe alle drei Felder auf Änderungen
+            const nameChanged = nameInput && nameInput.value !== nameInput.dataset.original;
+            const categoryChanged = categorySelect && categorySelect.value !== categorySelect.dataset.original;
+            const stromkreisChanged = stromkreisInput && stromkreisInput.value !== stromkreisInput.dataset.original;
+
+            const hasChanges = nameChanged || categoryChanged || stromkreisChanged;
+
+            if (hasChanges) {
+                changedRelays.add(relayNum);
+                // Markiere alle geänderten Felder
+                if (nameChanged && nameInput) {
+                    nameInput.style.borderColor = '#ffc107';
+                    nameInput.style.background = 'rgba(255, 193, 7, 0.2)';
+                }
+                if (categoryChanged && categorySelect) {
+                    categorySelect.style.borderColor = '#ffc107';
+                    categorySelect.style.background = 'rgba(255, 193, 7, 0.2)';
+                }
+                if (stromkreisChanged && stromkreisInput) {
+                    stromkreisInput.style.borderColor = '#ffc107';
+                    stromkreisInput.style.background = 'rgba(255, 193, 7, 0.2)';
+                }
+            } else {
+                changedRelays.delete(relayNum);
+                // Setze alle Felder zurück
+                if (nameInput) {
+                    nameInput.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                    nameInput.style.background = 'rgba(255, 255, 255, 0.1)';
+                }
+                if (categorySelect) {
+                    categorySelect.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                    categorySelect.style.background = 'rgba(255, 255, 255, 0.1)';
+                }
+                if (stromkreisInput) {
+                    stromkreisInput.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                    stromkreisInput.style.background = 'rgba(255, 255, 255, 0.1)';
+                }
+            }
+        }
+
+        function showMessage(message, type) {
+            const msgBox = document.getElementById('messageBox');
+            msgBox.textContent = message;
+            msgBox.className = type === 'success' ? 'status-success' : 'status-error';
+            msgBox.style.display = 'block';
+            setTimeout(() => {
+                msgBox.style.display = 'none';
+            }, 5000);
+        }
+
+        async function saveAllChanges() {
+            if (changedRelays.size === 0) {
+                showMessage('Keine Änderungen zum Speichern', 'error');
+                return;
+            }
+
+            const relayData = {};
+            changedRelays.forEach(relayNum => {
+                const nameInput = document.getElementById(`relay_${relayNum}`);
+                const categorySelect = document.getElementById(`category_${relayNum}`);
+                const stromkreisInput = document.getElementById(`stromkreis_${relayNum}`);
+
+                relayData[relayNum] = {
+                    name: nameInput ? nameInput.value.trim() : '',
+                    category: categorySelect ? categorySelect.value : '',
+                    stromkreis: stromkreisInput ? stromkreisInput.value.trim() : ''
+                };
+            });
+
+            try {
+                const response = await fetch('/api/relay_names/bulk', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ relay_data: relayData })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage(result.message, 'success');
+
+                    changedRelays.forEach(relayNum => {
+                        const input = document.getElementById(`relay_${relayNum}`);
+                        if (input) {
+                            input.dataset.original = input.value;
+                            input.style.borderColor = 'rgba(40, 167, 69, 0.6)';
+                            input.style.background = 'rgba(255, 255, 255, 0.1)';
+                        }
+                    });
+
+                    changedRelays.clear();
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showMessage(result.message, 'error');
+                }
+            } catch (error) {
+                showMessage('Fehler beim Speichern: ' + error.message, 'error');
+            }
+        }
+
+        function applyFilter() {
+            const stromkreisFilter = document.getElementById('filterStromkreis').value;
+            const statusFilter = document.getElementById('filterStatus').value;
+            const searchText = document.getElementById('searchBox').value.toLowerCase();
+
+            const cards = document.querySelectorAll('.relay-card');
+            
+            cards.forEach(card => {
+                let show = true;
+
+                if (stromkreisFilter !== 'all') {
+                    const cardStromkreis = card.dataset.stromkreis;
+                    const targetStromkreis = {{ stromkreise|tojson }}[stromkreisFilter];
+                    if (cardStromkreis !== targetStromkreis.name) show = false;
+                }
+
+                if (statusFilter !== 'all') {
+                    const status = card.dataset.status;
+                    const editable = card.dataset.editable === 'true';
+                    
+                    if (statusFilter === 'named' && status !== 'named') show = false;
+                    if (statusFilter === 'unnamed' && status !== 'unnamed') show = false;
+                    if (statusFilter === 'editable' && !editable) show = false;
+                }
+
+                if (searchText) {
+                    const relayNum = card.dataset.relay;
+                    const input = card.querySelector('.relay-input');
+                    const name = input ? input.value.toLowerCase() : '';
+                    
+                    if (!relayNum.includes(searchText) && !name.includes(searchText)) {
+                        show = false;
+                    }
+                }
+
+                card.classList.toggle('hidden', !show);
+            });
+        }
+
+        function clearAllNames() {
+            if (!confirm('Wirklich alle benutzerdefinierten Namen löschen?')) return;
+
+            const editableInputs = document.querySelectorAll('.relay-input:not(:disabled)');
+            editableInputs.forEach(input => {
+                if (input.value) {
+                    input.value = '';
+                    const relayNum = parseInt(input.id.split('_')[1]);
+                    markChanged(relayNum);
+                }
+            });
+
+            showMessage('Namen gelöscht. Klicken Sie auf "Alle speichern"', 'success');
+        }
+
+        function exportNames() {
+            const names = {};
+            allRelayInfo.forEach(relay => {
+                if (relay.name && !relay.group) {
+                    names[relay.number] = relay.name;
+                }
+            });
+
+            const blob = new Blob([JSON.stringify(names, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `relay_names_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            
+            showMessage('Namen exportiert!', 'success');
+        }
+
+        updateStats();
+    </script>
+</body>
+</html>

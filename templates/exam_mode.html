@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}Prüfungsmodus - VDE Messwand{% endblock %}
+
+{% block content %}
+<div class="glass-card">
+    <h1>Prüfungsmodus</h1>
+    
+    <div class="exam-info">
+        <div class="exam-number">
+            Prüfungsnummer: {{ exam_number }}
+        </div>
+    </div>
+    
+    <div id="timerDisplay" class="timer-display" style="display: none;">
+        <div class="timer" id="timer">20:00</div>
+        <p>Verbleibende Zeit</p>
+    </div>
+    
+    <div class="btn-group">
+        <button id="startBtn" class="btn" onclick="startExam('{{ exam_number }}')">
+            Start
+        </button>
+        <button id="finishBtn" class="btn btn-danger" onclick="finishExam()" style="display: none;">
+            Fertig
+        </button>
+    </div>
+    
+    <div style="text-align: center; margin-top: 30px; opacity: 0.8;">
+        <p>Bei Start werden automatisch 3 zufällige Fehler zugeschaltet.</p>
+        <p>Maximal 1 Fehler pro Stromkreis.</p>
+    </div>
+</div>
+{% endblock %}

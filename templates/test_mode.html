@@ -1,0 +1,299 @@
+{% extends "base.html" %}
+
+{% block title %}Test Durchlauf - VDE Messwand{% endblock %}
+
+{% block content %}
+<div class="navigation-bar">
+    <a href="javascript:history.back()" class="nav-btn back-btn" title="Einen Schritt zurück">
+        <span class="nav-icon">←</span>
+        <span class="nav-text">Zurück</span>
+    </a>
+    <a href="{{ url_for('index') }}" class="nav-btn home-btn" title="Zur Startseite">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-text">Home</span>
+    </a>
+</div>
+
+<div class="glass-card">
+    <h1>Test Durchlauf</h1>
+
+    <div style="text-align: center;">
+        <p style="font-size: 1.1rem; margin: 20px 0; opacity: 0.8;">
+            Alle 64 Relais werden nacheinander aktiviert und per Modbus geprüft.
+        </p>
+
+        <button id="runTestBtn" class="btn" onclick="runTestWithStatus()">
+            Test Starten
+        </button>
+
+        <button id="cancelTestBtn" class="btn btn-danger" onclick="cancelTest()" style="display: none; margin-left: 15px;">
+            Abbrechen
+        </button>
+
+        <!-- Fortschrittsanzeige -->
+        <div id="testProgress" style="display: none; margin-top: 30px;">
+            <div style="background: rgba(255,255,255,0.1); border-radius: 10px; padding: 20px; margin: 20px 0;">
+                <h2 id="currentRelay" style="font-size: 3rem; margin: 10px 0;">--</h2>
+                <p style="opacity: 0.8;">Aktuelles Relais</p>
+
+                <div id="relayAction" style="margin: 15px 0; font-size: 1.2rem;">
+                    <span id="actionText">Warte...</span>
+                </div>
+
+                <div id="modbusStatus" style="margin: 15px 0; padding: 10px; border-radius: 8px; display: none;">
+                    <span id="modbusText">Modbus Check...</span>
+                </div>
+            </div>
+
+            <!-- Fortschrittsbalken -->
+            <div style="background: rgba(255,255,255,0.1); border-radius: 10px; height: 30px; margin: 20px 0; overflow: hidden;">
+                <div id="progressBar" style="background: linear-gradient(90deg, #4caf50, #8bc34a); height: 100%; width: 0%; transition: width 0.3s; border-radius: 10px;"></div>
+            </div>
+            <p id="progressText" style="opacity: 0.8;">0 / 64</p>
+        </div>
+
+        <!-- Ergebnis -->
+        <div id="testResult" style="display: none; margin-top: 30px; padding: 20px; border-radius: 15px;">
+        </div>
+
+        <!-- Fehlerliste -->
+        <div id="failedList" style="display: none; margin-top: 20px; text-align: left; background: rgba(255,68,68,0.1); border: 2px solid rgba(255,68,68,0.3); border-radius: 15px; padding: 15px;">
+            <h3 style="margin-top: 0; color: #ff4444;">Fehlerhafte Relais:</h3>
+            <ul id="failedRelays" style="margin: 0; padding-left: 20px;"></ul>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentEventSource = null;
+
+function runTestWithStatus() {
+    const runBtn = document.getElementById('runTestBtn');
+    const cancelBtn = document.getElementById('cancelTestBtn');
+    const progress = document.getElementById('testProgress');
+    const result = document.getElementById('testResult');
+    const failedList = document.getElementById('failedList');
+
+    // UI zurücksetzen
+    runBtn.disabled = true;
+    runBtn.textContent = 'Test läuft...';
+    cancelBtn.style.display = 'inline-block';
+    progress.style.display = 'block';
+    result.style.display = 'none';
+    failedList.style.display = 'none';
+    document.getElementById('failedRelays').innerHTML = '';
+
+    // Server-Sent Events verbinden
+    const eventSource = new EventSource('/run_test_stream');
+    currentEventSource = eventSource;
+
+    eventSource.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+
+        switch(data.type) {
+            case 'start':
+                document.getElementById('currentRelay').textContent = '--';
+                document.getElementById('progressBar').style.width = '0%';
+                break;
+
+            case 'testing':
+                document.getElementById('currentRelay').textContent = data.relay;
+                const actionText = document.getElementById('actionText');
+                if (data.action === 'on') {
+                    actionText.textContent = 'Einschalten...';
+                    actionText.style.color = '#4caf50';
+                } else {
+                    actionText.textContent = 'Ausschalten...';
+                    actionText.style.color = '#ff9800';
+                }
+                document.getElementById('modbusStatus').style.display = 'none';
+                break;
+
+            case 'status':
+                const modbusDiv = document.getElementById('modbusStatus');
+                const modbusText = document.getElementById('modbusText');
+                modbusDiv.style.display = 'block';
+                if (data.modbus_ok) {
+                    modbusDiv.style.background = 'rgba(76, 175, 80, 0.3)';
+                    modbusText.textContent = 'Modbus: Relais ' + data.relay + ' ist AN';
+                    modbusText.style.color = '#4caf50';
+                } else {
+                    modbusDiv.style.background = 'rgba(255, 68, 68, 0.3)';
+                    modbusText.textContent = 'Modbus FEHLER: Relais nicht AN';
+                    modbusText.style.color = '#ff4444';
+                }
+                break;
+
+            case 'all_off':
+                document.getElementById('currentRelay').textContent = '--';
+                document.getElementById('actionText').textContent = 'Alle aus';
+                document.getElementById('actionText').style.color = '#2196f3';
+                const allOffDiv = document.getElementById('modbusStatus');
+                const allOffText = document.getElementById('modbusText');
+                allOffDiv.style.display = 'block';
+                if (data.modbus_ok) {
+                    allOffDiv.style.background = 'rgba(33, 150, 243, 0.3)';
+                    allOffText.textContent = 'Modbus: Alle Relais AUS';
+                    allOffText.style.color = '#2196f3';
+                } else {
+                    allOffDiv.style.background = 'rgba(255, 68, 68, 0.3)';
+                    allOffText.textContent = 'FEHLER: Aktive Relais: ' + data.active_relays.join(', ');
+                    allOffText.style.color = '#ff4444';
+                }
+                break;
+
+            case 'progress':
+                const percent = (data.done / data.total) * 100;
+                document.getElementById('progressBar').style.width = percent + '%';
+                document.getElementById('progressText').textContent = data.done + ' / ' + data.total;
+                break;
+
+            case 'error':
+                if (data.relay !== undefined) {
+                    // Einzelner Relais-Fehler
+                    const failedUl = document.getElementById('failedRelays');
+                    const li = document.createElement('li');
+                    li.textContent = 'Relais ' + data.relay + ': ' + data.error;
+                    failedUl.appendChild(li);
+                } else {
+                    // Allgemeiner Fehler
+                    result.style.display = 'block';
+                    result.style.background = 'rgba(255, 68, 68, 0.2)';
+                    result.style.border = '2px solid rgba(255, 68, 68, 0.5)';
+                    result.innerHTML = '<h2 style="color: #ff4444;">Fehler</h2><p>' + data.error + '</p>';
+                }
+                break;
+
+            case 'complete':
+                eventSource.close();
+                currentEventSource = null;
+                runBtn.disabled = false;
+                runBtn.textContent = 'Test Starten';
+                cancelBtn.style.display = 'none';
+                progress.style.display = 'none';
+
+                result.style.display = 'block';
+                if (data.success) {
+                    result.style.background = 'rgba(76, 175, 80, 0.2)';
+                    result.style.border = '2px solid rgba(76, 175, 80, 0.5)';
+                    result.innerHTML = '<h2 style="color: #4caf50;">Test erfolgreich!</h2><p>Alle 64 Relais funktionieren korrekt.</p>';
+                } else {
+                    result.style.background = 'rgba(255, 152, 0, 0.2)';
+                    result.style.border = '2px solid rgba(255, 152, 0, 0.5)';
+                    result.innerHTML = '<h2 style="color: #ff9800;">Test abgeschlossen</h2><p>' + data.failed.length + ' Relais mit Fehlern</p>';
+
+                    // Fehlerliste anzeigen
+                    if (data.failed.length > 0) {
+                        failedList.style.display = 'block';
+                        const failedUl = document.getElementById('failedRelays');
+                        data.failed.forEach(function(f) {
+                            const li = document.createElement('li');
+                            li.textContent = 'Relais ' + f.relay + ': ' + f.error;
+                            failedUl.appendChild(li);
+                        });
+                    }
+                }
+                break;
+        }
+    };
+
+    eventSource.onerror = function(error) {
+        console.error('EventSource error:', error);
+        eventSource.close();
+        currentEventSource = null;
+        runBtn.disabled = false;
+        runBtn.textContent = 'Test Starten';
+        cancelBtn.style.display = 'none';
+        result.style.display = 'block';
+        result.style.background = 'rgba(255, 68, 68, 0.2)';
+        result.style.border = '2px solid rgba(255, 68, 68, 0.5)';
+        result.innerHTML = '<h2 style="color: #ff4444;">Verbindungsfehler</h2><p>Die Verbindung zum Server wurde unterbrochen.</p>';
+    };
+}
+
+function cancelTest() {
+    // EventSource schließen
+    if (currentEventSource) {
+        currentEventSource.close();
+        currentEventSource = null;
+    }
+
+    // Alle Relais ausschalten
+    fetch('/reset_relays', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Relais reset:', data);
+        })
+        .catch(error => {
+            console.error('Error resetting relays:', error);
+        });
+
+    // UI zurücksetzen
+    const runBtn = document.getElementById('runTestBtn');
+    const cancelBtn = document.getElementById('cancelTestBtn');
+    const progress = document.getElementById('testProgress');
+    const result = document.getElementById('testResult');
+
+    runBtn.disabled = false;
+    runBtn.textContent = 'Test Starten';
+    cancelBtn.style.display = 'none';
+    progress.style.display = 'none';
+
+    result.style.display = 'block';
+    result.style.background = 'rgba(255, 152, 0, 0.2)';
+    result.style.border = '2px solid rgba(255, 152, 0, 0.5)';
+    result.innerHTML = '<h2 style="color: #ff9800;">Test abgebrochen</h2><p>Alle Relais wurden ausgeschaltet.</p>';
+}
+</script>
+
+<style>
+.navigation-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    color: #ffffff;
+    text-decoration: none;
+    transition: all 0.3s;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.nav-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 68, 68, 0.4);
+    transform: translateY(-2px);
+}
+
+.home-btn {
+    background: rgba(255, 68, 68, 0.2);
+    border-color: rgba(255, 68, 68, 0.4);
+}
+
+@media (max-width: 768px) {
+    .nav-text {
+        display: none;
+    }
+}
+
+.btn-danger {
+    background: rgba(255, 68, 68, 0.3);
+    border: 2px solid rgba(255, 68, 68, 0.5);
+    color: #ff4444;
+}
+
+.btn-danger:hover {
+    background: rgba(255, 68, 68, 0.5);
+    border-color: rgba(255, 68, 68, 0.8);
+}
+</style>
+{% endblock %}

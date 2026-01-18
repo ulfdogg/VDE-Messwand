@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Übungsmodus-Verwaltung - VDE Messwand</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .navigation-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .nav-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            color: #ffffff;
+            text-decoration: none;
+            transition: all 0.3s;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 68, 68, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .categories-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .category-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+
+        .category-card:hover {
+            border-color: rgba(255, 68, 68, 0.4);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .category-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .category-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #ff4444;
+        }
+
+        .page-mappings {
+            margin-top: 15px;
+        }
+
+        .page-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin-bottom: 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .page-name {
+            font-weight: 600;
+            color: #ffc107;
+        }
+
+        .relais-count {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9em;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+        }
+
+        .btn-small {
+            padding: 5px 10px;
+            font-size: 0.85em;
+        }
+
+        .add-page-section {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+        }
+
+        .stat-box {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #ff4444;
+        }
+
+        .stat-label {
+            color: rgba(255, 255, 255, 0.7);
+            margin-top: 5px;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 768px) {
+            .categories-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="navigation-bar">
+            <a href="javascript:history.back()" class="nav-btn">
+                <span>←</span>
+                <span>Zurück</span>
+            </a>
+            <a href="{{ url_for('index') }}" class="nav-btn">
+                <span>🏠</span>
+                <span>Home</span>
+            </a>
+        </div>
+
+        <div class="glass-card">
+            <h1>🎓 Übungsmodus-Verwaltung</h1>
+            <p style="text-align: center; opacity: 0.8; margin-bottom: 30px;">
+                Wähle eine Kategorie aus (z.B. RISO, Zi, Zs), dann wähle die Relais, die für alle Trainingsseiten aktiviert werden sollen
+            </p>
+
+            <div id="messageBox" class="message"></div>
+
+            <!-- Schritt 1: Kategorie auswählen -->
+            <div style="margin-bottom: 30px;">
+                <h2 style="color: #ff4444; margin-bottom: 15px;">1️⃣ Kategorie auswählen</h2>
+                <select id="categorySelect" onchange="loadRelays()" style="width: 100%; padding: 15px; font-size: 1.1em; border-radius: 8px; background: rgba(255, 255, 255, 0.1); color: #fff; border: 2px solid rgba(255, 255, 255, 0.2);">
+                    <option value="">-- Bitte wählen --</option>
+                    {% for kat in kategorien %}
+                    <option value="{{ kat }}">{{ kat }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Schritt 2: Trainingsseiten auswählen -->
+            <div id="pageSection" style="display: none; margin-bottom: 30px;">
+                <h2 style="color: #ff4444; margin-bottom: 15px;">2️⃣ Trainingsseiten auswählen (mehrere möglich)</h2>
+                <div id="pageList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">
+                    {% for page in training_pages %}
+                    <div class="page-checkbox" style="padding: 15px; background: rgba(255, 255, 255, 0.05); border: 2px solid rgba(255, 255, 255, 0.1); border-radius: 10px; cursor: pointer;" onclick="togglePage('{{ page.page_id }}', this)">
+                        <input type="checkbox" id="page_{{ page.page_id }}" value="{{ page.page_id }}" style="margin-right: 10px;">
+                        <label for="page_{{ page.page_id }}" style="cursor: pointer; color: #fff;">{{ page.name }}</label>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Schritt 3: Relais auswählen -->
+            <div id="relaySection" style="display: none;">
+                <h2 style="color: #ff4444; margin-bottom: 15px;">3️⃣ Relais auswählen (mehrere möglich)</h2>
+
+                <div id="relayList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                    <!-- Relais werden hier dynamisch eingefügt -->
+                </div>
+
+                <div style="text-align: center; margin-top: 30px;">
+                    <button class="btn" onclick="saveMapping()" id="saveBtn">
+                        💾 Speichern
+                    </button>
+                </div>
+            </div>
+
+            <!-- Aktuelle Konfiguration anzeigen -->
+            <div id="currentConfig" style="margin-top: 40px; padding: 20px; background: rgba(255, 255, 255, 0.05); border-radius: 15px; display: none;">
+                <h3 style="color: #ffc107; margin-bottom: 15px;">📋 Aktuelle Konfiguration</h3>
+                <div id="configDisplay"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allRelays = {{ relais_config|tojson }};
+        let trainingConfig = {{ training_config|tojson }};
+        let selectedRelays = [];
+        let selectedPages = [];
+
+        function showMessage(message, type) {
+            const msgBox = document.getElementById('messageBox');
+            msgBox.textContent = message;
+            msgBox.className = type === 'success' ? 'status-success' : 'status-error';
+            msgBox.style.display = 'block';
+            setTimeout(() => {
+                msgBox.style.display = 'none';
+            }, 5000);
+        }
+
+        function togglePage(pageId, element) {
+            const checkbox = element.querySelector('input[type="checkbox"]');
+            checkbox.checked = !checkbox.checked;
+
+            if (checkbox.checked) {
+                selectedPages.push(pageId);
+                element.style.background = 'rgba(255, 68, 68, 0.2)';
+                element.style.borderColor = 'rgba(255, 68, 68, 0.5)';
+            } else {
+                selectedPages = selectedPages.filter(p => p !== pageId);
+                element.style.background = 'rgba(255, 255, 255, 0.05)';
+                element.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+            }
+
+            updateRelaySection();
+        }
+
+        function updateRelaySection() {
+            const relaySection = document.getElementById('relaySection');
+            if (selectedPages.length > 0) {
+                relaySection.style.display = 'block';
+            } else {
+                relaySection.style.display = 'none';
+            }
+        }
+
+        function loadRelays() {
+            const category = document.getElementById('categorySelect').value;
+            const pageSection = document.getElementById('pageSection');
+            const relaySection = document.getElementById('relaySection');
+            const relayList = document.getElementById('relayList');
+            const currentConfig = document.getElementById('currentConfig');
+
+            if (!category) {
+                pageSection.style.display = 'none';
+                relaySection.style.display = 'none';
+                currentConfig.style.display = 'none';
+                return;
+            }
+
+            // Zeige Seiten-Auswahl
+            pageSection.style.display = 'block';
+
+            // Lade bereits gespeicherte Seiten für diese Kategorie
+            selectedPages = [];
+            const checkboxes = document.querySelectorAll('.page-checkbox input[type="checkbox"]');
+            checkboxes.forEach(cb => {
+                const pageId = cb.value;
+                const isConfigured = trainingConfig[category]?.[pageId]?.length > 0;
+                cb.checked = false;
+                cb.parentElement.style.background = 'rgba(255, 255, 255, 0.05)';
+                cb.parentElement.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+            });
+
+            // Finde alle Relais dieser Kategorie
+            const categoryRelays = [];
+            for (const [relayNum, relayData] of Object.entries(allRelays)) {
+                if (relayData.category === category) {
+                    categoryRelays.push({
+                        num: parseInt(relayNum),
+                        name: relayData.name,
+                        stromkreis: relayData.stromkreis
+                    });
+                }
+            }
+
+            // Sortiere nach Relais-Nummer
+            categoryRelays.sort((a, b) => a.num - b.num);
+
+            // Lade gemeinsame Relais über alle Seiten (wenn vorhanden)
+            selectedRelays = [];
+            const firstPage = Object.keys(trainingConfig[category] || {})[0];
+            if (firstPage) {
+                selectedRelays = [...(trainingConfig[category][firstPage] || [])];
+            }
+
+            // Zeige Relais an
+            relayList.innerHTML = '';
+            categoryRelays.forEach(relay => {
+                const isSelected = selectedRelays.includes(relay.num);
+                const card = document.createElement('div');
+                card.style.cssText = `
+                    padding: 15px;
+                    background: ${isSelected ? 'rgba(255, 68, 68, 0.2)' : 'rgba(255, 255, 255, 0.05)'};
+                    border: 2px solid ${isSelected ? 'rgba(255, 68, 68, 0.5)' : 'rgba(255, 255, 255, 0.1)'};
+                    border-radius: 10px;
+                    cursor: pointer;
+                    transition: all 0.3s;
+                `;
+
+                card.innerHTML = `
+                    <div style="font-weight: bold; color: #ff4444; margin-bottom: 5px;">
+                        Relais ${relay.num}
+                    </div>
+                    <div style="color: rgba(255, 255, 255, 0.9); font-size: 0.9em; margin-bottom: 3px;">
+                        ${relay.name}
+                    </div>
+                    <div style="color: rgba(255, 255, 255, 0.6); font-size: 0.85em;">
+                        ${relay.stromkreis}
+                    </div>
+                    ${isSelected ? '<div style="color: #4caf50; font-weight: bold; margin-top: 8px;">✓ Ausgewählt</div>' : ''}
+                `;
+
+                card.onclick = () => toggleRelay(relay.num, card);
+                relayList.appendChild(card);
+            });
+
+            displayCurrentConfig();
+        }
+
+        function toggleRelay(relayNum, card) {
+            const index = selectedRelays.indexOf(relayNum);
+            if (index > -1) {
+                selectedRelays.splice(index, 1);
+                card.style.background = 'rgba(255, 255, 255, 0.05)';
+                card.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                card.querySelector('div:last-child').remove();
+            } else {
+                selectedRelays.push(relayNum);
+                card.style.background = 'rgba(255, 68, 68, 0.2)';
+                card.style.borderColor = 'rgba(255, 68, 68, 0.5)';
+                const checkmark = document.createElement('div');
+                checkmark.style.cssText = 'color: #4caf50; font-weight: bold; margin-top: 8px;';
+                checkmark.textContent = '✓ Ausgewählt';
+                card.appendChild(checkmark);
+            }
+            displayCurrentConfig();
+        }
+
+        function displayCurrentConfig() {
+            const configDisplay = document.getElementById('configDisplay');
+            const currentConfig = document.getElementById('currentConfig');
+
+            if (selectedRelays.length === 0) {
+                currentConfig.style.display = 'none';
+                return;
+            }
+
+            currentConfig.style.display = 'block';
+            selectedRelays.sort((a, b) => a - b);
+            configDisplay.innerHTML = `
+                <div style="color: rgba(255, 255, 255, 0.9);">
+                    <strong>${selectedRelays.length} Relais ausgewählt:</strong><br>
+                    ${selectedRelays.join(', ')}
+                </div>
+            `;
+        }
+
+        async function saveMapping() {
+            const category = document.getElementById('categorySelect').value;
+
+            if (!category) {
+                showMessage('Bitte Kategorie auswählen', 'error');
+                return;
+            }
+
+            if (selectedPages.length === 0) {
+                showMessage('Bitte mindestens eine Trainingsseite auswählen', 'error');
+                return;
+            }
+
+            if (selectedRelays.length === 0) {
+                showMessage('Bitte mindestens ein Relais auswählen', 'error');
+                return;
+            }
+
+            try {
+                // Speichere für alle ausgewählten Seiten
+                let successCount = 0;
+                for (const pageId of selectedPages) {
+                    const response = await fetch('/api/training/configure', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            page_id: pageId,
+                            category: category,
+                            relay_numbers: selectedRelays
+                        })
+                    });
+
+                    const result = await response.json();
+                    if (result.success) {
+                        successCount++;
+                        // Update local config
+                        if (!trainingConfig[category]) {
+                            trainingConfig[category] = {};
+                        }
+                        trainingConfig[category][pageId] = selectedRelays;
+                    }
+                }
+
+                if (successCount === selectedPages.length) {
+                    showMessage(`Konfiguration für ${successCount} Seite(n) gespeichert!`, 'success');
+                } else {
+                    showMessage(`Nur ${successCount} von ${selectedPages.length} Seiten gespeichert`, 'error');
+                }
+            } catch (error) {
+                showMessage('Netzwerkfehler: ' + error.message, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

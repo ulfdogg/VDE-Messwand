@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Panel - VDE Messwand{% endblock %}
+
+{% block content %}
+<div class="navigation-bar">
+    <a href="javascript:history.back()" class="nav-btn back-btn" title="Einen Schritt zurück">
+        <span class="nav-icon">←</span>
+        <span class="nav-text">Zurück</span>
+    </a>
+    <a href="{{ url_for('index') }}" class="nav-btn home-btn" title="Zur Startseite">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-text">Home</span>
+    </a>
+</div>
+
+<div class="glass-card">
+    <h1>Admin Panel</h1>
+    
+    <div class="menu-grid">
+        <a href="{{ url_for('admin_database') }}" class="menu-item">
+            <h3>📊 Datenbank</h3>
+            <p>Prüfungsdaten anzeigen und verwalten</p>
+        </a>
+
+        <a href="{{ url_for('admin_network') }}" class="menu-item">
+            <h3>🌐 Netzwerk</h3>
+            <p>Netzwerkeinstellungen und WLAN-Verbindung</p>
+        </a>
+
+        <a href="{{ url_for('admin_relais') }}" class="menu-item">
+            <h3>🔌 Relais-Verwaltung</h3>
+            <p>Relais mit Gruppierung, Namen, Kategorien und Stromkreisen verwalten</p>
+        </a>
+
+        <a href="{{ url_for('admin_config') }}" class="menu-item">
+            <h3>⚙️ Konfiguration</h3>
+            <p>Stromkreise und Kategorien verwalten</p>
+        </a>
+
+        <a href="{{ url_for('admin_training') }}" class="menu-item">
+            <h3>🎓 Übungsmodus-Verwaltung</h3>
+            <p>Relais-Mappings für Übungsseiten konfigurieren</p>
+        </a>
+
+        <a href="{{ url_for('admin_settings') }}" class="menu-item">
+            <h3>🔐 Einstellungen</h3>
+            <p>Admin-Code und Systemeinstellungen ändern</p>
+        </a>
+
+        <a href="{{ url_for('relay_status_page') }}" class="menu-item">
+            <h3>📟 Relay Status Monitor</h3>
+            <p>Live-Anzeige aller Relay-Zustände von der Hardware</p>
+        </a>
+
+        <a href="{{ url_for('test_mode') }}" class="menu-item">
+            <h3>🔧 Test-Durchlauf</h3>
+            <p>Alle 64 Relais nacheinander testen</p>
+        </a>
+
+        <div class="menu-item" onclick="resetRelays()">
+            <h3>🔄 Relais Reset</h3>
+            <p>Alle Relais zurücksetzen</p>
+        </div>
+
+        <div class="menu-item" onclick="shutdownSystem()">
+            <h3>⚡ System Herunterfahren</h3>
+            <p>Raspberry Pi sicher herunterfahren</p>
+        </div>
+    </div>
+</div>
+
+<style>
+.navigation-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    color: #ffffff;
+    text-decoration: none;
+    transition: all 0.3s;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.nav-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 68, 68, 0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(255, 68, 68, 0.2);
+}
+
+.nav-icon {
+    font-size: 1.3em;
+}
+
+.back-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.back-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.home-btn {
+    background: rgba(255, 68, 68, 0.2);
+    border-color: rgba(255, 68, 68, 0.4);
+}
+
+.home-btn:hover {
+    background: rgba(255, 68, 68, 0.3);
+    border-color: rgba(255, 68, 68, 0.6);
+}
+
+@media (max-width: 768px) {
+    .nav-text {
+        display: none;
+    }
+
+    .nav-btn {
+        padding: 12px 15px;
+    }
+}
+</style>
+{% endblock %}

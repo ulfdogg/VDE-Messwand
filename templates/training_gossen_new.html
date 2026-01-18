@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gossen-Metrawatt Übungen - VDE Messwand</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="navigation-bar">
+            <a href="javascript:history.back()" class="nav-btn">
+                <span class="nav-icon">←</span>
+                <span class="nav-text">Zurück</span>
+            </a>
+            <a href="{{ url_for('index') }}" class="nav-btn">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-text">Home</span>
+            </a>
+        </div>
+
+        <div class="glass-card">
+            <h1>📙 Gossen-Metrawatt Messgeräte</h1>
+            <p style="text-align: center; opacity: 0.8; margin-bottom: 30px;">
+                Wähle eine Messkategorie um Relais zu aktivieren und Anleitungen anzuzeigen
+            </p>
+
+            <div class="menu-grid">
+                <div class="menu-item" onclick="showCategoryHelp('RISO')">
+                    <h3>⚡ RISO</h3>
+                    <p>Isolationswiderstandsmessung</p>
+                </div>
+
+                <div class="menu-item" onclick="showCategoryHelp('Zi')">
+                    <h3>🔌 Zi</h3>
+                    <p>Isolationswiderstand</p>
+                </div>
+
+                <div class="menu-item" onclick="showCategoryHelp('Zs')">
+                    <h3>🔁 Zs</h3>
+                    <p>Schleifenimpedanz</p>
+                </div>
+
+                <div class="menu-item" onclick="showCategoryHelp('Drehfeld')">
+                    <h3>🔄 Drehfeld</h3>
+                    <p>Drehfeldprüfung</p>
+                </div>
+
+                <div class="menu-item" onclick="showCategoryHelp('RCD')">
+                    <h3>🛡️ RCD</h3>
+                    <p>FI-Schutzschalter Test</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Help Modal -->
+        <div id="helpModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <span class="modal-close" onclick="closeHelp()">&times;</span>
+                <h2 id="helpTitle" style="color: #ff4444; margin-bottom: 20px;">Kategorie</h2>
+
+                <div id="helpContent" style="color: #ffffff; line-height: 1.6;">
+                    <!-- Content loaded here -->
+                </div>
+
+                <div id="relayInfo" style="margin-top: 30px; padding: 20px; background: rgba(255, 68, 68, 0.1); border-radius: 12px; border: 2px solid rgba(255, 68, 68, 0.3);">
+                    <h3 style="color: #ff4444; margin-bottom: 15px;">✓ Aktivierte Relais:</h3>
+                    <div id="relayList" style="display: flex; flex-wrap: wrap; gap: 10px;"></div>
+                </div>
+
+                <div style="margin-top: 30px; text-align: center;">
+                    <button class="btn" onclick="playVideo()" id="videoBtn" style="display: none;">
+                        🎥 Video-Anleitung abspielen
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Video Modal -->
+        <div id="videoModal" class="modal" style="display: none;">
+            <div class="modal-content-large">
+                <span class="modal-close" onclick="closeVideo()">&times;</span>
+                <h2 id="videoTitle" style="color: #ff4444; margin-bottom: 20px;">Video-Anleitung</h2>
+                <video id="helpVideo" controls style="width: 100%; max-width: 1200px; border-radius: 12px;">
+                    <source id="videoSource" src="" type="video/mp4">
+                    Ihr Browser unterstützt das Video-Tag nicht.
+                </video>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .navigation-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .nav-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            color: #ffffff;
+            text-decoration: none;
+            transition: all 0.3s;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 68, 68, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .menu-item {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 30px 20px;
+            text-align: center;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .menu-item:hover {
+            transform: translateY(-5px);
+            border-color: rgba(255, 68, 68, 0.4);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .menu-item h3 {
+            font-size: 1.8em;
+            margin-bottom: 10px;
+            color: #ff4444;
+        }
+
+        .menu-item p {
+            color: rgba(255, 255, 255, 0.8);
+            margin: 0;
+        }
+
+        .modal {
+            position: fixed;
+            z-index: 9999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            overflow: auto;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            margin: 5% auto;
+            padding: 40px;
+            border: 2px solid rgba(255, 68, 68, 0.3);
+            border-radius: 20px;
+            width: 90%;
+            max-width: 900px;
+            position: relative;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content-large {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            margin: 2% auto;
+            padding: 30px;
+            border: 2px solid rgba(255, 68, 68, 0.3);
+            border-radius: 20px;
+            width: 95%;
+            max-width: 1400px;
+            position: relative;
+        }
+
+        .modal-close {
+            color: #ff4444;
+            position: absolute;
+            right: 20px;
+            top: 15px;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            z-index: 10000;
+        }
+
+        .modal-close:hover {
+            color: #ffffff;
+            transform: scale(1.2);
+        }
+
+        .relay-badge {
+            background: rgba(255, 68, 68, 0.3);
+            color: #ff4444;
+            padding: 8px 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 68, 68, 0.5);
+            font-weight: bold;
+            display: inline-block;
+        }
+
+        @media (max-width: 768px) {
+            .nav-text {
+                display: none;
+            }
+
+            .menu-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .modal-content {
+                width: 95%;
+                padding: 20px;
+            }
+        }
+    </style>
+
+    <script>
+        let currentCategory = '';
+
+        const categoryInfo = {
+            'RISO': {
+                title: 'RISO - Isolationswiderstandsmessung',
+                description: `
+                    <h3 style="color: #4caf50; margin-bottom: 15px;">Was ist RISO?</h3>
+                    <p>Bei der RISO-Messung (Isolationswiderstandsmessung) wird der Widerstand der Isolierung elektrischer Anlagen geprüft.</p>
+
+                    <h3 style="color: #4caf50; margin-top: 25px; margin-bottom: 15px;">Durchführung mit Gossen-Metrawatt:</h3>
+                    <ol style="padding-left: 25px;">
+                        <li>Messgerät an die zu prüfenden Leiter anschließen</li>
+                        <li>Prüfspannung wählen (meist 500V oder 1000V)</li>
+                        <li>Messung starten und Wert ablesen</li>
+                        <li>Grenzwert: mindestens 1 MΩ (1000 kΩ)</li>
+                    </ol>
+                `,
+                video: '/static/videos/gossen_riso.mp4'
+            },
+            'Zi': {
+                title: 'Zi - Isolationswiderstand',
+                description: `
+                    <h3 style="color: #4caf50; margin-bottom: 15px;">Was ist Zi?</h3>
+                    <p>Der Isolationswiderstand Zi prüft die elektrische Trennung zwischen Leitern und Erde.</p>
+
+                    <h3 style="color: #4caf50; margin-top: 25px; margin-bottom: 15px;">Messung:</h3>
+                    <ol style="padding-left: 25px;">
+                        <li>Anlage spannungsfrei schalten</li>
+                        <li>Messgerät zwischen Leiter und PE anschließen</li>
+                        <li>Prüfspannung anlegen</li>
+                        <li>Wert muss > 1 MΩ sein</li>
+                    </ol>
+                `,
+                video: '/static/videos/gossen_zi.mp4'
+            },
+            'Zs': {
+                title: 'Zs - Schleifenimpedanz',
+                description: `
+                    <h3 style="color: #4caf50; margin-bottom: 15px;">Was ist Zs?</h3>
+                    <p>Die Schleifenimpedanz ist der Gesamtwiderstand des Fehlerstrompfades.</p>
+
+                    <h3 style="color: #4caf50; margin-top: 25px; margin-bottom: 15px;">Messung:</h3>
+                    <ol style="padding-left: 25px;">
+                        <li>Messgerät an Steckdose anschließen</li>
+                        <li>Messung auslösen</li>
+                        <li>Wert muss unter Grenzwert liegen</li>
+                        <li>Typisch: < 0,5 Ω für TN-Systeme</li>
+                    </ol>
+                `,
+                video: '/static/videos/gossen_zs.mp4'
+            },
+            'Drehfeld': {
+                title: 'Drehfeld - Drehfeldprüfung',
+                description: `
+                    <h3 style="color: #4caf50; margin-bottom: 15px;">Was ist Drehfeld?</h3>
+                    <p>Prüfung der korrekten Phasenfolge bei Drehstromanlagen (L1, L2, L3).</p>
+
+                    <h3 style="color: #4caf50; margin-top: 25px; margin-bottom: 15px;">Prüfung:</h3>
+                    <ol style="padding-left: 25px;">
+                        <li>Drehfeldrichtungsanzeiger anschließen</li>
+                        <li>Spannung einschalten</li>
+                        <li>Drehrichtung beobachten</li>
+                        <li>Korrekt: rechtsdrehend (im Uhrzeigersinn)</li>
+                    </ol>
+                `,
+                video: '/static/videos/gossen_drehfeld.mp4'
+            },
+            'RCD': {
+                title: 'RCD - FI-Schutzschalter Test',
+                description: `
+                    <h3 style="color: #4caf50; margin-bottom: 15px;">Was ist ein RCD-Test?</h3>
+                    <p>Prüfung der Auslösefunktion von FI-Schutzschaltern (Fehlerstromschutzschalter).</p>
+
+                    <h3 style="color: #4caf50; margin-top: 25px; margin-bottom: 15px;">Test-Durchführung:</h3>
+                    <ol style="padding-left: 25px;">
+                        <li>RCD-Tester anschließen</li>
+                        <li>Nennauslösestrom wählen (meist 30mA)</li>
+                        <li>Testung mit 0,5× IΔn (darf nicht auslösen)</li>
+                        <li>Testung mit 1× IΔn (muss auslösen < 300ms)</li>
+                        <li>Testung mit 5× IΔn (muss auslösen < 40ms)</li>
+                    </ol>
+                `,
+                video: '/static/videos/gossen_rcd.mp4'
+            }
+        };
+
+        async function showCategoryHelp(category) {
+            currentCategory = category;
+            const info = categoryInfo[category];
+
+            if (!info) {
+                alert('Keine Informationen für diese Kategorie verfügbar');
+                return;
+            }
+
+            document.getElementById('helpTitle').textContent = info.title;
+            document.getElementById('helpContent').innerHTML = info.description;
+
+            const videoBtn = document.getElementById('videoBtn');
+            if (info.video) {
+                videoBtn.style.display = 'inline-block';
+                document.getElementById('videoSource').src = info.video;
+                document.getElementById('videoTitle').textContent = info.title;
+            } else {
+                videoBtn.style.display = 'none';
+            }
+
+            try {
+                const response = await fetch('/api/training/activate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ page_id: 'gossen', category: category })
+                });
+
+                const result = await response.json();
+
+                if (result.success && result.activated.length > 0) {
+                    const relayListHTML = result.activated.map(item =>
+                        `<span class="relay-badge">Relais ${item}</span>`
+                    ).join('');
+                    document.getElementById('relayList').innerHTML = relayListHTML;
+                    document.getElementById('relayInfo').style.display = 'block';
+                } else {
+                    document.getElementById('relayInfo').style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Fehler beim Aktivieren der Relais:', error);
+                document.getElementById('relayInfo').style.display = 'none';
+            }
+
+            document.getElementById('helpModal').style.display = 'block';
+        }
+
+        function closeHelp() {
+            document.getElementById('helpModal').style.display = 'none';
+        }
+
+        function playVideo() {
+            const video = document.getElementById('helpVideo');
+            const videoModal = document.getElementById('videoModal');
+
+            // Load the video before playing
+            video.load();
+            videoModal.style.display = 'block';
+
+            // Play after a short delay to ensure it's loaded
+            setTimeout(() => {
+                video.play().catch(err => {
+                    console.error('Video playback error:', err);
+                    alert('Fehler beim Abspielen des Videos. Bitte versuchen Sie es erneut.');
+                });
+            }, 100);
+        }
+
+        function closeVideo() {
+            const video = document.getElementById('helpVideo');
+            video.pause();
+            document.getElementById('videoModal').style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            const helpModal = document.getElementById('helpModal');
+            const videoModal = document.getElementById('videoModal');
+
+            if (event.target == helpModal) {
+                closeHelp();
+            }
+            if (event.target == videoModal) {
+                closeVideo();
+            }
+        }
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeHelp();
+                closeVideo();
+            }
+        });
+    </script>
+</body>
+</html>

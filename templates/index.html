@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="glass-card">
+    <h1>VDE Messwand Steuerung</h1>
+    
+    <div class="menu-grid">
+        <a href="{{ url_for('exam_mode') }}" class="menu-item">
+            <h3>Prüfungsmodus</h3>
+            <p>Automatische Prüfung mit zufälligen Fehlern und 20-Minuten Timer</p>
+        </a>
+
+        <a href="{{ url_for('manual_mode') }}" class="menu-item">
+            <h3>Manuelle Fehler</h3>
+            <p>Gezieltes Zuschalten von Fehlern in einzelnen Stromkreisen</p>
+        </a>
+
+        <a href="{{ url_for('training_mode') }}" class="menu-item">
+            <h3>Übungsmodus</h3>
+            <p>Anleitungen und Videos für verschiedene Messgeräte</p>
+        </a>
+
+        <a href="{{ url_for('admin') }}" class="menu-item">
+            <h3>Admin Bereich</h3>
+            <p>Datenbank, Netzwerk und Systemverwaltung</p>
+        </a>
+    </div>
+</div>
+{% endblock %}

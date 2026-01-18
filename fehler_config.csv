@@ -1,0 +1,66 @@
+
+relay_id,error_name,category,description
+0,PE_Unterbrechung,CEE 16A,Schutzleiter unterbrochen
+1,N_Unterbrechung,CEE 16A,Nullleiter unterbrochen
+2,L_Unterbrechung,CEE 16A,Außenleiter unterbrochen
+3,PE_Hochohmig,CEE 16A,Schutzleiter hochohmig
+4,N_Hochohmig,CEE 16A,Nullleiter hochohmig
+5,L_Hochohmig,CEE 16A,Außenleiter hochohmig
+6,PE_N_Vertauscht,CEE 16A,PE und N vertauscht
+7,Isolationsfehler,CEE 16A,Isolationsfehler
+8,Kontaktfehler,CEE 16A,Schlechter Kontakt
+9,Spannungsfall,CEE 16A,Erhöhter Spannungsfall
+10,PE_Unterbrechung,Herdanschlussdose,Schutzleiter unterbrochen
+11,N_Unterbrechung,Herdanschlussdose,Nullleiter unterbrochen
+12,L1_Unterbrechung,Herdanschlussdose,Außenleiter L1 unterbrochen
+13,L2_Unterbrechung,Herdanschlussdose,Außenleiter L2 unterbrochen
+14,L3_Unterbrechung,Herdanschlussdose,Außenleiter L3 unterbrochen
+15,PE_Hochohmig,Herdanschlussdose,Schutzleiter hochohmig
+16,Phasen_Vertauscht,Herdanschlussdose,Phasen vertauscht
+17,Isolationsfehler,Herdanschlussdose,Isolationsfehler
+18,Kontaktfehler,Herdanschlussdose,Schlechter Kontakt
+19,Unsymmetrie,Herdanschlussdose,Phasenunsymmetrie
+20,PE_Unterbrechung,Steckdose+Lampe 1,Schutzleiter unterbrochen
+21,N_Unterbrechung,Steckdose+Lampe 1,Nullleiter unterbrochen
+22,L_Unterbrechung,Steckdose+Lampe 1,Außenleiter unterbrochen
+23,PE_N_Vertauscht,Steckdose+Lampe 1,PE und N vertauscht
+24,L_N_Vertauscht,Steckdose+Lampe 1,L und N vertauscht
+25,Lampe_Defekt,Steckdose+Lampe 1,Lampe defekt
+26,Schalter_Defekt,Steckdose+Lampe 1,Schalter defekt
+27,Isolationsfehler,Steckdose+Lampe 1,Isolationsfehler
+28,Kontaktfehler,Steckdose+Lampe 1,Schlechter Kontakt
+29,Spannungsfall,Steckdose+Lampe 1,Erhöhter Spannungsfall
+30,PE_Unterbrechung,Steckdose+Lampe 2,Schutzleiter unterbrochen
+31,N_Unterbrechung,Steckdose+Lampe 2,Nullleiter unterbrochen
+32,L_Unterbrechung,Steckdose+Lampe 2,Außenleiter unterbrochen
+33,PE_N_Vertauscht,Steckdose+Lampe 2,PE und N vertauscht
+34,L_N_Vertauscht,Steckdose+Lampe 2,L und N vertauscht
+35,Lampe_Defekt,Steckdose+Lampe 2,Lampe defekt
+36,Schalter_Defekt,Steckdose+Lampe 2,Schalter defekt
+37,Isolationsfehler,Steckdose+Lampe 2,Isolationsfehler
+38,Kontaktfehler,Steckdose+Lampe 2,Schlechter Kontakt
+39,Spannungsfall,Steckdose+Lampe 2,Erhöhter Spannungsfall
+40,PE_Unterbrechung,Badsteckdose über RCBO,Schutzleiter unterbrochen
+41,N_Unterbrechung,Badsteckdose über RCBO,Nullleiter unterbrochen
+42,L_Unterbrechung,Badsteckdose über RCBO,Außenleiter unterbrochen
+43,RCD_Defekt_30mA,Badsteckdose über RCBO,RCD löst nicht aus bei 30mA
+44,RCD_Empfindlich,Badsteckdose über RCBO,RCD zu empfindlich
+45,RCD_Zeitfehler,Badsteckdose über RCBO,RCD Auslösezeit zu hoch
+46,Ableitstrom,Badsteckdose über RCBO,Erhöhter Ableitstrom
+47,Isolationsfehler,Badsteckdose über RCBO,Isolationsfehler
+48,Kontaktfehler,Badsteckdose über RCBO,Schlechter Kontakt
+49,RCD_Prüftaste,Badsteckdose über RCBO,RCD Prüftaste defekt
+50,PE_Unterbrechung,Wallbox,Schutzleiter unterbrochen
+51,N_Unterbrechung,Wallbox,Nullleiter unterbrochen
+52,L1_Unterbrechung,Wallbox,Außenleiter L1 unterbrochen
+53,L2_Unterbrechung,Wallbox,Außenleiter L2 unterbrochen
+54,L3_Unterbrechung,Wallbox,Außenleiter L3 unterbrochen
+55,DC_Fehlerstrom,Wallbox,DC-Fehlerstrom erkannt
+56,Isolationsfehler,Wallbox,Isolationsfehler
+57,Überlast,Wallbox,Überlast erkannt
+58,Phasenfehler,Wallbox,Phasenfehler
+59,Kommunikationsfehler,Wallbox,Kommunikationsfehler
+60,Spannung_zu_hoch,Sonstige,Spannung zu hoch 250V
+61,Spannung_zu_niedrig,Sonstige,Spannung zu niedrig 200V
+62,Frequenz_Fehler,Sonstige,Frequenz außerhalb Norm
+63,Oberschwingungen,Sonstige,Erhöhte Oberschwingungen

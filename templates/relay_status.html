@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relay Status Monitor - VDE Messwand</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="navigation-bar">
+            <a href="javascript:history.back()" class="nav-btn">
+                <span class="nav-icon">←</span>
+                <span class="nav-text">Zurück</span>
+            </a>
+            <a href="{{ url_for('index') }}" class="nav-btn">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-text">Home</span>
+            </a>
+        </div>
+
+        <div class="glass-card">
+            <h1>🔌 Relay Status Monitor</h1>
+            <p style="text-align: center; opacity: 0.8; margin-bottom: 20px;">
+                Live-Anzeige des Hardware-Status aller 64 Relais
+            </p>
+
+            <div class="status-info">
+                <div class="info-box">
+                    <div class="info-label">Aktive Relais</div>
+                    <div class="info-value" id="activeCount">-</div>
+                </div>
+                <div class="info-box">
+                    <div class="info-label">Letzte Aktualisierung</div>
+                    <div class="info-value" id="lastUpdate">-</div>
+                </div>
+                <div class="info-box">
+                    <div class="info-label">Auto-Refresh</div>
+                    <div class="info-value">
+                        <label class="switch">
+                            <input type="checkbox" id="autoRefresh" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="btn-group" style="margin: 20px 0;">
+                <button class="btn" onclick="refreshStatus()">
+                    🔄 Manuell Aktualisieren
+                </button>
+            </div>
+
+            <!-- Relais 0-15 -->
+            <div class="relay-section">
+                <h3>Relais 0 - 15 (Modul 1)</h3>
+                <div class="relay-grid" id="relayGrid0"></div>
+            </div>
+
+            <!-- Relais 16-31 -->
+            <div class="relay-section">
+                <h3>Relais 16 - 31 (Modul 1)</h3>
+                <div class="relay-grid" id="relayGrid1"></div>
+            </div>
+
+            <!-- Relais 32-47 -->
+            <div class="relay-section">
+                <h3>Relais 32 - 47 (Modul 2)</h3>
+                <div class="relay-grid" id="relayGrid2"></div>
+            </div>
+
+            <!-- Relais 48-63 -->
+            <div class="relay-section">
+                <h3>Relais 48 - 63 (Modul 2)</h3>
+                <div class="relay-grid" id="relayGrid3"></div>
+            </div>
+
+            <div id="errorMessage" class="error-message" style="display: none;"></div>
+        </div>
+    </div>
+
+    <style>
+        .navigation-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .nav-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            color: #ffffff;
+            text-decoration: none;
+            transition: all 0.3s;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 68, 68, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .status-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .info-box {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .info-label {
+            font-size: 0.9em;
+            opacity: 0.7;
+            margin-bottom: 8px;
+        }
+
+        .info-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #4caf50;
+        }
+
+        .relay-section {
+            margin: 30px 0;
+        }
+
+        .relay-section h3 {
+            color: #ff4444;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .relay-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .relay-box {
+            background: rgba(255, 255, 255, 0.05);
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 15px 10px;
+            text-align: center;
+            transition: all 0.3s;
+            cursor: default;
+        }
+
+        .relay-box.active {
+            background: rgba(76, 175, 80, 0.2);
+            border-color: #4caf50;
+            box-shadow: 0 0 15px rgba(76, 175, 80, 0.5);
+        }
+
+        .relay-box.inactive {
+            background: rgba(244, 67, 54, 0.1);
+            border-color: rgba(244, 67, 54, 0.3);
+        }
+
+        .relay-number {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .relay-box.active .relay-number {
+            color: #4caf50;
+        }
+
+        .relay-box.inactive .relay-number {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .relay-status {
+            font-size: 0.9em;
+            font-weight: 600;
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+
+        .relay-box.active .relay-status {
+            background: rgba(76, 175, 80, 0.3);
+            color: #4caf50;
+        }
+
+        .relay-box.inactive .relay-status {
+            background: rgba(244, 67, 54, 0.2);
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .error-message {
+            background: rgba(244, 67, 54, 0.2);
+            border: 2px solid #f44336;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            color: #ff6b6b;
+            text-align: center;
+        }
+
+        /* Toggle Switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.2);
+            transition: 0.4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #4caf50;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        @media (max-width: 768px) {
+            .nav-text {
+                display: none;
+            }
+
+            .relay-grid {
+                grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+            }
+
+            .relay-box {
+                padding: 10px 5px;
+            }
+
+            .relay-number {
+                font-size: 1.1em;
+            }
+        }
+    </style>
+
+    <script>
+        let autoRefreshInterval = null;
+        let lastRelayStates = {};
+
+        function createRelayBox(relayNum, state) {
+            const box = document.createElement('div');
+            box.className = `relay-box ${state ? 'active' : 'inactive'}`;
+            box.id = `relay-${relayNum}`;
+
+            const number = document.createElement('div');
+            number.className = 'relay-number';
+            number.textContent = relayNum;
+
+            const status = document.createElement('div');
+            status.className = 'relay-status';
+            status.textContent = state ? 'EIN' : 'AUS';
+
+            box.appendChild(number);
+            box.appendChild(status);
+
+            return box;
+        }
+
+        function updateRelayBox(relayNum, state) {
+            const box = document.getElementById(`relay-${relayNum}`);
+            if (!box) return;
+
+            const wasActive = box.classList.contains('active');
+            const isActive = state;
+
+            if (wasActive !== isActive) {
+                box.classList.remove('active', 'inactive');
+                box.classList.add(isActive ? 'active' : 'inactive');
+
+                const statusEl = box.querySelector('.relay-status');
+                if (statusEl) {
+                    statusEl.textContent = isActive ? 'EIN' : 'AUS';
+                }
+
+                // Kurze Animation bei Statusänderung
+                box.style.transform = 'scale(1.1)';
+                setTimeout(() => {
+                    box.style.transform = '';
+                }, 200);
+            }
+        }
+
+        function initializeRelayGrids() {
+            // Grid 0: Relais 0-15
+            const grid0 = document.getElementById('relayGrid0');
+            for (let i = 0; i < 16; i++) {
+                grid0.appendChild(createRelayBox(i, false));
+            }
+
+            // Grid 1: Relais 16-31
+            const grid1 = document.getElementById('relayGrid1');
+            for (let i = 16; i < 32; i++) {
+                grid1.appendChild(createRelayBox(i, false));
+            }
+
+            // Grid 2: Relais 32-47
+            const grid2 = document.getElementById('relayGrid2');
+            for (let i = 32; i < 48; i++) {
+                grid2.appendChild(createRelayBox(i, false));
+            }
+
+            // Grid 3: Relais 48-63
+            const grid3 = document.getElementById('relayGrid3');
+            for (let i = 48; i < 64; i++) {
+                grid3.appendChild(createRelayBox(i, false));
+            }
+        }
+
+        async function refreshStatus() {
+            try {
+                const response = await fetch('/api/relay_status');
+                const data = await response.json();
+
+                if (!data.success) {
+                    showError(data.error || 'Fehler beim Laden des Status');
+                    return;
+                }
+
+                // Update Info
+                document.getElementById('activeCount').textContent =
+                    `${data.active_count} / ${data.total_count}`;
+
+                const now = new Date();
+                document.getElementById('lastUpdate').textContent =
+                    now.toLocaleTimeString('de-DE');
+
+                // Update Relay Boxes
+                for (let relayNum = 0; relayNum < 64; relayNum++) {
+                    const state = data.relays[relayNum] || false;
+                    updateRelayBox(relayNum, state);
+                    lastRelayStates[relayNum] = state;
+                }
+
+                // Hide error message
+                document.getElementById('errorMessage').style.display = 'none';
+
+            } catch (error) {
+                console.error('Error refreshing status:', error);
+                showError('Netzwerkfehler beim Laden des Status');
+            }
+        }
+
+        function showError(message) {
+            const errorEl = document.getElementById('errorMessage');
+            errorEl.textContent = '⚠️ ' + message;
+            errorEl.style.display = 'block';
+        }
+
+        function setupAutoRefresh() {
+            const checkbox = document.getElementById('autoRefresh');
+
+            checkbox.addEventListener('change', function() {
+                if (this.checked) {
+                    startAutoRefresh();
+                } else {
+                    stopAutoRefresh();
+                }
+            });
+
+            // Start auto-refresh if enabled
+            if (checkbox.checked) {
+                startAutoRefresh();
+            }
+        }
+
+        function startAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+            }
+
+            // Refresh every 2 seconds
+            autoRefreshInterval = setInterval(refreshStatus, 2000);
+        }
+
+        function stopAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeRelayGrids();
+            setupAutoRefresh();
+            refreshStatus(); // Initial load
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            stopAutoRefresh();
+        });
+    </script>
+</body>
+</html>

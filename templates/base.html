@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}VDE Messwand{% endblock %}</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <!-- GPIO-Warnung (oben fixiert) -->
+    <div id="gpio-warning" class="gpio-warning hidden">
+        <div class="gpio-warning-content">
+            <span class="gpio-warning-icon">⚠️</span>
+            <span class="gpio-warning-text" id="gpio-warning-text">NOTAUS BETÄTIGT</span>
+            <span class="gpio-warning-icon">⚠️</span>
+        </div>
+    </div>
+
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+
+    <script src="/static/script.js"></script>
+    <script>
+        // GPIO-Status Überwachung
+        function checkGPIOStatus() {
+            fetch('/api/gpio/status')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.gpio_status) {
+                        const warningDiv = document.getElementById('gpio-warning');
+                        const warningText = document.getElementById('gpio-warning-text');
+
+                        if (data.gpio_status.active) {
+                            warningDiv.classList.remove('hidden');
+
+                            // Zeige Countdown wenn Shutdown ansteht
+                            if (data.gpio_status.shutdown_pending && data.gpio_status.shutdown_in_seconds !== null) {
+                                const seconds = data.gpio_status.shutdown_in_seconds;
+                                const minutes = Math.floor(seconds / 60);
+                                const remainingSecs = seconds % 60;
+                                warningText.textContent = `NOTAUS BETÄTIGT - SHUTDOWN IN ${minutes}:${remainingSecs.toString().padStart(2, '0')}`;
+                            } else {
+                                warningText.textContent = 'NOTAUS BETÄTIGT';
+                            }
+                        } else {
+                            warningDiv.classList.add('hidden');
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('GPIO-Status Fehler:', error);
+                });
+        }
+
+        // Starte Überwachung beim Laden
+        document.addEventListener('DOMContentLoaded', function() {
+            checkGPIOStatus();
+            // Prüfe alle 500ms
+            setInterval(checkGPIOStatus, 500);
+        });
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

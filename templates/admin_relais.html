@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relais-Verwaltung - VDE Messwand</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stat-box {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #ff4444;
+            text-shadow: 0 0 20px rgba(255, 68, 68, 0.5);
+        }
+
+        .stat-label {
+            color: rgba(255, 255, 255, 0.7);
+            margin-top: 5px;
+            font-size: 0.9em;
+        }
+
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .filter-group select {
+            padding: 8px 12px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+        }
+
+        .relais-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 15px;
+        }
+
+        .relais-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 15px;
+            transition: all 0.3s;
+        }
+
+        .relais-card:hover {
+            border-color: rgba(255, 68, 68, 0.4);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .relais-card.in-group {
+            border-color: rgba(255, 193, 7, 0.5);
+            background: rgba(255, 193, 7, 0.05);
+        }
+
+        .relais-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .relais-number {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #ff4444;
+        }
+
+        .group-badge {
+            background: rgba(255, 193, 7, 0.3);
+            color: #ffc107;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            border: 1px solid rgba(255, 193, 7, 0.5);
+        }
+
+        .form-field {
+            margin-bottom: 10px;
+        }
+
+        .form-field label {
+            display: block;
+            font-size: 0.85em;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 5px;
+        }
+
+        .form-field input,
+        .form-field select {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            font-size: 0.95em;
+            transition: all 0.3s;
+        }
+
+        .form-field input:focus,
+        .form-field select:focus {
+            outline: none;
+            border-color: #ff4444;
+            box-shadow: 0 0 10px rgba(255, 68, 68, 0.3);
+        }
+
+        .group-number-select {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn-save-single {
+            flex: 1;
+            padding: 8px;
+            font-size: 0.9em;
+        }
+
+        .navigation-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .nav-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            color: #ffffff;
+            text-decoration: none;
+            transition: all 0.3s;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 68, 68, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .nav-icon {
+            font-size: 1.3em;
+        }
+
+        @media (max-width: 768px) {
+            .relais-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .nav-text {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="navigation-bar">
+            <a href="javascript:history.back()" class="nav-btn back-btn">
+                <span class="nav-icon">←</span>
+                <span class="nav-text">Zurück</span>
+            </a>
+            <a href="{{ url_for('index') }}" class="nav-btn home-btn">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-text">Home</span>
+            </a>
+        </div>
+
+        <div class="glass-card">
+            <h1>🔌 Relais-Verwaltung</h1>
+            <p style="text-align: center; opacity: 0.8; margin-bottom: 30px;">
+                Verwalten Sie alle 64 Relais mit Gruppierung, Namen, Kategorien und Stromkreisen
+            </p>
+
+            <div class="stats">
+                <div class="stat-box">
+                    <div class="stat-number">{{ stats.configured_relais }}</div>
+                    <div class="stat-label">Konfiguriert</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number">{{ stats.total_groups }}</div>
+                    <div class="stat-label">Gruppen</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number">{{ stats.grouped_relais }}</div>
+                    <div class="stat-label">Gruppiert</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number">{{ stats.categorized_relais }}</div>
+                    <div class="stat-label">Kategorisiert</div>
+                </div>
+            </div>
+
+            <div id="messageBox" class="message"></div>
+
+            <div class="toolbar">
+                <div class="filter-group">
+                    <label style="color: rgba(255, 255, 255, 0.8);">Filtern:</label>
+                    <select id="filterType" onchange="applyFilter()">
+                        <option value="all">Alle Relais</option>
+                        <option value="grouped">Nur gruppierte</option>
+                        <option value="ungrouped">Nur einzelne</option>
+                        <option value="configured">Nur konfigurierte</option>
+                    </select>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-secondary" onclick="openExcelDialog()">📥 Excel Import/Export</button>
+                    <button class="btn" onclick="saveAll()">💾 Alle speichern</button>
+                </div>
+            </div>
+
+            <div class="relais-grid" id="relaisGrid">
+                {% for relay_num, relay_data in relais_config.items() %}
+                <div class="relais-card {% if relay_data.group_number > 0 %}in-group{% endif %}"
+                     data-relay="{{ relay_num }}"
+                     data-group="{{ relay_data.group_number }}"
+                     data-configured="{{ 'true' if relay_data.name or relay_data.category or relay_data.group_number > 0 else 'false' }}">
+
+                    <div class="relais-header">
+                        <span class="relais-number">Relais {{ relay_num }}</span>
+                        {% if relay_data.group_number > 0 %}
+                        <span class="group-badge">Gruppe {{ relay_data.group_number }}</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-field">
+                        <label>Gruppen-Nummer (0 = einzeln)</label>
+                        <select class="form-field group-number-select"
+                                id="group_{{ relay_num }}"
+                                data-original="{{ relay_data.group_number }}"
+                                onchange="markChanged({{ relay_num }})">
+                            <option value="0" {% if relay_data.group_number == 0 %}selected{% endif %}>0 - Kein Gruppe</option>
+                            {% for i in range(1, 21) %}
+                            <option value="{{ i }}" {% if relay_data.group_number == i %}selected{% endif %}>{{ i }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-field">
+                        <label>Name/Beschreibung</label>
+                        <input type="text"
+                               id="name_{{ relay_num }}"
+                               value="{{ relay_data.name }}"
+                               placeholder="z.B. CEE L1"
+                               data-original="{{ relay_data.name }}"
+                               oninput="markChanged({{ relay_num }})">
+                    </div>
+
+                    <div class="form-field">
+                        <label>Kategorie</label>
+                        <select id="category_{{ relay_num }}"
+                                data-original="{{ relay_data.category }}"
+                                onchange="markChanged({{ relay_num }})">
+                            <option value="">-- Keine --</option>
+                            {% for kat in kategorien %}
+                            <option value="{{ kat }}" {% if relay_data.category == kat %}selected{% endif %}>{{ kat }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-field">
+                        <label>Stromkreis</label>
+                        <input type="text"
+                               id="stromkreis_{{ relay_num }}"
+                               value="{{ relay_data.stromkreis }}"
+                               placeholder="z.B. CEE 16A, L1-PE"
+                               data-original="{{ relay_data.stromkreis }}"
+                               oninput="markChanged({{ relay_num }})">
+                    </div>
+
+                    <div class="action-buttons">
+                        <button class="btn btn-secondary btn-save-single" onclick="saveSingle({{ relay_num }})">
+                            💾 Speichern
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let changedRelais = new Set();
+
+        function showMessage(message, type) {
+            const msgBox = document.getElementById('messageBox');
+            // Preserve line breaks in error messages
+            msgBox.innerHTML = message.replace(/\n/g, '<br>');
+            msgBox.className = type === 'success' ? 'status-success' : 'status-error';
+            msgBox.style.display = 'block';
+            msgBox.style.whiteSpace = 'pre-wrap';
+            msgBox.style.textAlign = 'left';
+            msgBox.style.maxHeight = '400px';
+            msgBox.style.overflowY = 'auto';
+
+            // Longer timeout for error messages
+            const timeout = type === 'error' ? 15000 : 5000;
+            setTimeout(() => {
+                msgBox.style.display = 'none';
+            }, timeout);
+        }
+
+        function markChanged(relayNum) {
+            changedRelais.add(relayNum);
+            const card = document.querySelector(`[data-relay="${relayNum}"]`);
+            if (card) {
+                card.style.borderColor = 'rgba(255, 193, 7, 0.7)';
+            }
+        }
+
+        async function saveSingle(relayNum) {
+            const data = {
+                [relayNum]: {
+                    group_number: parseInt(document.getElementById(`group_${relayNum}`).value),
+                    name: document.getElementById(`name_${relayNum}`).value,
+                    category: document.getElementById(`category_${relayNum}`).value,
+                    stromkreis: document.getElementById(`stromkreis_${relayNum}`).value
+                }
+            };
+
+            try {
+                const response = await fetch('/api/relais/bulk_update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ updates: data })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage(`Relais ${relayNum} gespeichert`, 'success');
+                    changedRelais.delete(relayNum);
+
+                    // Update visual state
+                    const card = document.querySelector(`[data-relay="${relayNum}"]`);
+                    if (card) {
+                        card.style.borderColor = '';
+                        const groupNum = data[relayNum].group_number;
+                        if (groupNum > 0) {
+                            card.classList.add('in-group');
+                        } else {
+                            card.classList.remove('in-group');
+                        }
+                    }
+                } else {
+                    showMessage(result.message || 'Fehler beim Speichern', 'error');
+                }
+            } catch (error) {
+                showMessage('Netzwerkfehler: ' + error.message, 'error');
+            }
+        }
+
+        async function saveAll() {
+            if (changedRelais.size === 0) {
+                showMessage('Keine Änderungen zum Speichern', 'error');
+                return;
+            }
+
+            const updates = {};
+            for (let relayNum of changedRelais) {
+                updates[relayNum] = {
+                    group_number: parseInt(document.getElementById(`group_${relayNum}`).value),
+                    name: document.getElementById(`name_${relayNum}`).value,
+                    category: document.getElementById(`category_${relayNum}`).value,
+                    stromkreis: document.getElementById(`stromkreis_${relayNum}`).value
+                };
+            }
+
+            try {
+                const response = await fetch('/api/relais/bulk_update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ updates: updates })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage(`${changedRelais.size} Relais gespeichert`, 'success');
+                    changedRelais.clear();
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showMessage(result.message || 'Fehler beim Speichern', 'error');
+                }
+            } catch (error) {
+                showMessage('Netzwerkfehler: ' + error.message, 'error');
+            }
+        }
+
+        function applyFilter() {
+            const filterType = document.getElementById('filterType').value;
+            const cards = document.querySelectorAll('.relais-card');
+
+            cards.forEach(card => {
+                const isGrouped = card.dataset.group !== '0';
+                const isConfigured = card.dataset.configured === 'true';
+
+                let show = true;
+                switch(filterType) {
+                    case 'grouped':
+                        show = isGrouped;
+                        break;
+                    case 'ungrouped':
+                        show = !isGrouped;
+                        break;
+                    case 'configured':
+                        show = isConfigured;
+                        break;
+                    default:
+                        show = true;
+                }
+
+                card.style.display = show ? 'block' : 'none';
+            });
+        }
+
+        // ==================== EXCEL IMPORT/EXPORT ====================
+
+        async function openExcelDialog() {
+            try {
+                // Lade vordefinierte Vorlagen
+                const response = await fetch('/api/relais/excel/template/predefined');
+                const result = await response.json();
+
+                let templatesHtml = '';
+                if (result.success && result.templates.length > 0) {
+                    result.templates.forEach(template => {
+                        templatesHtml += `
+                            <div style="margin: 10px 0; padding: 12px; background: rgba(255, 255, 255, 0.05); border-radius: 8px; cursor: pointer; border: 2px solid transparent;"
+                                 onmouseover="this.style.borderColor='rgba(255, 68, 68, 0.4)'"
+                                 onmouseout="this.style.borderColor='transparent'"
+                                 onclick="downloadPredefinedTemplate('${template.id}', '${template.name}')">
+                                <div style="font-weight: bold; color: #ff4444; margin-bottom: 3px;">
+                                    ${template.name}
+                                </div>
+                                <div style="color: rgba(255, 255, 255, 0.6); font-size: 0.85em;">
+                                    ${template.description}
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+
+                const dialog = document.createElement('div');
+                dialog.id = 'excelDialog';
+                dialog.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(0, 0, 0, 0.8);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 10000;
+                `;
+
+                dialog.innerHTML = `
+                    <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                                padding: 30px;
+                                border-radius: 20px;
+                                max-width: 700px;
+                                width: 90%;
+                                max-height: 85vh;
+                                overflow-y: auto;
+                                border: 2px solid rgba(255, 68, 68, 0.3);">
+                        <h2 style="color: #ff4444; margin-bottom: 25px; text-align: center;">
+                            📊 Excel Import/Export
+                        </h2>
+
+                        <!-- Download-Bereich -->
+                        <div style="margin-bottom: 30px;">
+                            <h3 style="color: #ffffff; margin-bottom: 15px; font-size: 1.1em;">
+                                📥 Vorlagen herunterladen
+                            </h3>
+
+                            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                                <button onclick="downloadEmptyTemplate()"
+                                        style="flex: 1; padding: 12px; background: rgba(255, 255, 255, 0.1); border: 2px solid rgba(255, 255, 255, 0.2); color: white; border-radius: 8px; cursor: pointer; font-size: 0.95em;">
+                                    📄 Leere Vorlage
+                                </button>
+                                <button onclick="downloadCurrentConfig()"
+                                        style="flex: 1; padding: 12px; background: rgba(255, 255, 255, 0.1); border: 2px solid rgba(255, 255, 255, 0.2); border-radius: 8px; cursor: pointer; font-size: 0.95em; color: #ffc107; border-color: rgba(255, 193, 7, 0.3);">
+                                    💾 Aktuelle Konfiguration
+                                </button>
+                            </div>
+
+                            ${templatesHtml ? `
+                                <div style="margin-top: 15px;">
+                                    <h4 style="color: rgba(255, 255, 255, 0.8); margin-bottom: 10px; font-size: 0.95em;">
+                                        Vordefinierte Vorlagen:
+                                    </h4>
+                                    ${templatesHtml}
+                                </div>
+                            ` : ''}
+                        </div>
+
+                        <!-- Upload-Bereich -->
+                        <div style="margin-bottom: 20px;">
+                            <h3 style="color: #ffffff; margin-bottom: 15px; font-size: 1.1em;">
+                                📤 Excel-Datei hochladen
+                            </h3>
+
+                            <div style="background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 10px; border: 2px dashed rgba(255, 255, 255, 0.2);">
+                                <input type="file"
+                                       id="excelFileInput"
+                                       accept=".xlsx,.xls"
+                                       style="display: none;"
+                                       onchange="handleFileSelect(event)">
+
+                                <div id="uploadArea" onclick="document.getElementById('excelFileInput').click()"
+                                     style="text-align: center; cursor: pointer; padding: 20px;">
+                                    <div style="font-size: 3em; margin-bottom: 10px;">📁</div>
+                                    <div style="color: rgba(255, 255, 255, 0.8); margin-bottom: 5px;">
+                                        Klicken zum Auswählen oder Datei hierher ziehen
+                                    </div>
+                                    <div style="color: rgba(255, 255, 255, 0.5); font-size: 0.85em;">
+                                        Nur .xlsx und .xls Dateien
+                                    </div>
+                                </div>
+
+                                <div id="fileInfo" style="display: none; margin-top: 15px; padding: 10px; background: rgba(255, 193, 7, 0.1); border-radius: 5px; border: 1px solid rgba(255, 193, 7, 0.3);">
+                                    <div style="color: #ffc107; font-weight: bold;" id="fileName"></div>
+                                </div>
+
+                                <button id="uploadButton"
+                                        onclick="uploadExcelFile()"
+                                        disabled
+                                        style="width: 100%; margin-top: 15px; padding: 12px; background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%); border: none; color: white; border-radius: 8px; cursor: not-allowed; font-size: 1em; font-weight: bold; opacity: 0.5;">
+                                    ✓ Hochladen und Importieren
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Schließen -->
+                        <div style="text-align: center; margin-top: 20px;">
+                            <button onclick="closeExcelDialog()"
+                                    style="padding: 10px 30px; background: rgba(255, 255, 255, 0.1); border: 2px solid rgba(255, 255, 255, 0.2); color: white; border-radius: 8px; cursor: pointer; font-size: 1em;">
+                                Schließen
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                document.body.appendChild(dialog);
+
+            } catch (error) {
+                showMessage('Fehler beim Öffnen des Dialogs: ' + error.message, 'error');
+            }
+        }
+
+        function closeExcelDialog() {
+            const dialog = document.getElementById('excelDialog');
+            if (dialog) {
+                dialog.remove();
+            }
+        }
+
+        function downloadEmptyTemplate() {
+            window.location.href = '/api/relais/excel/template/empty';
+            showMessage('Leere Vorlage wird heruntergeladen...', 'success');
+        }
+
+        function downloadCurrentConfig() {
+            window.location.href = '/api/relais/excel/template/current';
+            showMessage('Aktuelle Konfiguration wird heruntergeladen...', 'success');
+        }
+
+        function downloadPredefinedTemplate(templateId, templateName) {
+            window.location.href = `/api/relais/excel/template/predefined/${templateId}`;
+            showMessage(`Vorlage "${templateName}" wird heruntergeladen...`, 'success');
+        }
+
+        let selectedFile = null;
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            selectedFile = file;
+
+            // Zeige Dateiinfo
+            document.getElementById('fileInfo').style.display = 'block';
+            document.getElementById('fileName').textContent = `Ausgewählt: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+
+            // Aktiviere Upload-Button
+            const uploadBtn = document.getElementById('uploadButton');
+            uploadBtn.disabled = false;
+            uploadBtn.style.cursor = 'pointer';
+            uploadBtn.style.opacity = '1';
+        }
+
+        async function uploadExcelFile() {
+            if (!selectedFile) {
+                showMessage('Bitte wählen Sie zuerst eine Datei aus', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+
+            try {
+                const uploadBtn = document.getElementById('uploadButton');
+                uploadBtn.textContent = 'Wird hochgeladen...';
+                uploadBtn.disabled = true;
+
+                const response = await fetch('/api/relais/excel/import', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage(`Erfolgreich! ${result.imported_count} Relais importiert.`, 'success');
+                    closeExcelDialog();
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showMessage(result.message || 'Fehler beim Importieren', 'error');
+                    uploadBtn.textContent = '✓ Hochladen und Importieren';
+                    uploadBtn.disabled = false;
+                }
+            } catch (error) {
+                showMessage('Netzwerkfehler: ' + error.message, 'error');
+                const uploadBtn = document.getElementById('uploadButton');
+                uploadBtn.textContent = '✓ Hochladen und Importieren';
+                uploadBtn.disabled = false;
+            }
+        }
+
+        // Warnung bei ungespeicherten Änderungen
+        window.addEventListener('beforeunload', (e) => {
+            if (changedRelais.size > 0) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        });
+    </script>
+</body>
+</html>

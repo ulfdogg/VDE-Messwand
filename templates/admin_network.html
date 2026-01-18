@@ -1,0 +1,332 @@
+{% extends "base.html" %}
+
+{% block title %}Netzwerk - VDE Messwand{% endblock %}
+
+{% block content %}
+<div class="navigation-bar">
+    <a href="javascript:history.back()" class="nav-btn back-btn" title="Einen Schritt zurück">
+        <span class="nav-icon">←</span>
+        <span class="nav-text">Zurück</span>
+    </a>
+    <a href="{{ url_for('index') }}" class="nav-btn home-btn" title="Zur Startseite">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-text">Home</span>
+    </a>
+</div>
+
+<div class="glass-card">
+    <h1>Netzwerk Verwaltung</h1>
+
+    <h2>Hostname: {{ hostname }}</h2>
+
+    <!-- Zugriffs-URLs -->
+    <div style="background: rgba(156, 39, 176, 0.1); border: 2px solid rgba(156, 39, 176, 0.3); border-radius: 15px; padding: 15px; margin: 20px 0;">
+        <h3 style="margin-top: 0;">Zugriff auf VDE Messwand</h3>
+        <p style="margin: 8px 0;"><strong>Hostname:</strong> <code style="background: rgba(255,255,255,0.1); padding: 3px 8px; border-radius: 5px;">http://{{ hostname }}.local</code></p>
+        {% if eth_info and eth_info.ip %}
+        <p style="margin: 8px 0;"><strong>Ethernet:</strong> <code style="background: rgba(255,255,255,0.1); padding: 3px 8px; border-radius: 5px;">http://{{ eth_info.ip }}</code></p>
+        {% endif %}
+        {% if net_info and net_info.ip %}
+        <p style="margin: 8px 0;"><strong>WLAN:</strong> <code style="background: rgba(255,255,255,0.1); padding: 3px 8px; border-radius: 5px;">http://{{ net_info.ip }}</code></p>
+        {% endif %}
+        {% if hotspot_active %}
+        <p style="margin: 8px 0;"><strong>Hotspot:</strong> <code style="background: rgba(255,255,255,0.1); padding: 3px 8px; border-radius: 5px;">http://192.168.50.1</code></p>
+        {% endif %}
+    </div>
+
+    <!-- WiFi Hotspot Toggle -->
+    <div style="background: rgba(255, 152, 0, 0.1); border: 2px solid rgba(255, 152, 0, 0.3); border-radius: 15px; padding: 20px; margin: 20px 0;">
+        <h2 style="margin-top: 0;">WiFi Hotspot (Access Point)</h2>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; margin: 15px 0;">
+            <div>
+                <p style="margin: 5px 0;">
+                    <strong>Status:</strong>
+                    <span id="hotspotStatus" style="color: {{ '#4caf50' if hotspot_active else '#ff4444' }};">
+                        {{ 'Aktiv' if hotspot_active else 'Inaktiv' }}
+                    </span>
+                </p>
+                <p style="margin: 5px 0; font-size: 0.9rem; opacity: 0.8;">
+                    Direkte Verbindung mit Smartphone/Tablet
+                </p>
+                {% if hotspot_active %}
+                <p style="margin: 10px 0; padding: 10px; background: rgba(76, 175, 80, 0.2); border-radius: 8px;">
+                    <strong>SSID:</strong> VDE-Messwand-1<br>
+                    <strong>Passwort:</strong> vde12345
+                </p>
+                {% endif %}
+            </div>
+
+            <label class="toggle-switch">
+                <input type="checkbox" id="hotspotToggle" {{ 'checked' if hotspot_active else '' }} onchange="toggleHotspot()">
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+
+        <div id="hotspotMessage" style="margin-top: 15px; padding: 10px; border-radius: 8px; display: none;"></div>
+    </div>
+
+    <!-- Ethernet Connection Info -->
+    {% if eth_info %}
+    <div style="background: rgba(33, 150, 243, 0.1); border: 2px solid rgba(33, 150, 243, 0.3); border-radius: 15px; padding: 15px; margin: 20px 0;">
+        <h3 style="margin-top: 0;">Ethernet (Kabel)</h3>
+        <p style="margin: 5px 0;"><strong>IP-Adresse:</strong> {{ eth_info.ip }}</p>
+        {% if eth_info.speed %}
+        <p style="margin: 5px 0;"><strong>Geschwindigkeit:</strong> {{ eth_info.speed }} Mbit/s</p>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Current WiFi Connection Info -->
+    {% if net_info and net_info.ip %}
+    <div style="background: rgba(76, 175, 80, 0.1); border: 2px solid rgba(76, 175, 80, 0.3); border-radius: 15px; padding: 15px; margin: 20px 0;">
+        <h3 style="margin-top: 0;">WLAN Verbindung</h3>
+        <p style="margin: 5px 0;"><strong>IP-Adresse:</strong> {{ net_info.ip }}</p>
+        {% if current_connection %}
+        <p style="margin: 5px 0;"><strong>Verbunden mit:</strong> {{ current_connection[0].name }}</p>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <h2>WLAN Verbindung</h2>
+    <div style="max-width: 500px; margin: 0 auto;">
+        <div class="form-group">
+            <label for="wifiSSID">SSID (Netzwerkname):</label>
+            <input type="text" id="wifiSSID" class="form-control" placeholder="WLAN Name">
+        </div>
+
+        <div class="form-group">
+            <label for="wifiPassword">Passwort:</label>
+            <input type="password" id="wifiPassword" class="form-control" placeholder="WLAN Passwort">
+        </div>
+
+        <div class="btn-group">
+            <button class="btn" onclick="connectWifi()">
+                WLAN Verbinden
+            </button>
+        </div>
+    </div>
+
+    <h2>Netzwerk-Details</h2>
+    <div class="network-info">{{ network_info }}</div>
+</div>
+
+<style>
+.navigation-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    color: #ffffff;
+    text-decoration: none;
+    transition: all 0.3s;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.nav-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 68, 68, 0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(255, 68, 68, 0.2);
+}
+
+.nav-icon {
+    font-size: 1.3em;
+}
+
+.back-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.back-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.home-btn {
+    background: rgba(255, 68, 68, 0.2);
+    border-color: rgba(255, 68, 68, 0.4);
+}
+
+.home-btn:hover {
+    background: rgba(255, 68, 68, 0.3);
+    border-color: rgba(255, 68, 68, 0.6);
+}
+
+@media (max-width: 768px) {
+    .nav-text {
+        display: none;
+    }
+
+    .nav-btn {
+        padding: 12px 15px;
+    }
+}
+
+/* Toggle Switch Styles */
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 68, 68, 0.3);
+    transition: 0.4s;
+    border-radius: 34px;
+    border: 2px solid rgba(255, 68, 68, 0.5);
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 2px;
+    bottom: 2px;
+    background-color: white;
+    transition: 0.4s;
+    border-radius: 50%;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+input:checked + .toggle-slider {
+    background-color: rgba(76, 175, 80, 0.3);
+    border-color: rgba(76, 175, 80, 0.6);
+}
+
+input:checked + .toggle-slider:before {
+    transform: translateX(26px);
+}
+
+.toggle-slider:hover {
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+</style>
+
+<script>
+function toggleHotspot() {
+    const toggle = document.getElementById('hotspotToggle');
+    const statusSpan = document.getElementById('hotspotStatus');
+    const messageDiv = document.getElementById('hotspotMessage');
+
+    // Disable toggle during request
+    toggle.disabled = true;
+
+    // Show loading message
+    messageDiv.style.display = 'block';
+    messageDiv.style.background = 'rgba(33, 150, 243, 0.2)';
+    messageDiv.style.color = '#2196f3';
+    messageDiv.textContent = 'Hotspot wird umgeschaltet...';
+
+    fetch('/api/network/hotspot/toggle', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update UI
+            statusSpan.textContent = data.hotspot_active ? 'Aktiv' : 'Inaktiv';
+            statusSpan.style.color = data.hotspot_active ? '#4caf50' : '#ff4444';
+            toggle.checked = data.hotspot_active;
+
+            messageDiv.style.background = 'rgba(76, 175, 80, 0.2)';
+            messageDiv.style.color = '#4caf50';
+            messageDiv.textContent = data.message;
+
+            // Reload page after 3 seconds to show updated connection info
+            setTimeout(() => {
+                location.reload();
+            }, 3000);
+        } else {
+            messageDiv.style.background = 'rgba(255, 68, 68, 0.2)';
+            messageDiv.style.color = '#ff4444';
+            messageDiv.textContent = 'Fehler: ' + data.message;
+
+            // Revert toggle state
+            toggle.checked = !toggle.checked;
+        }
+    })
+    .catch(error => {
+        messageDiv.style.background = 'rgba(255, 68, 68, 0.2)';
+        messageDiv.style.color = '#ff4444';
+        messageDiv.textContent = 'Netzwerkfehler: ' + error;
+
+        // Revert toggle state
+        toggle.checked = !toggle.checked;
+    })
+    .finally(() => {
+        toggle.disabled = false;
+    });
+}
+
+function connectWifi() {
+    const ssidInput = document.getElementById('wifiSSID');
+    const passwordInput = document.getElementById('wifiPassword');
+
+    if (!ssidInput || !passwordInput) {
+        alert('Fehler: Eingabefelder nicht gefunden!');
+        return;
+    }
+
+    const ssid = ssidInput.value.trim();
+    const password = passwordInput.value;
+
+    if (!ssid) {
+        alert('Bitte SSID eingeben!');
+        return;
+    }
+
+    if (confirm(`Mit WiFi "${ssid}" verbinden?`)) {
+        fetch('/api/network/wifi/connect', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ ssid: ssid, password: password })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Verbindung wird hergestellt: ' + data.message);
+                setTimeout(() => {
+                    location.reload();
+                }, 3000);
+            } else {
+                alert('Fehler: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Netzwerkfehler: ' + error);
+        });
+    }
+}
+</script>
+{% endblock %}
