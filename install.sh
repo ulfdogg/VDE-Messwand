@@ -18,7 +18,8 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Variablen
-INSTALL_DIR="/home/vde/VDE-Messwand"
+# Automatisch das Verzeichnis ermitteln, in dem install.sh liegt
+INSTALL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SERVICE_USER="vde"
 DEFAULT_HOSTNAME="VDE-Messwand"
 KIOSK_URL="http://localhost"
