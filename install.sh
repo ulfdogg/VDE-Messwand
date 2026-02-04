@@ -18,8 +18,10 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Variablen
-# Automatisch das Verzeichnis ermitteln, in dem install.sh liegt
-INSTALL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Quellverzeichnis: wo install.sh liegt
+SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Zielverzeichnis: fester Installationsort
+INSTALL_DIR="/home/vde/vde-messwand"
 SERVICE_USER="vde"
 DEFAULT_HOSTNAME="VDE-Messwand"
 KIOSK_URL="http://localhost"
@@ -73,7 +75,7 @@ check_root
 # ----------------------------------------------------------------------------
 # Schritt 1: Hostname abfragen
 # ----------------------------------------------------------------------------
-print_step "1/12" "System-Konfiguration"
+print_step "1/13" "System-Konfiguration"
 
 echo ""
 echo "Der Hostname wird für folgende Zwecke verwendet:"
@@ -100,7 +102,7 @@ fi
 # ----------------------------------------------------------------------------
 # Schritt 2: System aktualisieren
 # ----------------------------------------------------------------------------
-print_step "2/12" "System aktualisieren (apt update && upgrade)"
+print_step "2/13" "System aktualisieren (apt update && upgrade)"
 
 apt update
 apt upgrade -y
@@ -110,7 +112,7 @@ print_success "System aktualisiert"
 # ----------------------------------------------------------------------------
 # Schritt 3: Pakete installieren
 # ----------------------------------------------------------------------------
-print_step "3/12" "Erforderliche Pakete installieren"
+print_step "3/13" "Erforderliche Pakete installieren"
 
 apt install -y \
     python3 \
@@ -123,14 +125,33 @@ apt install -y \
     network-manager \
     curl \
     evtest \
-    i2c-tools
+    i2c-tools \
+    rsync
 
 print_success "Pakete installiert"
 
 # ----------------------------------------------------------------------------
-# Schritt 4: Display-Konfiguration
+# Schritt 4: Anwendungsdateien kopieren
 # ----------------------------------------------------------------------------
-print_step "4/12" "Display konfigurieren (7\" Touchscreen, 90° Rotation)"
+print_step "4/13" "Anwendungsdateien nach $INSTALL_DIR kopieren"
+
+# Zielverzeichnis erstellen
+mkdir -p "$INSTALL_DIR"
+chown $SERVICE_USER:$SERVICE_USER "$INSTALL_DIR"
+
+# Alle Dateien außer install.sh kopieren
+echo "Kopiere Dateien von $SOURCE_DIR nach $INSTALL_DIR..."
+rsync -av --exclude='install.sh' --exclude='.git' --exclude='venv' --exclude='__pycache__' --exclude='*.pyc' "$SOURCE_DIR/" "$INSTALL_DIR/"
+
+# Besitzer setzen
+chown -R $SERVICE_USER:$SERVICE_USER "$INSTALL_DIR"
+
+print_success "Anwendungsdateien kopiert"
+
+# ----------------------------------------------------------------------------
+# Schritt 5: Display-Konfiguration
+# ----------------------------------------------------------------------------
+print_step "5/13" "Display konfigurieren (7\" Touchscreen, 90° Rotation)"
 
 CONFIG_FILE="/boot/firmware/config.txt"
 
@@ -159,9 +180,9 @@ else
 fi
 
 # ----------------------------------------------------------------------------
-# Schritt 5: Hostname setzen
+# Schritt 6: Hostname setzen
 # ----------------------------------------------------------------------------
-print_step "5/12" "Hostname konfigurieren"
+print_step "6/13" "Hostname konfigurieren"
 
 # Aktuellen Hostname speichern
 OLD_HOSTNAME=$(hostname)
@@ -180,9 +201,9 @@ fi
 print_success "Hostname gesetzt: $HOSTNAME"
 
 # ----------------------------------------------------------------------------
-# Schritt 6: Benutzerberechtigungen
+# Schritt 7: Benutzerberechtigungen
 # ----------------------------------------------------------------------------
-print_step "6/12" "Benutzerberechtigungen konfigurieren"
+print_step "7/13" "Benutzerberechtigungen konfigurieren"
 
 # Benutzer zu notwendigen Gruppen hinzufügen
 usermod -a -G dialout $SERVICE_USER 2>/dev/null || true
@@ -204,9 +225,9 @@ chmod 440 "$SUDOERS_FILE"
 print_success "Benutzerberechtigungen konfiguriert"
 
 # ----------------------------------------------------------------------------
-# Schritt 7: Virtuelle Umgebung und Python-Abhängigkeiten
+# Schritt 8: Virtuelle Umgebung und Python-Abhängigkeiten
 # ----------------------------------------------------------------------------
-print_step "7/12" "Python-Umgebung einrichten"
+print_step "8/13" "Python-Umgebung einrichten"
 
 cd "$INSTALL_DIR"
 
@@ -225,9 +246,9 @@ sudo -u $SERVICE_USER bash -c "source venv/bin/activate && pip install Flask==2.
 print_success "Python-Abhängigkeiten installiert"
 
 # ----------------------------------------------------------------------------
-# Schritt 8: Hotspot-Konfiguration aktualisieren
+# Schritt 9: Hotspot-Konfiguration aktualisieren
 # ----------------------------------------------------------------------------
-print_step "8/12" "Hotspot-Konfiguration anpassen"
+print_step "9/13" "Hotspot-Konfiguration anpassen"
 
 # network_manager.py mit korrekter SSID aktualisieren
 NETWORK_MANAGER_FILE="$INSTALL_DIR/network_manager.py"
@@ -239,9 +260,9 @@ else
 fi
 
 # ----------------------------------------------------------------------------
-# Schritt 9: Systemd-Service einrichten
+# Schritt 10: Systemd-Service einrichten
 # ----------------------------------------------------------------------------
-print_step "9/12" "Systemd-Service einrichten"
+print_step "10/13" "Systemd-Service einrichten"
 
 SERVICE_FILE="/etc/systemd/system/vde-messwand.service"
 cat > "$SERVICE_FILE" << EOF
@@ -268,9 +289,9 @@ systemctl enable vde-messwand.service
 print_success "Systemd-Service eingerichtet und aktiviert"
 
 # ----------------------------------------------------------------------------
-# Schritt 10: Power-Button (J2) konfigurieren
+# Schritt 11: Power-Button (J2) konfigurieren
 # ----------------------------------------------------------------------------
-print_step "10/12" "Power-Button (J2-Header) konfigurieren"
+print_step "11/13" "Power-Button (J2-Header) konfigurieren"
 
 echo "Der Raspberry Pi 5 hat einen J2-Header für einen externen Power-Button."
 echo "Standard: Button kann Ein- UND Ausschalten"
@@ -326,9 +347,9 @@ else
 fi
 
 # ----------------------------------------------------------------------------
-# Schritt 11: Datenbank initialisieren
+# Schritt 12: Datenbank initialisieren
 # ----------------------------------------------------------------------------
-print_step "11/12" "Datenbank initialisieren"
+print_step "12/13" "Datenbank initialisieren"
 
 cd "$INSTALL_DIR"
 if [ ! -f "vde_messwand.db" ]; then
@@ -339,9 +360,9 @@ else
 fi
 
 # ----------------------------------------------------------------------------
-# Schritt 12: Kiosk-Modus konfigurieren
+# Schritt 13: Kiosk-Modus konfigurieren
 # ----------------------------------------------------------------------------
-print_step "12/12" "Kiosk-Modus einrichten (Autologin + Chromium)"
+print_step "13/13" "Kiosk-Modus einrichten (Autologin + Chromium)"
 
 # Chromium installieren falls nicht vorhanden
 if ! command -v chromium &> /dev/null && ! command -v chromium-browser &> /dev/null; then
