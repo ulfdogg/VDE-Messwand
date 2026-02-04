@@ -127,7 +127,8 @@ apt install -y \
     evtest \
     i2c-tools \
     rsync \
-    unclutter
+    unclutter \
+    wlr-randr
 
 print_success "Pakete installiert"
 
@@ -152,10 +153,9 @@ print_success "Anwendungsdateien kopiert"
 # ----------------------------------------------------------------------------
 # Schritt 5: Display-Konfiguration
 # ----------------------------------------------------------------------------
-print_step "5/13" "Display konfigurieren (7\" Touchscreen, 90° Rotation)"
+print_step "5/13" "Display konfigurieren (7\" Touchscreen)"
 
 CONFIG_FILE="/boot/firmware/config.txt"
-CMDLINE_FILE="/boot/firmware/cmdline.txt"
 
 # Prüfen ob Display-Overlay bereits vorhanden
 if ! grep -q "dtoverlay=vc4-kms-dsi-7inch" "$CONFIG_FILE"; then
@@ -173,16 +173,7 @@ else
     print_warning "Display-Overlay bereits vorhanden"
 fi
 
-# Display-Rotation über Kernel-Kommandozeile (funktioniert mit Wayland/KMS)
-if ! grep -q "video=DSI-1:panel_orientation=90" "$CMDLINE_FILE"; then
-    # Backup erstellen
-    cp "$CMDLINE_FILE" "${CMDLINE_FILE}.backup"
-    # Rotation hinzufügen
-    sed -i 's/$/ video=DSI-1:panel_orientation=90/' "$CMDLINE_FILE"
-    print_success "Display-Rotation (90° im Uhrzeigersinn) zu cmdline.txt hinzugefügt"
-else
-    print_warning "Display-Rotation bereits in cmdline.txt konfiguriert"
-fi
+print_success "Display-Overlay konfiguriert (Rotation wird via wlr-randr im Autostart gesetzt)"
 
 # ----------------------------------------------------------------------------
 # Schritt 6: Hostname setzen
@@ -408,6 +399,9 @@ export XDG_RUNTIME_DIR=/run/user/1000
 # Keyring deaktivieren (keine Passwort-Abfragen)
 export GNOME_KEYRING_CONTROL=
 export GNOME_KEYRING_PID=
+
+# Display um 90° drehen (funktioniert mit Wayland/labwc)
+wlr-randr --output DSI-1 --transform 90
 
 # Mauszeiger ausblenden
 unclutter -idle 0.1 &
