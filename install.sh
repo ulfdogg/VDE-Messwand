@@ -407,11 +407,13 @@ unclutter -idle 0.1 &
 # Warte kurz
 sleep 2
 
-# Chromium im Kiosk-Modus starten
+# Chromium im Kiosk-Modus starten (Deutsch, keine Sprach-Dialoge)
 exec chromium \
   --user-data-dir=/home/vde/.config/chromium-kiosk \
   --ozone-platform=wayland \
   --kiosk \
+  --lang=de \
+  --accept-lang=de-DE \
   --noerrdialogs \
   --disable-infobars \
   --disable-session-crashed-bubble \
@@ -423,6 +425,8 @@ exec chromium \
   --overscroll-history-navigation=0 \
   --password-store=basic \
   --disable-password-manager-reauthentication \
+  --disable-popup-blocking \
+  --disable-prompt-on-repost \
   http://localhost
 EOFSCRIPT
 
@@ -444,10 +448,10 @@ Environment="XDG_RUNTIME_DIR=/run/user/1000"
 Environment="GNOME_KEYRING_CONTROL="
 Environment="GNOME_KEYRING_PID="
 
-# Cleanup: Kill alte Chromium/VNC Prozesse
-ExecStartPre=/usr/bin/pkill -u vde chromium
-ExecStartPre=/usr/bin/pkill -u vde wayvnc
-ExecStartPre=/usr/bin/pkill -u vde unclutter
+# Cleanup: Kill alte Chromium/VNC Prozesse (ignoriere Fehler mit -)
+ExecStartPre=-/usr/bin/pkill -u vde chromium
+ExecStartPre=-/usr/bin/pkill -u vde wayvnc
+ExecStartPre=-/usr/bin/pkill -u vde unclutter
 ExecStartPre=/bin/sleep 2
 
 # Warte bis Wayland und Flask bereit sind
