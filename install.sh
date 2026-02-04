@@ -448,21 +448,25 @@ Environment="XDG_RUNTIME_DIR=/run/user/1000"
 Environment="GNOME_KEYRING_CONTROL="
 Environment="GNOME_KEYRING_PID="
 
-# Cleanup: Kill alte Chromium/VNC Prozesse (ignoriere Fehler mit -)
+# Cleanup: Kill alte Chromium/VNC Prozesse
 ExecStartPre=-/usr/bin/pkill -u vde chromium
 ExecStartPre=-/usr/bin/pkill -u vde wayvnc
 ExecStartPre=-/usr/bin/pkill -u vde unclutter
-ExecStartPre=/bin/sleep 2
+ExecStartPre=/bin/sleep 3
 
-# Warte bis Wayland und Flask bereit sind
+# Warte bis Wayland WIRKLICH bereit ist (labwc läuft)
 ExecStartPre=/bin/bash -c 'until [ -e /run/user/1000/wayland-0 ]; do sleep 1; done'
+ExecStartPre=/bin/bash -c 'until pgrep -u vde labwc > /dev/null; do sleep 1; done'
+ExecStartPre=/bin/sleep 5
+
+# Warte bis Flask bereit ist
 ExecStartPre=/bin/bash -c 'for i in {1..60}; do curl -s http://localhost >/dev/null 2>&1 && break; sleep 1; done'
 
 # Startscript ausführen
 ExecStart=/usr/local/bin/vde-kiosk-start.sh
 
 Restart=on-failure
-RestartSec=5
+RestartSec=10
 KillMode=mixed
 KillSignal=SIGTERM
 TimeoutStopSec=10
