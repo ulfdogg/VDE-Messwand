@@ -154,6 +154,7 @@ print_success "Anwendungsdateien kopiert"
 print_step "5/13" "Display konfigurieren (7\" Touchscreen, 90° Rotation)"
 
 CONFIG_FILE="/boot/firmware/config.txt"
+CMDLINE_FILE="/boot/firmware/cmdline.txt"
 
 # Prüfen ob Display-Overlay bereits vorhanden
 if ! grep -q "dtoverlay=vc4-kms-dsi-7inch" "$CONFIG_FILE"; then
@@ -171,12 +172,15 @@ else
     print_warning "Display-Overlay bereits vorhanden"
 fi
 
-# Display-Rotation hinzufügen (90° im Uhrzeigersinn)
-if ! grep -q "display_rotate=" "$CONFIG_FILE"; then
-    sed -i '/^\[all\]$/a # Display um 90 Grad im Uhrzeigersinn drehen\ndisplay_rotate=1' "$CONFIG_FILE"
-    print_success "Display-Rotation (90° im Uhrzeigersinn) hinzugefügt"
+# Display-Rotation über Kernel-Kommandozeile (funktioniert mit Wayland/KMS)
+if ! grep -q "video=DSI-1:panel_orientation=90" "$CMDLINE_FILE"; then
+    # Backup erstellen
+    cp "$CMDLINE_FILE" "${CMDLINE_FILE}.backup"
+    # Rotation hinzufügen
+    sed -i 's/$/ video=DSI-1:panel_orientation=90/' "$CMDLINE_FILE"
+    print_success "Display-Rotation (90° im Uhrzeigersinn) zu cmdline.txt hinzugefügt"
 else
-    print_warning "Display-Rotation bereits konfiguriert"
+    print_warning "Display-Rotation bereits in cmdline.txt konfiguriert"
 fi
 
 # ----------------------------------------------------------------------------
