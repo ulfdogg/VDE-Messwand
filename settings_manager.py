@@ -11,7 +11,9 @@ SETTINGS_FILE = 'settings.json'
 def get_default_settings():
     """Gibt die Standard-Einstellungen zurück"""
     return {
-        'admin_code': '1234'
+        'admin_code': '1234',
+        'wallbox_installed': False,  # Ob eine Wallbox vorhanden ist
+        'wallbox_enabled': True      # Ob die Wallbox im Prüfmodus aktiv ist
     }
 
 def load_settings():
@@ -96,3 +98,55 @@ def verify_admin_code(code: str) -> bool:
     """
     current_code = get_admin_code()
     return code == current_code
+
+
+def get_wallbox_installed() -> bool:
+    """Gibt zurück ob eine Wallbox vorhanden/installiert ist"""
+    settings = load_settings()
+    return settings.get('wallbox_installed', False)
+
+
+def set_wallbox_installed(installed: bool) -> Tuple[bool, str]:
+    """
+    Setzt ob eine Wallbox vorhanden ist
+
+    Args:
+        installed: True = Wallbox vorhanden, False = nicht vorhanden
+
+    Returns:
+        Tuple[bool, str]: (Erfolg, Nachricht)
+    """
+    settings = load_settings()
+    settings['wallbox_installed'] = installed
+
+    if save_settings(settings):
+        status = "vorhanden" if installed else "nicht vorhanden"
+        return True, f"Wallbox als {status} markiert"
+    else:
+        return False, "Fehler beim Speichern der Einstellung"
+
+
+def get_wallbox_enabled() -> bool:
+    """Gibt zurück ob der Wallbox-Stromkreis aktiviert ist"""
+    settings = load_settings()
+    return settings.get('wallbox_enabled', True)
+
+
+def set_wallbox_enabled(enabled: bool) -> Tuple[bool, str]:
+    """
+    Aktiviert oder deaktiviert den Wallbox-Stromkreis
+
+    Args:
+        enabled: True = Wallbox aktiviert, False = deaktiviert
+
+    Returns:
+        Tuple[bool, str]: (Erfolg, Nachricht)
+    """
+    settings = load_settings()
+    settings['wallbox_enabled'] = enabled
+
+    if save_settings(settings):
+        status = "aktiviert" if enabled else "deaktiviert"
+        return True, f"Wallbox-Stromkreis {status}"
+    else:
+        return False, "Fehler beim Speichern der Einstellung"

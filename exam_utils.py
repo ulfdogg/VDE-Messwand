@@ -5,6 +5,7 @@ import random
 from config import DEFAULT_EXAM_RELAY_COUNT
 from relais_manager import get_all_relais_config, get_groups_overview
 from stromkreis_manager import get_all_stromkreise
+from settings_manager import get_wallbox_enabled
 
 
 def get_effective_relay_list():
@@ -37,6 +38,7 @@ def select_random_relays(count=None):
     """
     Wählt zufällige Relais aus verschiedenen Stromkreisen
     Berücksichtigt Relais-Gruppen automatisch
+    Ignoriert Wallbox-Stromkreis wenn in Einstellungen deaktiviert
 
     Args:
         count: Anzahl der zu wählenden Relais (Standard: aus config)
@@ -51,10 +53,15 @@ def select_random_relays(count=None):
         relais_config = get_all_relais_config()
         groups = get_groups_overview()
         stromkreise = get_all_stromkreise()
+        wallbox_enabled = get_wallbox_enabled()
 
         # Erstelle Mapping: Stromkreis -> Relais
         stromkreis_to_relais = {}
         for sk_id, sk_data in stromkreise.items():
+            # Überspringe Wallbox-Stromkreis wenn deaktiviert
+            if not wallbox_enabled and sk_data['name'] == 'Wallbox':
+                continue
+
             # Finde alle Relais mit diesem Stromkreis
             relais_list = []
             for relay_num in range(64):

@@ -123,6 +123,44 @@
             color: #fff;
         }
 
+        /* Deaktivierter Stromkreis (z.B. Wallbox) */
+        .stromkreis-section.disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .stromkreis-section.disabled .stromkreis-header {
+            border-bottom-color: rgba(128, 128, 128, 0.3);
+        }
+
+        .stromkreis-section.disabled .stromkreis-title {
+            color: #888;
+        }
+
+        .stromkreis-section.disabled .relay-option {
+            background: rgba(128, 128, 128, 0.1);
+            border-color: rgba(128, 128, 128, 0.2);
+            cursor: not-allowed;
+        }
+
+        .stromkreis-section.disabled .relay-option:hover {
+            transform: none;
+            box-shadow: none;
+            border-color: rgba(128, 128, 128, 0.2);
+            background: rgba(128, 128, 128, 0.1);
+        }
+
+        .disabled-badge {
+            background: rgba(128, 128, 128, 0.3);
+            color: #888;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: bold;
+            border: 1px solid rgba(128, 128, 128, 0.5);
+            margin-left: 10px;
+        }
+
         .status-box {
             background: rgba(255, 255, 255, 0.05);
             border: 2px solid rgba(255, 68, 68, 0.3);
@@ -281,12 +319,22 @@
 
             <form id="errorForm">
                 {% for sk_num, sk_data in stromkreise.items() %}
-                <div class="stromkreis-section">
+                <div class="stromkreis-section{% if sk_data.disabled %} disabled{% endif %}">
                     <div class="stromkreis-header">
                         <div>
-                            <div class="stromkreis-title">{{ sk_data.name }}</div>
+                            <div class="stromkreis-title">
+                                {{ sk_data.name }}
+                                {% if sk_data.disabled %}
+                                <span class="disabled-badge">DEAKTIVIERT</span>
+                                {% endif %}
+                            </div>
                             {% if sk_data.description %}
                             <div class="stromkreis-description">{{ sk_data.description }}</div>
+                            {% endif %}
+                            {% if sk_data.disabled %}
+                            <div class="stromkreis-description" style="color: #ff8888;">
+                                Wallbox ist auf der Startseite deaktiviert
+                            </div>
                             {% endif %}
                         </div>
                     </div>
@@ -294,11 +342,12 @@
                     <div class="relay-selection">
                         {% if sk_data.relays %}
                             {% for relay in sk_data.relays %}
-                            <div class="relay-option" onclick="selectRelay({{ sk_num }}, {{ relay.number }}, this)">
-                                <input type="radio" 
-                                       name="stromkreis_{{ sk_num }}" 
-                                       value="{{ relay.number }}" 
-                                       id="relay_{{ sk_num }}_{{ relay.number }}">
+                            <div class="relay-option" onclick="{% if not sk_data.disabled %}selectRelay({{ sk_num }}, {{ relay.number }}, this){% endif %}">
+                                <input type="radio"
+                                       name="stromkreis_{{ sk_num }}"
+                                       value="{{ relay.number }}"
+                                       id="relay_{{ sk_num }}_{{ relay.number }}"
+                                       {% if sk_data.disabled %}disabled{% endif %}>
                                 <label for="relay_{{ sk_num }}_{{ relay.number }}" class="relay-label">
                                     <div class="relay-name">{{ relay.name }}</div>
                                     <div class="relay-number">

@@ -48,15 +48,15 @@ def generate_exam_number():
 def normalize_relay_list(relay_list):
     """
     Normalisiert eine Relais-Liste: Gruppen-Mitglieder werden zu Repräsentanten
-    
+
     Args:
         relay_list: Liste von Relais-Nummern
-        
+
     Returns:
         Normalisierte Liste (ohne Duplikate)
     """
     from config import RELAY_GROUPS
-    
+
     normalized = []
     for relay in relay_list:
         # Finde Gruppe
@@ -65,38 +65,94 @@ def normalize_relay_list(relay_list):
             if relay in group_data['relays']:
                 representative = group_data['relays'][0]
                 break
-        
+
         if representative not in normalized:
             normalized.append(representative)
-    
+
     return normalized
+
+
+def get_relay_display_name(relay_num):
+    """
+    Gibt den Anzeigenamen für ein Relais zurück.
+    Bei Gruppen wird der Gruppenname verwendet, sonst der Relais-Name.
+    Wenn kein Name vergeben ist, wird "Relais X" zurückgegeben.
+
+    Args:
+        relay_num: Relais-Nummer (0-63)
+
+    Returns:
+        Anzeigename als String
+    """
+    from config import RELAY_GROUPS
+    from group_manager import get_all_relay_names
+
+    # Prüfe zuerst ob das Relais zu einer Gruppe gehört
+    for group_data in RELAY_GROUPS.values():
+        if relay_num in group_data['relays']:
+            return group_data.get('name', f'Gruppe {relay_num}')
+
+    # Sonst: Hole den Relais-Namen
+    relay_names = get_all_relay_names()
+    relay_data = relay_names.get(relay_num, {})
+
+    if isinstance(relay_data, str):
+        # Alte Struktur: nur String
+        name = relay_data
+    elif isinstance(relay_data, dict):
+        # Neue Struktur: Dictionary
+        name = relay_data.get('name', '')
+    else:
+        name = ''
+
+    # Wenn Name vorhanden, verwende ihn, sonst "Relais X"
+    if name and name.strip():
+        return name.strip()
+    else:
+        return f'Relais {relay_num}'
+
+
+def relay_list_to_names(relay_list):
+    """
+    Wandelt eine Liste von Relais-Nummern in eine Liste von Namen um.
+
+    Args:
+        relay_list: Liste von Relais-Nummern
+
+    Returns:
+        Liste von Anzeigenamen
+    """
+    return [get_relay_display_name(relay_num) for relay_num in relay_list]
 
 
 def save_examination(exam_number, active_relays):
     """
     Speichert eine neue Prüfung in der Datenbank
-    Normalisiert Relais-Gruppen automatisch
-    
+    Normalisiert Relais-Gruppen automatisch und speichert Namen statt Nummern
+
     Args:
         exam_number: Prüfungsnummer
-        active_relays: Liste der aktiven Relais
-        
+        active_relays: Liste der aktiven Relais (Nummern)
+
     Returns:
         True bei Erfolg, False bei Fehler
     """
     try:
         # Normalisiere Relais-Liste (Gruppen zusammenfassen)
         normalized_relays = normalize_relay_list(active_relays)
-        
+
+        # Wandle Nummern in Namen um
+        relay_names = relay_list_to_names(normalized_relays)
+
         conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
         cursor.execute('''
             INSERT INTO examinations (exam_number, active_relays, timestamp, duration)
             VALUES (?, ?, ?, ?)
-        ''', (exam_number, json.dumps(normalized_relays), datetime.now(), 0))
+        ''', (exam_number, json.dumps(relay_names), datetime.now(), 0))
         conn.commit()
         conn.close()
-        print(f"✓ Examination saved: {exam_number} with relays {normalized_relays}")
+        print(f"✓ Examination saved: {exam_number} with relays {relay_names}")
         return True
     except Exception as e:
         print(f"Error saving examination: {e}")
@@ -212,18 +268,19 @@ def clear_database():
 def export_to_csv():
     """
     Exportiert alle Prüfungen als CSV-Daten
-    
+
     Returns:
         Liste von Listen (CSV-Zeilen)
     """
     examinations = get_all_examinations()
-    
-    csv_data = [['Prüfungsnummer', 'Relais_IDs', 'Zeitstempel', 'Dauer_Sekunden', 'Status']]
-    
+
+    csv_data = [['Prüfungsnummer', 'Aktive_Fehler', 'Zeitstempel', 'Dauer_Sekunden', 'Status']]
+
     for exam in examinations:
-        relays_str = ', '.join(map(str, exam['active_relays']))
+        # active_relays enthält jetzt Namen (Strings) statt Nummern
+        relays_str = ', '.join(str(r) for r in exam['active_relays'])
         status = 'Abgeschlossen' if exam['is_completed'] else 'Unterbrochen'
-        
+
         csv_data.append([
             exam['exam_number'],
             relays_str,
@@ -231,5 +288,5 @@ def export_to_csv():
             exam['duration'] or 0,
             status
         ])
-    
+
     return csv_data

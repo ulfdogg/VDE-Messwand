@@ -236,6 +236,18 @@
                 </div>
             </div>
 
+            <!-- Wallbox Einstellung -->
+            <div style="margin-bottom: 25px; padding: 15px; background: rgba(255, 255, 255, 0.05); border-radius: 10px; border: 2px solid rgba(255, 255, 255, 0.1);">
+                <label style="display: flex; align-items: center; gap: 12px; cursor: pointer; font-size: 1.1em;">
+                    <input type="checkbox" id="wallboxInstalled" {% if wallbox_installed %}checked{% endif %}
+                           style="width: 22px; height: 22px; accent-color: #ff4444; cursor: pointer;">
+                    <span>Wallbox vorhanden</span>
+                </label>
+                <p style="margin: 8px 0 0 34px; font-size: 0.85em; opacity: 0.7;">
+                    Aktivieren, wenn eine Wallbox an der Messwand angeschlossen ist. Der Wallbox-Toggle wird dann auf der Hauptseite angezeigt.
+                </p>
+            </div>
+
             <div id="messageBox" class="message"></div>
 
             <div class="toolbar">
@@ -679,6 +691,31 @@
             if (changedRelais.size > 0) {
                 e.preventDefault();
                 e.returnValue = '';
+            }
+        });
+
+        // Wallbox vorhanden Toggle
+        document.getElementById('wallboxInstalled').addEventListener('change', async function() {
+            try {
+                const response = await fetch('/api/wallbox/installed', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        installed: this.checked
+                    })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showMessage(result.message, 'success');
+                } else {
+                    showMessage('Fehler: ' + (result.message || 'Unbekannter Fehler'), 'error');
+                    this.checked = !this.checked;
+                }
+            } catch (error) {
+                showMessage('Verbindungsfehler: ' + error.message, 'error');
+                this.checked = !this.checked;
             }
         });
     </script>

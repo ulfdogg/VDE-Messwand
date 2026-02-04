@@ -1,4 +1,15 @@
+# VDE Messwand - Python Abhängigkeiten
+# Installation: pip install -r requirements.txt
+
+# Web Framework
 Flask==2.3.3
+
+# Hardware-Kommunikation
 smbus2==0.4.2
-datetime
-subprocess
+pyserial
+
+# Raspberry Pi GPIO
+RPi.GPIO
+
+# Production Server (optional)
+gunicorn

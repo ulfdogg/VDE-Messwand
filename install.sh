@@ -1,0 +1,341 @@
+#!/bin/bash
+#
+# VDE Messwand - Installations-Script
+# ====================================
+# Dieses Script installiert und konfiguriert das VDE Messwand System vollständig.
+#
+# Verwendung: sudo ./install.sh
+#
+
+set -e
+
+# Farben
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
+
+# Variablen
+INSTALL_DIR="/home/vde/vde-messwand"
+SERVICE_USER="vde"
+DEFAULT_HOSTNAME="VDE-Messwand"
+
+# ============================================================================
+# Funktionen
+# ============================================================================
+
+print_header() {
+    echo ""
+    echo -e "${CYAN}======================================================"
+    echo " VDE MESSWAND - INSTALLATIONS-SCRIPT"
+    echo "======================================================${NC}"
+    echo ""
+}
+
+print_step() {
+    echo ""
+    echo -e "${BLUE}[STEP $1]${NC} $2"
+    echo "------------------------------------------------------"
+}
+
+print_success() {
+    echo -e "${GREEN}[OK]${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}[WARNUNG]${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}[FEHLER]${NC} $1"
+}
+
+check_root() {
+    if [ "$EUID" -ne 0 ]; then
+        print_error "Dieses Script muss als root ausgeführt werden!"
+        echo "Verwendung: sudo ./install.sh"
+        exit 1
+    fi
+}
+
+# ============================================================================
+# Hauptprogramm
+# ============================================================================
+
+print_header
+
+check_root
+
+# ----------------------------------------------------------------------------
+# Schritt 1: Hostname abfragen
+# ----------------------------------------------------------------------------
+print_step "1/10" "System-Konfiguration"
+
+echo ""
+echo "Der Hostname wird für folgende Zwecke verwendet:"
+echo "  - Systemname (hostname)"
+echo "  - WiFi-Hotspot SSID"
+echo "  - Netzwerkidentifikation"
+echo ""
+read -p "Hostname eingeben [Standard: $DEFAULT_HOSTNAME]: " INPUT_HOSTNAME
+
+HOSTNAME="${INPUT_HOSTNAME:-$DEFAULT_HOSTNAME}"
+# Entferne Leerzeichen und Sonderzeichen für SSID
+SSID=$(echo "$HOSTNAME" | tr ' ' '-' | tr -cd '[:alnum:]-_')
+
+echo ""
+echo -e "  Hostname:    ${GREEN}$HOSTNAME${NC}"
+echo -e "  Hotspot-SSID: ${GREEN}$SSID${NC}"
+echo ""
+read -p "Ist das korrekt? [J/n]: " CONFIRM
+if [[ "$CONFIRM" =~ ^[Nn]$ ]]; then
+    echo "Abbruch durch Benutzer."
+    exit 0
+fi
+
+# ----------------------------------------------------------------------------
+# Schritt 2: System aktualisieren
+# ----------------------------------------------------------------------------
+print_step "2/10" "System aktualisieren (apt update && upgrade)"
+
+apt update
+apt upgrade -y
+
+print_success "System aktualisiert"
+
+# ----------------------------------------------------------------------------
+# Schritt 3: Pakete installieren
+# ----------------------------------------------------------------------------
+print_step "3/10" "Erforderliche Pakete installieren"
+
+apt install -y \
+    python3 \
+    python3-pip \
+    python3-venv \
+    python3-serial \
+    python3-smbus \
+    python3-rpi.gpio \
+    git \
+    network-manager \
+    curl \
+    evtest \
+    i2c-tools
+
+print_success "Pakete installiert"
+
+# ----------------------------------------------------------------------------
+# Schritt 4: Hostname setzen
+# ----------------------------------------------------------------------------
+print_step "4/10" "Hostname konfigurieren"
+
+# Aktuellen Hostname speichern
+OLD_HOSTNAME=$(hostname)
+
+# Hostname setzen
+hostnamectl set-hostname "$HOSTNAME"
+
+# /etc/hosts aktualisieren
+sed -i "s/$OLD_HOSTNAME/$HOSTNAME/g" /etc/hosts 2>/dev/null || true
+
+# Falls nicht vorhanden, Eintrag hinzufügen
+if ! grep -q "$HOSTNAME" /etc/hosts; then
+    echo "127.0.1.1       $HOSTNAME" >> /etc/hosts
+fi
+
+print_success "Hostname gesetzt: $HOSTNAME"
+
+# ----------------------------------------------------------------------------
+# Schritt 5: Benutzerberechtigungen
+# ----------------------------------------------------------------------------
+print_step "5/10" "Benutzerberechtigungen konfigurieren"
+
+# Benutzer zu notwendigen Gruppen hinzufügen
+usermod -a -G dialout $SERVICE_USER 2>/dev/null || true
+usermod -a -G gpio $SERVICE_USER 2>/dev/null || true
+usermod -a -G i2c $SERVICE_USER 2>/dev/null || true
+usermod -a -G spi $SERVICE_USER 2>/dev/null || true
+
+# Sudoers-Eintrag für nmcli ohne Passwort
+SUDOERS_FILE="/etc/sudoers.d/vde-messwand"
+cat > "$SUDOERS_FILE" << 'EOF'
+# VDE Messwand - Netzwerk-Rechte
+vde ALL=(ALL) NOPASSWD: /usr/bin/nmcli
+vde ALL=(ALL) NOPASSWD: /usr/bin/iwconfig
+vde ALL=(ALL) NOPASSWD: /sbin/shutdown
+vde ALL=(ALL) NOPASSWD: /sbin/reboot
+EOF
+chmod 440 "$SUDOERS_FILE"
+
+print_success "Benutzerberechtigungen konfiguriert"
+
+# ----------------------------------------------------------------------------
+# Schritt 6: Virtuelle Umgebung und Python-Abhängigkeiten
+# ----------------------------------------------------------------------------
+print_step "6/10" "Python-Umgebung einrichten"
+
+cd "$INSTALL_DIR"
+
+# Virtuelle Umgebung erstellen (falls nicht vorhanden)
+if [ ! -d "venv" ]; then
+    sudo -u $SERVICE_USER python3 -m venv venv
+    print_success "Virtuelle Umgebung erstellt"
+else
+    print_warning "Virtuelle Umgebung existiert bereits"
+fi
+
+# Abhängigkeiten installieren
+sudo -u $SERVICE_USER bash -c "source venv/bin/activate && pip install --upgrade pip"
+sudo -u $SERVICE_USER bash -c "source venv/bin/activate && pip install Flask==2.3.3 smbus2==0.4.2 pyserial gunicorn RPi.GPIO"
+
+print_success "Python-Abhängigkeiten installiert"
+
+# ----------------------------------------------------------------------------
+# Schritt 7: Hotspot-Konfiguration aktualisieren
+# ----------------------------------------------------------------------------
+print_step "7/10" "Hotspot-Konfiguration anpassen"
+
+# network_manager.py mit korrekter SSID aktualisieren
+NETWORK_MANAGER_FILE="$INSTALL_DIR/network_manager.py"
+if [ -f "$NETWORK_MANAGER_FILE" ]; then
+    sed -i "s/HOTSPOT_SSID = .*/HOTSPOT_SSID = '$SSID'/" "$NETWORK_MANAGER_FILE"
+    print_success "Hotspot-SSID gesetzt: $SSID"
+else
+    print_warning "network_manager.py nicht gefunden"
+fi
+
+# ----------------------------------------------------------------------------
+# Schritt 8: Systemd-Service einrichten
+# ----------------------------------------------------------------------------
+print_step "8/10" "Systemd-Service einrichten"
+
+SERVICE_FILE="/etc/systemd/system/vde-messwand.service"
+cat > "$SERVICE_FILE" << EOF
+[Unit]
+Description=VDE Messwand Flask App
+After=network.target
+
+[Service]
+User=$SERVICE_USER
+Group=$SERVICE_USER
+WorkingDirectory=$INSTALL_DIR
+ExecStart=$INSTALL_DIR/venv/bin/python app.py
+Restart=always
+RestartSec=10
+Environment="PATH=$INSTALL_DIR/venv/bin"
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reload
+systemctl enable vde-messwand.service
+
+print_success "Systemd-Service eingerichtet und aktiviert"
+
+# ----------------------------------------------------------------------------
+# Schritt 9: Power-Button (J2) konfigurieren
+# ----------------------------------------------------------------------------
+print_step "9/10" "Power-Button (J2-Header) konfigurieren"
+
+echo "Der Raspberry Pi 5 hat einen J2-Header für einen externen Power-Button."
+echo "Standard: Button kann Ein- UND Ausschalten"
+echo ""
+read -p "Soll der Button NUR zum Einschalten funktionieren? [J/n]: " DISABLE_POWEROFF
+
+if [[ ! "$DISABLE_POWEROFF" =~ ^[Nn]$ ]]; then
+    # systemd-logind konfigurieren
+    mkdir -p /etc/systemd/logind.conf.d
+    cat > /etc/systemd/logind.conf.d/no-power-button.conf << 'EOF'
+[Login]
+HandlePowerKey=ignore
+HandlePowerKeyLongPress=ignore
+EOF
+    systemctl restart systemd-logind 2>/dev/null || true
+
+    # labwc Desktop-Konfiguration (falls vorhanden)
+    LABWC_USER_CONFIG="/home/$SERVICE_USER/.config/labwc/rc.xml"
+    LABWC_SYSTEM_CONFIG="/etc/xdg/labwc/rc.xml"
+
+    if [ -f "$LABWC_SYSTEM_CONFIG" ]; then
+        mkdir -p "/home/$SERVICE_USER/.config/labwc"
+        if [ ! -f "$LABWC_USER_CONFIG" ]; then
+            cp "$LABWC_SYSTEM_CONFIG" "$LABWC_USER_CONFIG"
+            chown $SERVICE_USER:$SERVICE_USER "$LABWC_USER_CONFIG"
+        fi
+        # Power-Button-Aktion entfernen
+        sed -i 's/<action name="Execute">.*<command>pwrkey<\/command>.*<\/action>//' "$LABWC_USER_CONFIG" 2>/dev/null || true
+    fi
+
+    # evtest-basierter Blocker als Service
+    cat > /etc/systemd/system/block-power-button.service << 'EOF'
+[Unit]
+Description=Block power button input events
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/evtest --grab /dev/input/event0
+Restart=always
+RestartSec=1
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    systemctl daemon-reload
+    systemctl enable block-power-button.service
+
+    print_success "Power-Button nur zum Einschalten konfiguriert"
+else
+    print_warning "Power-Button-Konfiguration übersprungen"
+fi
+
+# ----------------------------------------------------------------------------
+# Schritt 10: Datenbank initialisieren
+# ----------------------------------------------------------------------------
+print_step "10/10" "Datenbank initialisieren"
+
+cd "$INSTALL_DIR"
+if [ ! -f "vde_messwand.db" ]; then
+    sudo -u $SERVICE_USER bash -c "source venv/bin/activate && python3 -c 'from database import init_db; init_db()'"
+    print_success "Datenbank initialisiert"
+else
+    print_warning "Datenbank existiert bereits"
+fi
+
+# ============================================================================
+# Zusammenfassung
+# ============================================================================
+
+echo ""
+echo -e "${CYAN}======================================================"
+echo " INSTALLATION ABGESCHLOSSEN"
+echo "======================================================${NC}"
+echo ""
+echo -e "  ${GREEN}Hostname:${NC}      $HOSTNAME"
+echo -e "  ${GREEN}Hotspot-SSID:${NC}  $SSID"
+echo -e "  ${GREEN}Hotspot-PW:${NC}    vde12345"
+echo -e "  ${GREEN}Install-Dir:${NC}   $INSTALL_DIR"
+echo -e "  ${GREEN}Service:${NC}       vde-messwand.service"
+echo ""
+echo "Nächste Schritte:"
+echo "  1. Neustart durchführen: sudo reboot"
+echo "  2. Nach Neustart erreichbar unter:"
+echo "     - http://$HOSTNAME.local (falls mDNS aktiv)"
+echo "     - http://<IP-ADRESSE>"
+echo "     - Bei Hotspot: http://192.168.50.1"
+echo ""
+echo "Service-Befehle:"
+echo "  sudo systemctl status vde-messwand"
+echo "  sudo systemctl restart vde-messwand"
+echo "  sudo journalctl -u vde-messwand -f"
+echo ""
+echo -e "${YELLOW}WICHTIG: Bitte jetzt neu starten!${NC}"
+echo ""
+read -p "Jetzt neu starten? [J/n]: " REBOOT_NOW
+if [[ ! "$REBOOT_NOW" =~ ^[Nn]$ ]]; then
+    echo "System wird neu gestartet..."
+    reboot
+fi

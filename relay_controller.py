@@ -15,19 +15,10 @@ class RelayController:
         self.modbus = ModbusRTU(SERIAL_PORT, BAUD_RATE, SERIAL_TIMEOUT)
         self.relay_states = {0: [False] * 32, 1: [False] * 32}
 
-    def get_all_groups(self):
-        """Lädt alle Gruppen (config.py + JSON-Datei)"""
-        try:
-            from group_manager import get_all_groups
-            return get_all_groups()
-        except Exception as e:
-            print(f"Warning: Could not load groups from file: {e}")
-            from config import RELAY_GROUPS
-            return RELAY_GROUPS
-
     def get_relay_group(self, relay_num):
         """
-        Prüft, ob ein Relais Teil einer Gruppe ist
+        Prüft, ob ein Relais Teil einer Gruppe ist.
+        Verwendet group_number aus relais_config.json.
 
         Args:
             relay_num: Relais-Nummer
@@ -35,14 +26,29 @@ class RelayController:
         Returns:
             Tuple (group_name, relay_list) oder (None, [relay_num]) wenn keine Gruppe
         """
-        # Lade aktuelle Gruppen (inkl. dynamische aus JSON)
-        relay_groups = self.get_all_groups()
+        try:
+            from relais_manager import load_relais_config, get_relais_by_group_number
 
-        for group_name, group_data in relay_groups.items():
-            if relay_num in group_data['relays']:
-                print(f"Relay {relay_num} is part of group '{group_name}' with relays {group_data['relays']}")
-                return group_name, group_data['relays']
-        return None, [relay_num]
+            config = load_relais_config()
+            relay_key = str(relay_num)
+
+            if relay_key in config:
+                group_number = config[relay_key].get('group_number', 0)
+
+                if group_number > 0:
+                    # Finde alle Relais mit derselben group_number
+                    group_relais = get_relais_by_group_number(group_number)
+
+                    if len(group_relais) > 1:
+                        group_name = config[relay_key].get('name', f'Gruppe {group_number}')
+                        print(f"Relay {relay_num} is part of group {group_number} ('{group_name}') with relays {group_relais}")
+                        return f"Gruppe_{group_number}", group_relais
+
+            return None, [relay_num]
+
+        except Exception as e:
+            print(f"Warning: Could not load group from relais_config: {e}")
+            return None, [relay_num]
     
     def normalize_relay_to_group_representative(self, relay_num):
         """

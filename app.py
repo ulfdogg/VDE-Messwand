@@ -58,7 +58,46 @@ gpio_monitor_instance = None
 @app.route('/')
 def index():
     """Startseite"""
-    return render_template('index.html')
+    from settings_manager import get_wallbox_enabled, get_wallbox_installed
+    wallbox_installed = get_wallbox_installed()
+    wallbox_enabled = get_wallbox_enabled()
+    return render_template('index.html',
+                         wallbox_installed=wallbox_installed,
+                         wallbox_enabled=wallbox_enabled)
+
+
+@app.route('/api/wallbox/toggle', methods=['POST'])
+def api_toggle_wallbox():
+    """API: Wallbox-Stromkreis ein/ausschalten"""
+    from settings_manager import set_wallbox_enabled
+
+    data = request.json
+    enabled = data.get('enabled', True)
+
+    success, message = set_wallbox_enabled(enabled)
+
+    return jsonify({
+        'success': success,
+        'message': message,
+        'wallbox_enabled': enabled
+    })
+
+
+@app.route('/api/wallbox/installed', methods=['POST'])
+def api_set_wallbox_installed():
+    """API: Wallbox als vorhanden/nicht vorhanden markieren"""
+    from settings_manager import set_wallbox_installed
+
+    data = request.json
+    installed = data.get('installed', False)
+
+    success, message = set_wallbox_installed(installed)
+
+    return jsonify({
+        'success': success,
+        'message': message,
+        'wallbox_installed': installed
+    })
 
 
 # ==================== PRÜFUNGSMODUS ====================
@@ -113,16 +152,20 @@ def finish_exam():
 @app.route('/manual_mode')
 def manual_mode():
     """Manuelle Fehlerauswahl"""
+    from settings_manager import get_wallbox_enabled
+
     # Lade neue Relais-Konfiguration und dynamische Stromkreise
     relais_config = get_all_relais_config()
     groups = get_groups_overview()
     stromkreise = get_all_stromkreise()
+    wallbox_enabled = get_wallbox_enabled()
 
     # Erstelle erweiterte Stromkreis-Info mit Relais
     stromkreise_with_names = {}
 
     for sk_id, sk_data in stromkreise.items():
         relay_options = []
+        is_wallbox = sk_data['name'] == 'Wallbox'
 
         # Finde alle Relais mit diesem Stromkreis
         relais_in_stromkreis = []
@@ -160,68 +203,19 @@ def manual_mode():
         stromkreise_with_names[sk_id] = {
             'name': sk_data['name'],
             'description': sk_data.get('description', ''),
-            'relays': relay_options
+            'relays': relay_options,
+            'disabled': is_wallbox and not wallbox_enabled
         }
 
     return render_template('manual_mode_pi.html',
-                         stromkreise=stromkreise_with_names)
+                         stromkreise=stromkreise_with_names,
+                         wallbox_enabled=wallbox_enabled)
 
 
 @app.route('/manual_mode_pi')
 def manual_mode_pi():
-    """Manuelle Fehlerauswahl (Pi-Version)"""
-    # Lade neue Relais-Konfiguration und dynamische Stromkreise
-    relais_config = get_all_relais_config()
-    groups = get_groups_overview()
-    stromkreise = get_all_stromkreise()
-
-    # Erstelle erweiterte Stromkreis-Info mit Relais
-    stromkreise_with_names = {}
-
-    for sk_id, sk_data in stromkreise.items():
-        relay_options = []
-
-        # Finde alle Relais mit diesem Stromkreis
-        relais_in_stromkreis = []
-        for relay_num in range(64):
-            relay_data = relais_config.get(relay_num, {})
-            if relay_data.get('stromkreis') == sk_data['name']:
-                relais_in_stromkreis.append(relay_num)
-
-        # Gruppiere nach Gruppen-Nummer
-        processed_groups = set()
-
-        for relay_num in sorted(relais_in_stromkreis):
-            relay_data = relais_config.get(relay_num, {})
-            group_num = relay_data.get('group_number', 0)
-
-            if group_num > 0:
-                # Ist in Gruppe
-                if group_num not in processed_groups:
-                    processed_groups.add(group_num)
-                    group_info = groups.get(group_num, {})
-                    relay_options.append({
-                        'number': relay_num,
-                        'name': relay_data.get('name', f'Gruppe {group_num}'),
-                        'is_group': True,
-                        'group_relays': group_info.get('relays', [relay_num])
-                    })
-            else:
-                # Einzelnes Relais
-                relay_options.append({
-                    'number': relay_num,
-                    'name': relay_data.get('name', f'Relais {relay_num}'),
-                    'is_group': False
-                })
-
-        stromkreise_with_names[sk_id] = {
-            'name': sk_data['name'],
-            'description': sk_data.get('description', ''),
-            'relays': relay_options
-        }
-
-    return render_template('manual_mode_pi.html',
-                         stromkreise=stromkreise_with_names)
+    """Manuelle Fehlerauswahl (Pi-Version) - leitet zu manual_mode weiter"""
+    return manual_mode()
 
 
 @app.route('/set_manual_errors', methods=['POST'])
@@ -960,16 +954,20 @@ def api_delete_kategorie():
 @app.route('/admin_relais')
 def admin_relais():
     """Neue modulare Relais-Verwaltungsseite"""
+    from settings_manager import get_wallbox_installed
+
     relais_config = get_all_relais_config()
     stats = get_relais_statistics()
     kategorien = get_all_kategorien()
     stromkreise = get_all_stromkreise()
+    wallbox_installed = get_wallbox_installed()
 
     return render_template('admin_relais.html',
                          relais_config=relais_config,
                          stats=stats,
                          kategorien=kategorien,
-                         stromkreise=stromkreise)
+                         stromkreise=stromkreise,
+                         wallbox_installed=wallbox_installed)
 
 
 @app.route('/api/relais/config', methods=['GET'])
@@ -1416,46 +1414,47 @@ def api_activate_training():
 def admin_database():
     """Datenbank-Verwaltung"""
     from group_manager import get_all_relay_names, get_all_groups
-    
+    from database import get_relay_display_name
+
     examinations = get_all_examinations()
     stats = get_examination_stats()
     relay_names = get_all_relay_names()
     groups = get_all_groups()
-    
+
     # Formatiere Daten für Template mit Namen
     formatted_exams = []
     for exam in examinations:
         formatted_date, formatted_time = format_timestamp(exam['timestamp'])
-        
+
         # Erstelle lesbare Relais-Beschreibungen
+        # Unterstützt sowohl alte Einträge (Nummern) als auch neue (Namen)
         relay_descriptions = []
-        for relay_num in exam['active_relays']:
-            # Prüfe ob in Gruppe
-            group_name = None
-            for group_data in groups.values():
-                if relay_num in group_data['relays']:
-                    group_name = group_data['name']
-                    break
-            
-            if group_name:
+        for relay_entry in exam['active_relays']:
+            if isinstance(relay_entry, int):
+                # Alte Einträge: Nummer -> Name nachschlagen
+                relay_num = relay_entry
+                name = get_relay_display_name(relay_num)
+
+                # Prüfe ob Gruppe
+                is_group = False
+                for group_data in groups.values():
+                    if relay_num in group_data['relays']:
+                        is_group = True
+                        break
+
                 relay_descriptions.append({
                     'number': relay_num,
-                    'name': group_name,
-                    'is_group': True
-                })
-            elif relay_num in relay_names:
-                relay_descriptions.append({
-                    'number': relay_num,
-                    'name': relay_names[relay_num],
-                    'is_group': False
+                    'name': name,
+                    'is_group': is_group
                 })
             else:
+                # Neue Einträge: Name ist bereits gespeichert
                 relay_descriptions.append({
-                    'number': relay_num,
-                    'name': f"Relais {relay_num}",
+                    'number': None,
+                    'name': str(relay_entry),
                     'is_group': False
                 })
-        
+
         formatted_exams.append({
             'id': exam['id'],
             'exam_number': exam['exam_number'],
@@ -1466,7 +1465,7 @@ def admin_database():
             'formatted_duration': format_duration(exam['duration']),
             'is_completed': exam['is_completed']
         })
-    
+
     return render_template('admin_database.html',
                          examinations=formatted_exams,
                          completed_count=stats['completed'],

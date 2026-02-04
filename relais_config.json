@@ -72,20 +72,20 @@
     "stromkreis": "Herdanschlussdose"
   },
   "12": {
-    "group_number": 2,
+    "group_number": 0,
     "name": "PE Isolationsfehler (vor widerstand) 800.000Ω",
     "category": "RISO",
     "stromkreis": "Herdanschlussdose"
   },
   "13": {
     "group_number": 2,
-    "name": "PE Isolationsfehler (nach widerstand)",
+    "name": "iso fehler",
     "category": "RISO",
     "stromkreis": "Herdanschlussdose"
   },
   "14": {
-    "group_number": 0,
-    "name": "",
+    "group_number": 2,
+    "name": "iso fehler",
     "category": "",
     "stromkreis": "Herdanschlussdose"
   },
@@ -132,13 +132,13 @@
     "stromkreis": "Steckdose+Lampe 1"
   },
   "22": {
-    "group_number": 4,
+    "group_number": 0,
     "name": "N Isolationsfehler (vor widerstand) 800.000Ω",
     "category": "RISO",
     "stromkreis": "Steckdose+Lampe 1"
   },
   "23": {
-    "group_number": 4,
+    "group_number": 0,
     "name": "N Isolationsfehler (nach widerstand)",
     "category": "RISO",
     "stromkreis": "Steckdose+Lampe 1"
@@ -192,13 +192,13 @@
     "stromkreis": "Steckdose+Lampe 2"
   },
   "32": {
-    "group_number": 5,
+    "group_number": 0,
     "name": "PE Isolationsfehler (vor widerstand) 800.000Ω",
     "category": "RISO",
     "stromkreis": "Steckdose+Lampe 2"
   },
   "33": {
-    "group_number": 5,
+    "group_number": 0,
     "name": "PE Isolationsfehler (nach widerstand)",
     "category": "RISO",
     "stromkreis": "Steckdose+Lampe 2"
@@ -258,13 +258,13 @@
     "stromkreis": "Badsteckdose über RCBO"
   },
   "43": {
-    "group_number": 3,
+    "group_number": 0,
     "name": "PE Isolationsfehler (vor widerstand) 800.000Ω",
     "category": "RISO",
     "stromkreis": "Badsteckdose über RCBO"
   },
   "44": {
-    "group_number": 3,
+    "group_number": 0,
     "name": "PE Isolationsfehler (nach widerstand)",
     "category": "RISO",
     "stromkreis": "Badsteckdose über RCBO"
@@ -312,13 +312,13 @@
     "stromkreis": "Wallbox"
   },
   "52": {
-    "group_number": 6,
+    "group_number": 0,
     "name": "PE Isolationsfehler (vor widerstand) 800.000Ω",
     "category": "RISO",
     "stromkreis": "Wallbox"
   },
   "53": {
-    "group_number": 6,
+    "group_number": 0,
     "name": "PE Isolationsfehler (nach widerstand)",
     "category": "RISO",
     "stromkreis": "Wallbox"
@@ -361,26 +361,26 @@
   },
   "60": {
     "group_number": 0,
-    "name": "Heizungsrohr Abriss",
+    "name": "Abriss Abwasser",
     "category": "RLO",
-    "stromkreis": "Taster 1"
+    "stromkreis": "RLO"
   },
   "61": {
     "group_number": 0,
-    "name": "Abwasser Abriss",
+    "name": "Abriss Zulauf",
     "category": "RLO",
-    "stromkreis": "Taster 1"
+    "stromkreis": "RLO"
   },
   "62": {
     "group_number": 0,
-    "name": "Hoher Widerstand Heizung",
+    "name": "Abriss Zulauf",
     "category": "RLO",
-    "stromkreis": "Taster 1"
+    "stromkreis": "RLO"
   },
   "63": {
     "group_number": 0,
-    "name": "Hoher Widerstand zulauf",
+    "name": "Hoher Widerstand zulauf 1kohm",
     "category": "RLO",
-    "stromkreis": "Taster 1"
+    "stromkreis": "RLO"
   }
 }

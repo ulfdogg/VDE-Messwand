@@ -58,9 +58,9 @@ STROMKREISE = {
         'description': 'E-Auto Ladestation'
     },
     7: {
-        'name': 'Sonstige',
+        'name': 'RLO',
         'relays': list(range(60, 64)),
-        'description': 'Reserve/Sonstige Verbraucher'
+        'description': 'RLO Messungen'
     }
 }
 
