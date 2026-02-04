@@ -121,6 +121,7 @@ apt install -y \
     python3-serial \
     python3-smbus \
     python3-rpi.gpio \
+    python3-libgpiod \
     git \
     network-manager \
     curl \
@@ -239,7 +240,7 @@ fi
 
 # Abhängigkeiten installieren
 sudo -u $SERVICE_USER bash -c "source venv/bin/activate && pip install --upgrade pip"
-sudo -u $SERVICE_USER bash -c "source venv/bin/activate && pip install Flask==2.3.3 smbus2==0.4.2 pyserial gunicorn RPi.GPIO openpyxl"
+sudo -u $SERVICE_USER bash -c "source venv/bin/activate && pip install Flask==2.3.3 smbus2==0.4.2 pyserial gunicorn RPi.GPIO openpyxl gpiod"
 
 print_success "Python-Abhängigkeiten installiert"
 
