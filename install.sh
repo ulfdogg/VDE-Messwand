@@ -390,38 +390,26 @@ AUTOSTART_DIR="/home/$SERVICE_USER/.config/labwc"
 mkdir -p "$AUTOSTART_DIR"
 chown -R $SERVICE_USER:$SERVICE_USER "/home/$SERVICE_USER/.config"
 
-# Autostart-Script für Chromium im Kiosk-Modus erstellen
-cat > "$AUTOSTART_DIR/autostart" << 'EOF'
+# Kiosk Start-Script erstellen
+cat > /usr/local/bin/vde-kiosk-start.sh << 'EOFSCRIPT'
 #!/bin/bash
-# VDE Messwand - Kiosk Autostart
+# VDE Messwand Kiosk Start Script
 
-# Wayland Umgebung setzen
-export WAYLAND_DISPLAY=wayland-0
-export XDG_RUNTIME_DIR=/run/user/1000
-
-# Keyring deaktivieren (keine Passwort-Abfragen)
-export GNOME_KEYRING_CONTROL=
-export GNOME_KEYRING_PID=
-
-# Display um 90° drehen (funktioniert mit Wayland/labwc)
+# Display rotieren
 wlr-randr --output DSI-1 --transform 90
 
-# VNC Server starten (Wayland-kompatibel, nur DSI-1 Display)
+# VNC Server starten
 wayvnc -o DSI-1 0.0.0.0 5900 &
 
 # Mauszeiger ausblenden
 unclutter -idle 0.1 &
 
-# Warte bis Flask-App gestartet ist (max 30 Sekunden)
-for i in {1..30}; do
-    if curl -s http://localhost >/dev/null 2>&1; then
-        break
-    fi
-    sleep 1
-done
+# Warte kurz
+sleep 2
 
 # Chromium im Kiosk-Modus starten
-chromium \
+exec chromium \
+  --user-data-dir=/home/vde/.config/chromium-kiosk \
   --ozone-platform=wayland \
   --kiosk \
   --noerrdialogs \
@@ -430,35 +418,59 @@ chromium \
   --disable-features=TranslateUI,Translate \
   --disable-translate \
   --no-first-run \
-  --fast \
-  --fast-start \
   --disable-restore-session-state \
   --disable-pinch \
   --overscroll-history-navigation=0 \
   --password-store=basic \
   --disable-password-manager-reauthentication \
-  http://localhost &
+  http://localhost
+EOFSCRIPT
+
+chmod +x /usr/local/bin/vde-kiosk-start.sh
+
+# Kiosk systemd-Service erstellen
+cat > /etc/systemd/system/vde-kiosk.service << 'EOF'
+[Unit]
+Description=VDE Messwand Kiosk Mode (Chromium Fullscreen)
+After=graphical.target vde-messwand.service
+Wants=graphical.target
+
+[Service]
+Type=simple
+User=vde
+Environment="DISPLAY=:0"
+Environment="WAYLAND_DISPLAY=wayland-0"
+Environment="XDG_RUNTIME_DIR=/run/user/1000"
+Environment="GNOME_KEYRING_CONTROL="
+Environment="GNOME_KEYRING_PID="
+
+# Cleanup: Kill alte Chromium/VNC Prozesse
+ExecStartPre=/usr/bin/pkill -u vde chromium
+ExecStartPre=/usr/bin/pkill -u vde wayvnc
+ExecStartPre=/usr/bin/pkill -u vde unclutter
+ExecStartPre=/bin/sleep 2
+
+# Warte bis Wayland und Flask bereit sind
+ExecStartPre=/bin/bash -c 'until [ -e /run/user/1000/wayland-0 ]; do sleep 1; done'
+ExecStartPre=/bin/bash -c 'for i in {1..60}; do curl -s http://localhost >/dev/null 2>&1 && break; sleep 1; done'
+
+# Startscript ausführen
+ExecStart=/usr/local/bin/vde-kiosk-start.sh
+
+Restart=on-failure
+RestartSec=5
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=10
+
+[Install]
+WantedBy=graphical.target
 EOF
 
-chown $SERVICE_USER:$SERVICE_USER "$AUTOSTART_DIR/autostart"
-chmod +x "$AUTOSTART_DIR/autostart"
+systemctl daemon-reload
+systemctl enable vde-kiosk.service
 
-print_success "Kiosk-Modus Autostart konfiguriert"
-
-# Alternative: XDG Autostart (falls labwc nicht verwendet wird)
-XDG_AUTOSTART_DIR="/home/$SERVICE_USER/.config/autostart"
-mkdir -p "$XDG_AUTOSTART_DIR"
-
-cat > "$XDG_AUTOSTART_DIR/vde-kiosk.desktop" << 'EOF'
-[Desktop Entry]
-Type=Application
-Name=VDE Messwand Kiosk
-Exec=/bin/bash -c "sleep 5 && chromium-browser --kiosk --noerrdialogs --disable-infobars --no-first-run --password-store=basic http://localhost"
-X-GNOME-Autostart-enabled=true
-EOF
-
-chown -R $SERVICE_USER:$SERVICE_USER "$XDG_AUTOSTART_DIR"
-print_success "XDG Autostart (Fallback) konfiguriert"
+print_success "Kiosk-Modus als systemd-Service konfiguriert"
 
 # ============================================================================
 # Zusammenfassung
