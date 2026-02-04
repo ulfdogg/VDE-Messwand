@@ -126,7 +126,8 @@ apt install -y \
     curl \
     evtest \
     i2c-tools \
-    rsync
+    rsync \
+    unclutter
 
 print_success "Pakete installiert"
 
@@ -408,6 +409,9 @@ export XDG_RUNTIME_DIR=/run/user/1000
 export GNOME_KEYRING_CONTROL=
 export GNOME_KEYRING_PID=
 
+# Mauszeiger ausblenden
+unclutter -idle 0.1 &
+
 # Warte bis Flask-App gestartet ist (max 30 Sekunden)
 for i in {1..30}; do
     if curl -s http://localhost >/dev/null 2>&1; then
@@ -423,7 +427,8 @@ chromium \
   --noerrdialogs \
   --disable-infobars \
   --disable-session-crashed-bubble \
-  --disable-features=TranslateUI \
+  --disable-features=TranslateUI,Translate \
+  --disable-translate \
   --no-first-run \
   --fast \
   --fast-start \
