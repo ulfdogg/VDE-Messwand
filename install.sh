@@ -245,7 +245,7 @@ fi
 
 # Abhängigkeiten installieren
 sudo -u $SERVICE_USER bash -c "source venv/bin/activate && pip install --upgrade pip"
-sudo -u $SERVICE_USER bash -c "source venv/bin/activate && pip install Flask==2.3.3 smbus2==0.4.2 pyserial gunicorn RPi.GPIO"
+sudo -u $SERVICE_USER bash -c "source venv/bin/activate && pip install Flask==2.3.3 smbus2==0.4.2 pyserial gunicorn RPi.GPIO openpyxl"
 
 print_success "Python-Abhängigkeiten installiert"
 
@@ -289,6 +289,10 @@ EOF
 
 systemctl daemon-reload
 systemctl enable vde-messwand.service
+
+# Python Berechtigung für Port 80 (ohne Root)
+PYTHON_BIN=$(readlink -f /usr/bin/python3)
+setcap 'cap_net_bind_service=+ep' "$PYTHON_BIN"
 
 print_success "Systemd-Service eingerichtet und aktiviert"
 
@@ -393,17 +397,28 @@ chown -R $SERVICE_USER:$SERVICE_USER "/home/$SERVICE_USER/.config"
 
 # Autostart-Script für Chromium im Kiosk-Modus erstellen
 cat > "$AUTOSTART_DIR/autostart" << 'EOF'
+#!/bin/bash
 # VDE Messwand - Kiosk Autostart
+
+# Wayland Umgebung setzen
+export WAYLAND_DISPLAY=wayland-0
+export XDG_RUNTIME_DIR=/run/user/1000
 
 # Keyring deaktivieren (keine Passwort-Abfragen)
 export GNOME_KEYRING_CONTROL=
 export GNOME_KEYRING_PID=
 
-# Warte bis Flask-App gestartet ist
-sleep 5
+# Warte bis Flask-App gestartet ist (max 30 Sekunden)
+for i in {1..30}; do
+    if curl -s http://localhost >/dev/null 2>&1; then
+        break
+    fi
+    sleep 1
+done
 
 # Chromium im Kiosk-Modus starten
-chromium-browser \
+chromium \
+  --ozone-platform=wayland \
   --kiosk \
   --noerrdialogs \
   --disable-infobars \
