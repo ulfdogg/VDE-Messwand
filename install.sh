@@ -404,8 +404,8 @@ export GNOME_KEYRING_PID=
 # Display um 90° drehen (funktioniert mit Wayland/labwc)
 wlr-randr --output DSI-1 --transform 90
 
-# VNC Server starten (Wayland-kompatibel)
-wayvnc 0.0.0.0 5900 &
+# VNC Server starten (Wayland-kompatibel, nur DSI-1 Display)
+wayvnc -o DSI-1 0.0.0.0 5900 &
 
 # Mauszeiger ausblenden
 unclutter -idle 0.1 &
