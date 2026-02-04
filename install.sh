@@ -21,6 +21,7 @@ NC='\033[0m' # No Color
 INSTALL_DIR="/home/vde/vde-messwand"
 SERVICE_USER="vde"
 DEFAULT_HOSTNAME="VDE-Messwand"
+KIOSK_URL="http://localhost"
 
 # ============================================================================
 # Funktionen
@@ -71,7 +72,7 @@ check_root
 # ----------------------------------------------------------------------------
 # Schritt 1: Hostname abfragen
 # ----------------------------------------------------------------------------
-print_step "1/10" "System-Konfiguration"
+print_step "1/12" "System-Konfiguration"
 
 echo ""
 echo "Der Hostname wird für folgende Zwecke verwendet:"
@@ -98,7 +99,7 @@ fi
 # ----------------------------------------------------------------------------
 # Schritt 2: System aktualisieren
 # ----------------------------------------------------------------------------
-print_step "2/10" "System aktualisieren (apt update && upgrade)"
+print_step "2/12" "System aktualisieren (apt update && upgrade)"
 
 apt update
 apt upgrade -y
@@ -108,7 +109,7 @@ print_success "System aktualisiert"
 # ----------------------------------------------------------------------------
 # Schritt 3: Pakete installieren
 # ----------------------------------------------------------------------------
-print_step "3/10" "Erforderliche Pakete installieren"
+print_step "3/12" "Erforderliche Pakete installieren"
 
 apt install -y \
     python3 \
@@ -126,9 +127,40 @@ apt install -y \
 print_success "Pakete installiert"
 
 # ----------------------------------------------------------------------------
-# Schritt 4: Hostname setzen
+# Schritt 4: Display-Konfiguration
 # ----------------------------------------------------------------------------
-print_step "4/10" "Hostname konfigurieren"
+print_step "4/12" "Display konfigurieren (7\" Touchscreen, 90° Rotation)"
+
+CONFIG_FILE="/boot/firmware/config.txt"
+
+# Prüfen ob Display-Overlay bereits vorhanden
+if ! grep -q "dtoverlay=vc4-kms-dsi-7inch" "$CONFIG_FILE"; then
+    # Unter [all] Section hinzufügen
+    if grep -q "^\[all\]" "$CONFIG_FILE"; then
+        # Nach [all] einfügen
+        sed -i '/^\[all\]$/a \\n# Manuelles Overlay für offizielles 7" Touchscreen Display\ndtoverlay=vc4-kms-dsi-7inch' "$CONFIG_FILE"
+        print_success "Display-Overlay hinzugefügt"
+    else
+        # [all] Section erstellen
+        echo -e "\n[all]\n# Manuelles Overlay für offizielles 7\" Touchscreen Display\ndtoverlay=vc4-kms-dsi-7inch" >> "$CONFIG_FILE"
+        print_success "Display-Overlay und [all] Section hinzugefügt"
+    fi
+else
+    print_warning "Display-Overlay bereits vorhanden"
+fi
+
+# Display-Rotation hinzufügen (90° im Uhrzeigersinn)
+if ! grep -q "display_rotate=" "$CONFIG_FILE"; then
+    sed -i '/^\[all\]$/a # Display um 90 Grad im Uhrzeigersinn drehen\ndisplay_rotate=1' "$CONFIG_FILE"
+    print_success "Display-Rotation (90° im Uhrzeigersinn) hinzugefügt"
+else
+    print_warning "Display-Rotation bereits konfiguriert"
+fi
+
+# ----------------------------------------------------------------------------
+# Schritt 5: Hostname setzen
+# ----------------------------------------------------------------------------
+print_step "5/12" "Hostname konfigurieren"
 
 # Aktuellen Hostname speichern
 OLD_HOSTNAME=$(hostname)
@@ -147,9 +179,9 @@ fi
 print_success "Hostname gesetzt: $HOSTNAME"
 
 # ----------------------------------------------------------------------------
-# Schritt 5: Benutzerberechtigungen
+# Schritt 6: Benutzerberechtigungen
 # ----------------------------------------------------------------------------
-print_step "5/10" "Benutzerberechtigungen konfigurieren"
+print_step "6/12" "Benutzerberechtigungen konfigurieren"
 
 # Benutzer zu notwendigen Gruppen hinzufügen
 usermod -a -G dialout $SERVICE_USER 2>/dev/null || true
@@ -171,9 +203,9 @@ chmod 440 "$SUDOERS_FILE"
 print_success "Benutzerberechtigungen konfiguriert"
 
 # ----------------------------------------------------------------------------
-# Schritt 6: Virtuelle Umgebung und Python-Abhängigkeiten
+# Schritt 7: Virtuelle Umgebung und Python-Abhängigkeiten
 # ----------------------------------------------------------------------------
-print_step "6/10" "Python-Umgebung einrichten"
+print_step "7/12" "Python-Umgebung einrichten"
 
 cd "$INSTALL_DIR"
 
@@ -192,9 +224,9 @@ sudo -u $SERVICE_USER bash -c "source venv/bin/activate && pip install Flask==2.
 print_success "Python-Abhängigkeiten installiert"
 
 # ----------------------------------------------------------------------------
-# Schritt 7: Hotspot-Konfiguration aktualisieren
+# Schritt 8: Hotspot-Konfiguration aktualisieren
 # ----------------------------------------------------------------------------
-print_step "7/10" "Hotspot-Konfiguration anpassen"
+print_step "8/12" "Hotspot-Konfiguration anpassen"
 
 # network_manager.py mit korrekter SSID aktualisieren
 NETWORK_MANAGER_FILE="$INSTALL_DIR/network_manager.py"
@@ -206,9 +238,9 @@ else
 fi
 
 # ----------------------------------------------------------------------------
-# Schritt 8: Systemd-Service einrichten
+# Schritt 9: Systemd-Service einrichten
 # ----------------------------------------------------------------------------
-print_step "8/10" "Systemd-Service einrichten"
+print_step "9/12" "Systemd-Service einrichten"
 
 SERVICE_FILE="/etc/systemd/system/vde-messwand.service"
 cat > "$SERVICE_FILE" << EOF
@@ -235,9 +267,9 @@ systemctl enable vde-messwand.service
 print_success "Systemd-Service eingerichtet und aktiviert"
 
 # ----------------------------------------------------------------------------
-# Schritt 9: Power-Button (J2) konfigurieren
+# Schritt 10: Power-Button (J2) konfigurieren
 # ----------------------------------------------------------------------------
-print_step "9/10" "Power-Button (J2-Header) konfigurieren"
+print_step "10/12" "Power-Button (J2-Header) konfigurieren"
 
 echo "Der Raspberry Pi 5 hat einen J2-Header für einen externen Power-Button."
 echo "Standard: Button kann Ein- UND Ausschalten"
@@ -293,9 +325,9 @@ else
 fi
 
 # ----------------------------------------------------------------------------
-# Schritt 10: Datenbank initialisieren
+# Schritt 11: Datenbank initialisieren
 # ----------------------------------------------------------------------------
-print_step "10/10" "Datenbank initialisieren"
+print_step "11/12" "Datenbank initialisieren"
 
 cd "$INSTALL_DIR"
 if [ ! -f "vde_messwand.db" ]; then
@@ -304,6 +336,83 @@ if [ ! -f "vde_messwand.db" ]; then
 else
     print_warning "Datenbank existiert bereits"
 fi
+
+# ----------------------------------------------------------------------------
+# Schritt 12: Kiosk-Modus konfigurieren
+# ----------------------------------------------------------------------------
+print_step "12/12" "Kiosk-Modus einrichten (Autologin + Chromium)"
+
+# Chromium installieren falls nicht vorhanden
+if ! command -v chromium &> /dev/null && ! command -v chromium-browser &> /dev/null; then
+    apt install -y chromium-browser
+    print_success "Chromium installiert"
+else
+    print_warning "Chromium bereits installiert"
+fi
+
+# Autologin für User 'vde' konfigurieren
+AUTOLOGIN_DIR="/etc/systemd/system/getty@tty1.service.d"
+mkdir -p "$AUTOLOGIN_DIR"
+cat > "$AUTOLOGIN_DIR/autologin.conf" << EOF
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin $SERVICE_USER --noclear %I \$TERM
+EOF
+print_success "Autologin für Benutzer '$SERVICE_USER' konfiguriert"
+
+# labwc Autostart-Verzeichnis erstellen
+AUTOSTART_DIR="/home/$SERVICE_USER/.config/labwc"
+mkdir -p "$AUTOSTART_DIR"
+chown -R $SERVICE_USER:$SERVICE_USER "/home/$SERVICE_USER/.config"
+
+# Autostart-Script für Chromium im Kiosk-Modus erstellen
+cat > "$AUTOSTART_DIR/autostart" << 'EOF'
+# VDE Messwand - Kiosk Autostart
+
+# Keyring deaktivieren (keine Passwort-Abfragen)
+export GNOME_KEYRING_CONTROL=
+export GNOME_KEYRING_PID=
+
+# Warte bis Flask-App gestartet ist
+sleep 5
+
+# Chromium im Kiosk-Modus starten
+chromium-browser \
+  --kiosk \
+  --noerrdialogs \
+  --disable-infobars \
+  --disable-session-crashed-bubble \
+  --disable-features=TranslateUI \
+  --no-first-run \
+  --fast \
+  --fast-start \
+  --disable-restore-session-state \
+  --disable-pinch \
+  --overscroll-history-navigation=0 \
+  --password-store=basic \
+  --disable-password-manager-reauthentication \
+  http://localhost &
+EOF
+
+chown $SERVICE_USER:$SERVICE_USER "$AUTOSTART_DIR/autostart"
+chmod +x "$AUTOSTART_DIR/autostart"
+
+print_success "Kiosk-Modus Autostart konfiguriert"
+
+# Alternative: XDG Autostart (falls labwc nicht verwendet wird)
+XDG_AUTOSTART_DIR="/home/$SERVICE_USER/.config/autostart"
+mkdir -p "$XDG_AUTOSTART_DIR"
+
+cat > "$XDG_AUTOSTART_DIR/vde-kiosk.desktop" << 'EOF'
+[Desktop Entry]
+Type=Application
+Name=VDE Messwand Kiosk
+Exec=/bin/bash -c "sleep 5 && chromium-browser --kiosk --noerrdialogs --disable-infobars --no-first-run --password-store=basic http://localhost"
+X-GNOME-Autostart-enabled=true
+EOF
+
+chown -R $SERVICE_USER:$SERVICE_USER "$XDG_AUTOSTART_DIR"
+print_success "XDG Autostart (Fallback) konfiguriert"
 
 # ============================================================================
 # Zusammenfassung
@@ -319,10 +428,16 @@ echo -e "  ${GREEN}Hotspot-SSID:${NC}  $SSID"
 echo -e "  ${GREEN}Hotspot-PW:${NC}    vde12345"
 echo -e "  ${GREEN}Install-Dir:${NC}   $INSTALL_DIR"
 echo -e "  ${GREEN}Service:${NC}       vde-messwand.service"
+echo -e "  ${GREEN}Kiosk-Modus:${NC}   Aktiviert (Autologin + Chromium)"
 echo ""
 echo "Nächste Schritte:"
 echo "  1. Neustart durchführen: sudo reboot"
-echo "  2. Nach Neustart erreichbar unter:"
+echo "  2. Nach Neustart:"
+echo "     - Automatischer Login als '$SERVICE_USER'"
+echo "     - Chromium startet automatisch im Kiosk-Modus"
+echo "     - Web-Interface wird auf dem Display angezeigt"
+echo ""
+echo "Web-Zugriff von anderen Geräten:"
 echo "     - http://$HOSTNAME.local (falls mDNS aktiv)"
 echo "     - http://<IP-ADRESSE>"
 echo "     - Bei Hotspot: http://192.168.50.1"
