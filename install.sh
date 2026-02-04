@@ -18,7 +18,7 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Variablen
-INSTALL_DIR="/home/vde/vde-messwand"
+INSTALL_DIR="/home/vde/VDE-Messwand"
 SERVICE_USER="vde"
 DEFAULT_HOSTNAME="VDE-Messwand"
 KIOSK_URL="http://localhost"
