@@ -129,7 +129,8 @@ apt install -y \
     rsync \
     unclutter \
     wlr-randr \
-    wayvnc
+    wayvnc \
+    fonts-noto-color-emoji
 
 print_success "Pakete installiert"
 
