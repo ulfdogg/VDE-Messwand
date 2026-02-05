@@ -176,7 +176,37 @@ else
     print_warning "Display-Overlay bereits vorhanden"
 fi
 
-print_success "Display-Overlay konfiguriert (Rotation wird via wlr-randr im Autostart gesetzt)"
+# labwc Autostart erstellen (Display-Rotation, VNC, Cursor ausblenden)
+LABWC_DIR="/home/$SERVICE_USER/.config/labwc"
+mkdir -p "$LABWC_DIR"
+cat > "$LABWC_DIR/autostart" << 'AUTOSTART_EOF'
+#!/bin/bash
+# VDE Messwand - labwc Autostart (KEIN Panel/Taskbar!)
+
+# WICHTIG: wf-panel NICHT starten (wird normalerweise von /etc/xdg/labwc/autostart gestartet)
+# Indem wir diese Datei haben, überschreiben wir das System-Autostart
+
+# Wayland Umgebung setzen
+export WAYLAND_DISPLAY=wayland-0
+export XDG_RUNTIME_DIR=/run/user/1000
+
+# Keyring deaktivieren
+export GNOME_KEYRING_CONTROL=
+export GNOME_KEYRING_PID=
+
+# Display um 270° drehen (funktioniert mit Wayland/labwc)
+wlr-randr --output DSI-1 --transform 270
+
+# VNC Server starten (Wayland-kompatibel, nur DSI-1 Display)
+wayvnc -o DSI-1 0.0.0.0 5900 &
+
+# Mauszeiger ausblenden
+unclutter -idle 0.1 &
+AUTOSTART_EOF
+chmod +x "$LABWC_DIR/autostart"
+chown -R $SERVICE_USER:$SERVICE_USER "$LABWC_DIR"
+
+print_success "Display-Overlay konfiguriert + labwc Autostart erstellt (Rotation 270°, VNC, Cursor)"
 
 # ----------------------------------------------------------------------------
 # Schritt 6: Hostname setzen
