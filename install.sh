@@ -385,71 +385,37 @@ ExecStart=-/sbin/agetty --autologin $SERVICE_USER --noclear %I \$TERM
 EOF
 print_success "Autologin für Benutzer '$SERVICE_USER' konfiguriert"
 
-# labwc Autostart-Verzeichnis erstellen
-AUTOSTART_DIR="/home/$SERVICE_USER/.config/labwc"
-mkdir -p "$AUTOSTART_DIR"
-chown -R $SERVICE_USER:$SERVICE_USER "/home/$SERVICE_USER/.config"
+# Kiosk-Modus als systemd-Service einrichten
+KIOSK_SERVICE="/etc/systemd/system/kiosk.service"
+cat > "$KIOSK_SERVICE" << EOF
+[Unit]
+Description=Chromium Kiosk Modus für Benutzer $SERVICE_USER
+After=graphical.target sound.target vde-messwand.service
+Wants=sound.target
+Requires=vde-messwand.service
 
-# labwc Autostart-Script erstellen (überschreibt /etc/xdg/labwc/autostart)
-# WICHTIG: Durch diese Datei wird wf-panel-pi (Taskleiste) NICHT gestartet!
-cat > "$AUTOSTART_DIR/autostart" << 'EOFSCRIPT'
-#!/bin/bash
-# VDE Messwand - Kiosk Autostart (KEIN Panel/Taskbar!)
+[Service]
+User=$SERVICE_USER
+Type=simple
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/$SERVICE_USER/.Xauthority
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus
+Environment=PULSE_SERVER=unix:/run/user/1000/pulse/native
+# Warte bis Flask-Server wirklich antwortet (max 60 Sekunden)
+ExecStartPre=/bin/bash -c 'for i in \$(seq 1 60); do curl -s http://localhost >/dev/null 2>&1 && exit 0; sleep 1; done; exit 1'
+ExecStart=/usr/bin/chromium-browser --kiosk --incognito --noerrdialogs --disable-infobars --autoplay-policy=no-user-gesture-required --check-for-update-interval=31536000 $KIOSK_URL
+Restart=always
+RestartSec=10
 
-# WICHTIG: wf-panel NICHT starten (wird normalerweise von /etc/xdg/labwc/autostart gestartet)
-# Indem wir diese Datei haben, überschreiben wir das System-Autostart
+[Install]
+WantedBy=graphical.target
+EOF
 
-# Wayland Umgebung setzen
-export WAYLAND_DISPLAY=wayland-0
-export XDG_RUNTIME_DIR=/run/user/1000
+systemctl daemon-reload
+systemctl enable kiosk.service
 
-# Keyring deaktivieren
-export GNOME_KEYRING_CONTROL=
-export GNOME_KEYRING_PID=
-
-# Display um 90° drehen (funktioniert mit Wayland/labwc)
-wlr-randr --output DSI-1 --transform 90
-
-# VNC Server starten (Wayland-kompatibel, nur DSI-1 Display)
-wayvnc -o DSI-1 0.0.0.0 5900 &
-
-# Mauszeiger ausblenden
-unclutter -idle 0.1 &
-
-# Warte bis Flask-App gestartet ist (max 60 Sekunden)
-for i in {1..60}; do
-    if curl -s http://localhost >/dev/null 2>&1; then
-        break
-    fi
-    sleep 1
-done
-
-# Chromium im Kiosk-Modus starten (Fullscreen OHNE Taskbar)
-chromium \
-  --user-data-dir=/home/vde/.config/chromium-kiosk \
-  --kiosk \
-  --lang=de \
-  --accept-lang=de-DE \
-  --noerrdialogs \
-  --disable-infobars \
-  --disable-session-crashed-bubble \
-  --disable-features=TranslateUI,Translate \
-  --disable-translate \
-  --no-first-run \
-  --disable-restore-session-state \
-  --disable-pinch \
-  --overscroll-history-navigation=0 \
-  --password-store=basic \
-  --disable-password-manager-reauthentication \
-  --disable-popup-blocking \
-  --disable-prompt-on-repost \
-  http://localhost &
-EOFSCRIPT
-
-chmod +x "$AUTOSTART_DIR/autostart"
-chown $SERVICE_USER:$SERVICE_USER "$AUTOSTART_DIR/autostart"
-
-print_success "Kiosk-Modus mit labwc autostart konfiguriert (ohne Taskbar)"
+print_success "Kiosk-Modus als systemd-Service konfiguriert (kiosk.service)"
 
 # ============================================================================
 # Zusammenfassung
@@ -465,13 +431,13 @@ echo -e "  ${GREEN}Hotspot-SSID:${NC}  $SSID"
 echo -e "  ${GREEN}Hotspot-PW:${NC}    vde12345"
 echo -e "  ${GREEN}Install-Dir:${NC}   $INSTALL_DIR"
 echo -e "  ${GREEN}Service:${NC}       vde-messwand.service"
-echo -e "  ${GREEN}Kiosk-Modus:${NC}   Aktiviert (Autologin + Chromium)"
+echo -e "  ${GREEN}Kiosk-Service:${NC} kiosk.service (systemd)"
 echo ""
 echo "Nächste Schritte:"
 echo "  1. Neustart durchführen: sudo reboot"
 echo "  2. Nach Neustart:"
 echo "     - Automatischer Login als '$SERVICE_USER'"
-echo "     - Chromium startet automatisch im Kiosk-Modus"
+echo "     - kiosk.service startet Chromium automatisch im Kiosk-Modus"
 echo "     - Web-Interface wird auf dem Display angezeigt"
 echo ""
 echo "Web-Zugriff von anderen Geräten:"
