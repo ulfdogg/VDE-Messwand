@@ -7,10 +7,10 @@ import json
 import time
 
 # Konfigurationsdatei für Hotspot-Status
-HOTSPOT_STATE_FILE = '/home/vde/vde-messwand/hotspot_state.json'
+HOTSPOT_STATE_FILE = '/home/vde/VDE-Messwand/hotspot_state.json'
 
 # Hotspot-Konfiguration
-HOTSPOT_SSID = 'VDE-2'
+HOTSPOT_SSID = 'VDE-Messwand-2'
 HOTSPOT_PASSWORD = 'vde12345'
 HOTSPOT_IP = '192.168.50.1'
 HOTSPOT_CON_NAME = 'Hotspot'  # NetworkManager Verbindungsname (nicht SSID!)

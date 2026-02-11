@@ -37,6 +37,14 @@ env/
 settings.json
 relay_groups.json
 relay_names.json
+hotspot_state.json
+relais_config.json
+kategorien.json
+
+# Test/Debug artifacts
+stress_test_screenshots/
+selenium_test.png
+gitlog
 
 # Video files
 *.mp4

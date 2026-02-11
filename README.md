@@ -50,7 +50,7 @@ Das VDE Messwand System ist eine webbasierte Anwendung zur Steuerung von 64 Rela
 Das mitgelieferte Install-Script konfiguriert das System vollständig:
 
 ```bash
-cd /home/vde/vde-messwand
+cd /home/vde/VDE-Messwand
 sudo ./install.sh
 ```
 
@@ -130,21 +130,21 @@ sudo usermod -a -G gpio $USER
 sudo usermod -a -G i2c $USER
 
 # Sudoers für nmcli ohne Passwort
-sudo tee /etc/sudoers.d/vde-messwand << 'EOF'
+sudo tee /etc/sudoers.d/VDE-Messwand << 'EOF'
 vde ALL=(ALL) NOPASSWD: /usr/bin/nmcli
 vde ALL=(ALL) NOPASSWD: /usr/bin/iwconfig
 vde ALL=(ALL) NOPASSWD: /sbin/shutdown
 vde ALL=(ALL) NOPASSWD: /sbin/reboot
 EOF
-sudo chmod 440 /etc/sudoers.d/vde-messwand
+sudo chmod 440 /etc/sudoers.d/VDE-Messwand
 ```
 
 ### Schritt 5: Repository klonen (falls nötig)
 
 ```bash
 cd ~
-git clone https://github.com/ulfdogg/VDE0100-600_Messwand.git vde-messwand
-cd vde-messwand
+git clone https://github.com/ulfdogg/VDE0100-600_Messwand.git VDE-Messwand
+cd VDE-Messwand
 ```
 
 ### Schritt 6: Virtuelle Umgebung erstellen
@@ -189,7 +189,7 @@ python3 -c "from database import init_db; init_db()"
 ### Schritt 11: Systemd-Service erstellen
 
 ```bash
-sudo tee /etc/systemd/system/vde-messwand.service << 'EOF'
+sudo tee /etc/systemd/system/VDE-Messwand.service << 'EOF'
 [Unit]
 Description=VDE Messwand Flask App
 After=network.target
@@ -197,19 +197,19 @@ After=network.target
 [Service]
 User=vde
 Group=vde
-WorkingDirectory=/home/vde/vde-messwand
-ExecStart=/home/vde/vde-messwand/venv/bin/python app.py
+WorkingDirectory=/home/vde/VDE-Messwand
+ExecStart=/home/vde/VDE-Messwand/venv/bin/python app.py
 Restart=always
 RestartSec=10
-Environment="PATH=/home/vde/vde-messwand/venv/bin"
+Environment="PATH=/home/vde/VDE-Messwand/venv/bin"
 
 [Install]
 WantedBy=multi-user.target
 EOF
 
 sudo systemctl daemon-reload
-sudo systemctl enable vde-messwand.service
-sudo systemctl start vde-messwand.service
+sudo systemctl enable VDE-Messwand.service
+sudo systemctl start VDE-Messwand.service
 ```
 
 ---
@@ -357,7 +357,7 @@ GPIO_SHUTDOWN_TIMEOUT = 120
 ## Projekt-Struktur
 
 ```
-vde-messwand/
+VDE-Messwand/
 ├── app.py                      # Haupt-Flask-Anwendung
 ├── config.py                   # Konfigurationsdatei
 ├── database.py                 # Datenbank-Management
@@ -410,12 +410,12 @@ vde-messwand/
 
 ```bash
 # Manuell (Entwicklung)
-cd /home/vde/vde-messwand
+cd /home/vde/VDE-Messwand
 source venv/bin/activate
 python3 app.py
 
 # Via Systemd-Service (Produktion)
-sudo systemctl start vde-messwand
+sudo systemctl start VDE-Messwand
 ```
 
 Die Anwendung ist erreichbar unter:
@@ -462,19 +462,19 @@ Der Admin-Bereich ist PIN-geschützt (Standard: 1234).
 
 ```bash
 # Status prüfen
-sudo systemctl status vde-messwand
+sudo systemctl status VDE-Messwand
 
 # Neustart
-sudo systemctl restart vde-messwand
+sudo systemctl restart VDE-Messwand
 
 # Stoppen
-sudo systemctl stop vde-messwand
+sudo systemctl stop VDE-Messwand
 
 # Logs anzeigen
-sudo journalctl -u vde-messwand -f
+sudo journalctl -u VDE-Messwand -f
 
 # Logs der letzten Stunde
-sudo journalctl -u vde-messwand --since "1 hour ago"
+sudo journalctl -u VDE-Messwand --since "1 hour ago"
 ```
 
 ---
@@ -507,7 +507,7 @@ MODBUS_MODULES = {
 
 ```bash
 # Status aller Relais auslesen
-cd /home/vde/vde-messwand
+cd /home/vde/VDE-Messwand
 source venv/bin/activate
 python3 read_relay_status.py
 
@@ -546,10 +546,10 @@ journalctl -u NetworkManager -f
 
 ```bash
 # Logs prüfen
-sudo journalctl -u vde-messwand -n 50
+sudo journalctl -u VDE-Messwand -n 50
 
 # Manuell testen
-cd /home/vde/vde-messwand
+cd /home/vde/VDE-Messwand
 source venv/bin/activate
 python3 app.py
 ```

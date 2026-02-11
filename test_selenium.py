@@ -48,7 +48,7 @@ try:
     print(f"   Titel: {driver.title}")
 
     # Screenshot machen
-    screenshot_path = "/home/vde/vde-messwand/selenium_test.png"
+    screenshot_path = "/home/vde/VDE-Messwand/selenium_test.png"
     driver.save_screenshot(screenshot_path)
     print(f"📸 Screenshot gespeichert: {screenshot_path}")
 

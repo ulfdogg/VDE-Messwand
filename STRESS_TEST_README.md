@@ -246,7 +246,7 @@ tester.test_endpoint("POST", "/set_manual_errors", {
    - Erhöhe nur wenn stabil
 
 4. **Logs überwachen**
-   - `journalctl -u vde-messwand -f` (falls als Service)
+   - `journalctl -u VDE-Messwand -f` (falls als Service)
    - Oder direkte Gunicorn-Ausgabe beobachten
 
 5. **Nach Tests aufräumen**
@@ -262,7 +262,7 @@ tester.test_endpoint("POST", "/set_manual_errors", {
 crontab -e
 
 # Täglich um 2 Uhr Simple-Test ausführen:
-0 2 * * * cd /home/vde/vde-messwand && python3 stress_test_simple.py << EOF
+0 2 * * * cd /home/vde/VDE-Messwand && python3 stress_test_simple.py << EOF
 1
 EOF
 ```

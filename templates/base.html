@@ -2,11 +2,15 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=1280, initial-scale=1.0">
     <title>{% block title %}VDE Messwand{% endblock %}</title>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
+
+<div class="aurora-bg"></div>
+<div class="particles" id="particles"></div>
+
     <!-- GPIO-Warnung (oben fixiert) -->
     <div id="gpio-warning" class="gpio-warning hidden">
         <div class="gpio-warning-content">
@@ -21,6 +25,44 @@
     </div>
 
     <script src="/static/script.js"></script>
+    <script>
+        // Create floating particles
+        const particlesContainer = document.getElementById('particles');
+        for (let i = 0; i < 12; i++) {
+            const particle = document.createElement('div');
+            particle.classList.add('particle');
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.animationDuration = (10 + Math.random() * 15) + 's';
+            particle.style.animationDelay = (Math.random() * 10) + 's';
+            const size = (2 + Math.random() * 3);
+            particle.style.width = size + 'px';
+            particle.style.height = size + 'px';
+            const isRed = Math.random() > 0.5;
+            particle.style.background = isRed
+                ? 'rgba(227, 6, 19, 0.5)'
+                : 'rgba(255, 255, 255, 0.3)';
+            particle.style.boxShadow = isRed
+                ? '0 0 4px rgba(227, 6, 19, 0.4)'
+                : 'none';
+            particlesContainer.appendChild(particle);
+        }
+
+        // Touch ripple effect
+        document.querySelectorAll('.menu-item').forEach(item => {
+            item.addEventListener('touchstart', function(e) {
+                const rect = this.getBoundingClientRect();
+                const touch = e.touches[0];
+                const ripple = document.createElement('span');
+                ripple.classList.add('ripple');
+                const size = Math.max(rect.width, rect.height);
+                ripple.style.width = ripple.style.height = size + 'px';
+                ripple.style.left = (touch.clientX - rect.left - size / 2) + 'px';
+                ripple.style.top = (touch.clientY - rect.top - size / 2) + 'px';
+                this.appendChild(ripple);
+                ripple.addEventListener('animationend', () => ripple.remove());
+            }, { passive: true });
+        });
+    </script>
     <script>
         // GPIO-Status Überwachung
         function checkGPIOStatus() {

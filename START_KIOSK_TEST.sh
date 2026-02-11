@@ -55,7 +55,7 @@ echo ""
 
 read -p "Eingabe (1-3): " MODE
 
-cd /home/vde/vde-messwand
+cd /home/vde/VDE-Messwand
 
 # Aktiviere venv falls vorhanden
 if [ -d "venv" ]; then

@@ -21,7 +21,7 @@ loglevel = 'info'
 access_log_format = '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"'
 
 # Process Naming
-proc_name = 'vde-messwand'
+proc_name = 'VDE-Messwand'
 
 # Server Hooks
 def on_starting(server):

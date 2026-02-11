@@ -18,10 +18,8 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Variablen
-# Quellverzeichnis: wo install.sh liegt
-SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# Zielverzeichnis: fester Installationsort
-INSTALL_DIR="/home/vde/vde-messwand"
+# Installationsverzeichnis = dort wo install.sh liegt
+INSTALL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SERVICE_USER="vde"
 DEFAULT_HOSTNAME="VDE-Messwand"
 KIOSK_URL="http://localhost"
@@ -75,7 +73,7 @@ check_root
 # ----------------------------------------------------------------------------
 # Schritt 1: Hostname abfragen
 # ----------------------------------------------------------------------------
-print_step "1/13" "System-Konfiguration"
+print_step "1/12" "System-Konfiguration"
 
 echo ""
 echo "Der Hostname wird für folgende Zwecke verwendet:"
@@ -102,7 +100,7 @@ fi
 # ----------------------------------------------------------------------------
 # Schritt 2: System aktualisieren
 # ----------------------------------------------------------------------------
-print_step "2/13" "System aktualisieren (apt update && upgrade)"
+print_step "2/12" "System aktualisieren (apt update && upgrade)"
 
 apt update
 apt upgrade -y
@@ -112,7 +110,7 @@ print_success "System aktualisiert"
 # ----------------------------------------------------------------------------
 # Schritt 3: Pakete installieren
 # ----------------------------------------------------------------------------
-print_step "3/13" "Erforderliche Pakete installieren"
+print_step "3/12" "Erforderliche Pakete installieren"
 
 apt install -y \
     python3 \
@@ -135,28 +133,46 @@ apt install -y \
 
 print_success "Pakete installiert"
 
+# Bildschirmtastatur und Keyring deaktivieren (Kiosk-Mode)
+echo "Deaktiviere Bildschirmtastatur und Keyring..."
+apt remove -y squeekboard 2>/dev/null || true
+
+# Keyring: systemd user services maskieren
+sudo -u $SERVICE_USER systemctl --user mask gnome-keyring-daemon.service gnome-keyring-daemon.socket 2>/dev/null || true
+
+# Keyring: D-Bus activation deaktivieren (wichtig!)
+mv /usr/share/dbus-1/services/org.gnome.keyring.service /usr/share/dbus-1/services/org.gnome.keyring.service.disabled 2>/dev/null || true
+mv /usr/share/dbus-1/services/org.gnome.keyring.PrivatePrompter.service /usr/share/dbus-1/services/org.gnome.keyring.PrivatePrompter.service.disabled 2>/dev/null || true
+mv /usr/share/dbus-1/services/org.gnome.keyring.SystemPrompter.service /usr/share/dbus-1/services/org.gnome.keyring.SystemPrompter.service.disabled 2>/dev/null || true
+
+# Keyring: Autostart deaktivieren
+mkdir -p "/home/$SERVICE_USER/.config/autostart"
+cat > "/home/$SERVICE_USER/.config/autostart/gnome-keyring-secrets.desktop" << 'EOF'
+[Desktop Entry]
+Type=Application
+Name=GNOME Keyring: Secret Service
+Hidden=true
+EOF
+cat > "/home/$SERVICE_USER/.config/autostart/gnome-keyring-pkcs11.desktop" << 'EOF'
+[Desktop Entry]
+Type=Application
+Name=GNOME Keyring: PKCS#11 Component
+Hidden=true
+EOF
+cat > "/home/$SERVICE_USER/.config/autostart/gnome-keyring-ssh.desktop" << 'EOF'
+[Desktop Entry]
+Type=Application
+Name=GNOME Keyring: SSH Agent
+Hidden=true
+EOF
+chown -R $SERVICE_USER:$SERVICE_USER "/home/$SERVICE_USER/.config/autostart"
+
+print_success "Bildschirmtastatur und Keyring komplett deaktiviert (systemd + D-Bus + Autostart)"
+
 # ----------------------------------------------------------------------------
-# Schritt 4: Anwendungsdateien kopieren
+# Schritt 4: Display-Konfiguration
 # ----------------------------------------------------------------------------
-print_step "4/13" "Anwendungsdateien nach $INSTALL_DIR kopieren"
-
-# Zielverzeichnis erstellen
-mkdir -p "$INSTALL_DIR"
-chown $SERVICE_USER:$SERVICE_USER "$INSTALL_DIR"
-
-# Alle Dateien außer install.sh kopieren
-echo "Kopiere Dateien von $SOURCE_DIR nach $INSTALL_DIR..."
-rsync -av --exclude='install.sh' --exclude='.git' --exclude='venv' --exclude='__pycache__' --exclude='*.pyc' "$SOURCE_DIR/" "$INSTALL_DIR/"
-
-# Besitzer setzen
-chown -R $SERVICE_USER:$SERVICE_USER "$INSTALL_DIR"
-
-print_success "Anwendungsdateien kopiert"
-
-# ----------------------------------------------------------------------------
-# Schritt 5: Display-Konfiguration
-# ----------------------------------------------------------------------------
-print_step "5/13" "Display konfigurieren (7\" Touchscreen)"
+print_step "4/12" "Display konfigurieren (7\" Touchscreen)"
 
 CONFIG_FILE="/boot/firmware/config.txt"
 
@@ -181,27 +197,31 @@ LABWC_DIR="/home/$SERVICE_USER/.config/labwc"
 mkdir -p "$LABWC_DIR"
 cat > "$LABWC_DIR/autostart" << 'AUTOSTART_EOF'
 #!/bin/bash
-# VDE Messwand - labwc Autostart (KEIN Panel/Taskbar!)
+# VDE Messwand - labwc Autostart (KEIN Panel/Tastatur/Desktop!)
 
-# WICHTIG: wf-panel NICHT starten (wird normalerweise von /etc/xdg/labwc/autostart gestartet)
-# Indem wir diese Datei haben, überschreiben wir das System-Autostart
+# WICHTIG: Diese Datei überschreibt /etc/xdg/labwc/autostart
+# Dadurch werden wf-panel, pcmanfm, lxsession-xdg-autostart etc. NICHT gestartet
 
 # Wayland Umgebung setzen
 export WAYLAND_DISPLAY=wayland-0
 export XDG_RUNTIME_DIR=/run/user/1000
 
-# Keyring deaktivieren
+# Keyring deaktivieren (keine Passwort-Popups)
 export GNOME_KEYRING_CONTROL=
 export GNOME_KEYRING_PID=
 
-# Display um 270° drehen (funktioniert mit Wayland/labwc)
-wlr-randr --output DSI-1 --transform 270
+# Display konfigurieren (nur DSI-1 nutzen, DSI-2 deaktivieren)
+wlr-randr --output DSI-2 --off 2>/dev/null || true
+wlr-randr --output DSI-1 --transform 270 2>/dev/null || true
 
 # VNC Server starten (Wayland-kompatibel, nur DSI-1 Display)
 wayvnc -o DSI-1 0.0.0.0 5900 &
 
 # Mauszeiger ausblenden
 unclutter -idle 0.1 &
+
+# WICHTIG: Wir starten hier KEIN Panel, keine Tastatur, keinen Desktop!
+# Chromium wird von kiosk.service gestartet
 AUTOSTART_EOF
 chmod +x "$LABWC_DIR/autostart"
 chown -R $SERVICE_USER:$SERVICE_USER "$LABWC_DIR"
@@ -211,7 +231,7 @@ print_success "Display-Overlay konfiguriert + labwc Autostart erstellt (Rotation
 # ----------------------------------------------------------------------------
 # Schritt 6: Hostname setzen
 # ----------------------------------------------------------------------------
-print_step "6/13" "Hostname konfigurieren"
+print_step "5/12" "Hostname konfigurieren"
 
 # Aktuellen Hostname speichern
 OLD_HOSTNAME=$(hostname)
@@ -232,7 +252,7 @@ print_success "Hostname gesetzt: $HOSTNAME"
 # ----------------------------------------------------------------------------
 # Schritt 7: Benutzerberechtigungen
 # ----------------------------------------------------------------------------
-print_step "7/13" "Benutzerberechtigungen konfigurieren"
+print_step "6/12" "Benutzerberechtigungen konfigurieren"
 
 # Benutzer zu notwendigen Gruppen hinzufügen
 usermod -a -G dialout $SERVICE_USER 2>/dev/null || true
@@ -241,7 +261,7 @@ usermod -a -G i2c $SERVICE_USER 2>/dev/null || true
 usermod -a -G spi $SERVICE_USER 2>/dev/null || true
 
 # Sudoers-Eintrag für nmcli ohne Passwort
-SUDOERS_FILE="/etc/sudoers.d/vde-messwand"
+SUDOERS_FILE="/etc/sudoers.d/VDE-Messwand"
 cat > "$SUDOERS_FILE" << 'EOF'
 # VDE Messwand - Netzwerk-Rechte
 vde ALL=(ALL) NOPASSWD: /usr/bin/nmcli
@@ -256,7 +276,7 @@ print_success "Benutzerberechtigungen konfiguriert"
 # ----------------------------------------------------------------------------
 # Schritt 8: Virtuelle Umgebung und Python-Abhängigkeiten
 # ----------------------------------------------------------------------------
-print_step "8/13" "Python-Umgebung einrichten"
+print_step "7/12" "Python-Umgebung einrichten"
 
 cd "$INSTALL_DIR"
 
@@ -277,7 +297,7 @@ print_success "Python-Abhängigkeiten installiert"
 # ----------------------------------------------------------------------------
 # Schritt 9: Hotspot-Konfiguration aktualisieren
 # ----------------------------------------------------------------------------
-print_step "9/13" "Hotspot-Konfiguration anpassen"
+print_step "8/12" "Hotspot-Konfiguration anpassen"
 
 # network_manager.py mit korrekter SSID aktualisieren
 NETWORK_MANAGER_FILE="$INSTALL_DIR/network_manager.py"
@@ -291,9 +311,9 @@ fi
 # ----------------------------------------------------------------------------
 # Schritt 10: Systemd-Service einrichten
 # ----------------------------------------------------------------------------
-print_step "10/13" "Systemd-Service einrichten"
+print_step "9/12" "Systemd-Service einrichten"
 
-SERVICE_FILE="/etc/systemd/system/vde-messwand.service"
+SERVICE_FILE="/etc/systemd/system/VDE-Messwand.service"
 cat > "$SERVICE_FILE" << EOF
 [Unit]
 Description=VDE Messwand Flask App
@@ -313,7 +333,7 @@ WantedBy=multi-user.target
 EOF
 
 systemctl daemon-reload
-systemctl enable vde-messwand.service
+systemctl enable VDE-Messwand.service
 
 # Python Berechtigung für Port 80 (ohne Root)
 PYTHON_BIN=$(readlink -f /usr/bin/python3)
@@ -324,7 +344,7 @@ print_success "Systemd-Service eingerichtet und aktiviert"
 # ----------------------------------------------------------------------------
 # Schritt 11: Power-Button (J2) konfigurieren
 # ----------------------------------------------------------------------------
-print_step "11/13" "Power-Button (J2-Header) konfigurieren"
+print_step "10/12" "Power-Button (J2-Header) konfigurieren"
 
 echo "Der Raspberry Pi 5 hat einen J2-Header für einen externen Power-Button."
 echo "Standard: Button kann Ein- UND Ausschalten"
@@ -382,7 +402,7 @@ fi
 # ----------------------------------------------------------------------------
 # Schritt 12: Datenbank initialisieren
 # ----------------------------------------------------------------------------
-print_step "12/13" "Datenbank initialisieren"
+print_step "11/12" "Datenbank initialisieren"
 
 cd "$INSTALL_DIR"
 if [ ! -f "vde_messwand.db" ]; then
@@ -395,7 +415,7 @@ fi
 # ----------------------------------------------------------------------------
 # Schritt 13: Kiosk-Modus konfigurieren
 # ----------------------------------------------------------------------------
-print_step "13/13" "Kiosk-Modus einrichten (Autologin + Chromium)"
+print_step "12/12" "Kiosk-Modus einrichten (Autologin + Chromium)"
 
 # Chromium installieren falls nicht vorhanden
 if ! command -v chromium &> /dev/null && ! command -v chromium-browser &> /dev/null; then
@@ -420,21 +440,22 @@ KIOSK_SERVICE="/etc/systemd/system/kiosk.service"
 cat > "$KIOSK_SERVICE" << EOF
 [Unit]
 Description=Chromium Kiosk Modus für Benutzer $SERVICE_USER
-After=graphical.target sound.target vde-messwand.service
+After=graphical.target sound.target VDE-Messwand.service
 Wants=sound.target
-Requires=vde-messwand.service
+Requires=VDE-Messwand.service
 
 [Service]
 User=$SERVICE_USER
 Type=simple
-Environment=DISPLAY=:0
-Environment=XAUTHORITY=/home/$SERVICE_USER/.Xauthority
+# Wayland statt X11 (für labwc)
+Environment=WAYLAND_DISPLAY=wayland-0
 Environment=XDG_RUNTIME_DIR=/run/user/1000
 Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus
 Environment=PULSE_SERVER=unix:/run/user/1000/pulse/native
 # Warte bis Flask-Server wirklich antwortet (max 60 Sekunden)
 ExecStartPre=/bin/bash -c 'for i in \$(seq 1 60); do curl -s http://localhost >/dev/null 2>&1 && exit 0; sleep 1; done; exit 1'
-ExecStart=/usr/bin/chromium-browser --kiosk --incognito --noerrdialogs --disable-infobars --autoplay-policy=no-user-gesture-required --check-for-update-interval=31536000 $KIOSK_URL
+# Chromium im Wayland-Modus starten (verhindert unsichtbares Fenster)
+ExecStart=/usr/bin/chromium --ozone-platform=wayland --enable-features=UseOzonePlatform --kiosk --incognito --noerrdialogs --disable-infobars --autoplay-policy=no-user-gesture-required --check-for-update-interval=31536000 $KIOSK_URL
 Restart=always
 RestartSec=10
 
@@ -460,7 +481,7 @@ echo -e "  ${GREEN}Hostname:${NC}      $HOSTNAME"
 echo -e "  ${GREEN}Hotspot-SSID:${NC}  $SSID"
 echo -e "  ${GREEN}Hotspot-PW:${NC}    vde12345"
 echo -e "  ${GREEN}Install-Dir:${NC}   $INSTALL_DIR"
-echo -e "  ${GREEN}Service:${NC}       vde-messwand.service"
+echo -e "  ${GREEN}Service:${NC}       VDE-Messwand.service"
 echo -e "  ${GREEN}Kiosk-Service:${NC} kiosk.service (systemd)"
 echo ""
 echo "Nächste Schritte:"
@@ -476,9 +497,9 @@ echo "     - http://<IP-ADRESSE>"
 echo "     - Bei Hotspot: http://192.168.50.1"
 echo ""
 echo "Service-Befehle:"
-echo "  sudo systemctl status vde-messwand"
-echo "  sudo systemctl restart vde-messwand"
-echo "  sudo journalctl -u vde-messwand -f"
+echo "  sudo systemctl status VDE-Messwand"
+echo "  sudo systemctl restart VDE-Messwand"
+echo "  sudo journalctl -u VDE-Messwand -f"
 echo ""
 echo -e "${YELLOW}WICHTIG: Bitte jetzt neu starten!${NC}"
 echo ""

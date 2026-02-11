@@ -59,7 +59,7 @@ Jetzt mit:
 Die Daten werden in JSON-Dateien gespeichert:
 
 ```
-vde-messwand/
+VDE-Messwand/
 ├── stromkreise.json       # Custom Stromkreise
 ├── kategorien.json        # Custom Kategorien
 ├── relay_groups.json      # Custom Relais-Gruppen (bereits vorhanden)

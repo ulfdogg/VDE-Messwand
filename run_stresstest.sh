@@ -25,7 +25,7 @@ else
 
     if [ "$START_SERVER" = "j" ] || [ "$START_SERVER" = "J" ]; then
         echo "Starte Server mit Gunicorn..."
-        cd /home/vde/vde-messwand
+        cd /home/vde/VDE-Messwand
         gunicorn -b 0.0.0.0:8000 app:app --daemon
         sleep 3
 
@@ -68,7 +68,7 @@ echo "  2) GUI-Test mit Selenium (benötigt Chromium)"
 echo ""
 read -p "Eingabe (1 oder 2): " TEST_TYPE
 
-cd /home/vde/vde-messwand
+cd /home/vde/VDE-Messwand
 
 if [ "$TEST_TYPE" = "1" ]; then
     echo -e "\n${BLUE}[4/4]${NC} Starte Simple Stresstest..."
