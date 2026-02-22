@@ -6,14 +6,25 @@
 
 html, body {
     width: 1280px;
-    height: 720px;
-    overflow: hidden;
+    min-height: 720px;
     font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
     background: #0a0a0f;
     color: #f0e8e8;
     -webkit-user-select: none;
     user-select: none;
     -webkit-touch-callout: none;
+}
+
+/* Startseite: kein Scrollen */
+body.page-home {
+    height: 720px;
+    overflow: hidden;
+}
+
+/* Unterseiten: Scrollen erlaubt */
+body.page-sub {
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 /* ==================== AURORA BACKGROUND ==================== */
@@ -35,11 +46,11 @@ html, body {
     width: 200%;
     height: 200%;
     background:
-        radial-gradient(ellipse at 20% 40%, rgba(200, 20, 20, 0.25) 0%, transparent 50%),
-        radial-gradient(ellipse at 75% 20%, rgba(180, 30, 50, 0.2) 0%, transparent 45%),
-        radial-gradient(ellipse at 40% 80%, rgba(120, 10, 30, 0.2) 0%, transparent 50%),
-        radial-gradient(ellipse at 80% 70%, rgba(220, 50, 30, 0.15) 0%, transparent 45%);
-    animation: aurora-drift 15s ease-in-out infinite alternate;
+        radial-gradient(ellipse 55% 45% at 20% 40%, rgba(220, 20, 20, 0.55) 0%, transparent 60%),
+        radial-gradient(ellipse 45% 38% at 78% 18%, rgba(190, 30, 50, 0.45) 0%, transparent 55%),
+        radial-gradient(ellipse 50% 40% at 42% 82%, rgba(140, 10, 30, 0.42) 0%, transparent 58%),
+        radial-gradient(ellipse 40% 35% at 82% 72%, rgba(230, 55, 30, 0.38) 0%, transparent 50%);
+    animation: aurora-drift 16s ease-in-out infinite alternate;
 }
 
 .aurora-bg::after {
@@ -50,47 +61,118 @@ html, body {
     width: 200%;
     height: 200%;
     background:
-        radial-gradient(ellipse at 60% 30%, rgba(160, 20, 40, 0.18) 0%, transparent 40%),
-        radial-gradient(ellipse at 25% 65%, rgba(100, 5, 15, 0.2) 0%, transparent 45%),
-        radial-gradient(ellipse at 85% 55%, rgba(200, 40, 40, 0.12) 0%, transparent 40%);
-    animation: aurora-drift2 18s ease-in-out infinite alternate-reverse;
+        radial-gradient(ellipse 42% 36% at 60% 28%, rgba(175, 20, 40, 0.42) 0%, transparent 52%),
+        radial-gradient(ellipse 48% 40% at 22% 68%, rgba(115, 5, 18, 0.45) 0%, transparent 55%),
+        radial-gradient(ellipse 38% 32% at 88% 52%, rgba(210, 45, 40, 0.36) 0%, transparent 48%);
+    animation: aurora-drift2 20s ease-in-out infinite alternate-reverse;
 }
 
 @keyframes aurora-drift {
-    0% { transform: translate(0, 0) rotate(0deg) scale(1); }
-    33% { transform: translate(3%, -2%) rotate(1deg) scale(1.02); }
-    66% { transform: translate(-2%, 3%) rotate(-1deg) scale(0.98); }
-    100% { transform: translate(1%, -1%) rotate(0.5deg) scale(1.01); }
+    0%   { transform: translate(0,    0)    rotate(0deg)    scale(1);    }
+    25%  { transform: translate(5%,  -4%)   rotate(1.8deg)  scale(1.05); }
+    50%  { transform: translate(-4%,  5%)   rotate(-1.2deg) scale(0.96); }
+    75%  { transform: translate(3%,  -2%)   rotate(1.2deg)  scale(1.03); }
+    100% { transform: translate(-2%,  2%)   rotate(-0.6deg) scale(1.01); }
 }
 
 @keyframes aurora-drift2 {
-    0% { transform: translate(0, 0) rotate(0deg); }
-    50% { transform: translate(-3%, 2%) rotate(-1.5deg); }
-    100% { transform: translate(2%, -3%) rotate(1deg); }
+    0%   { transform: translate(0,    0)    rotate(0deg);    }
+    33%  { transform: translate(-5%,  4%)   rotate(-2.5deg); }
+    66%  { transform: translate(4%,  -3%)   rotate(1.8deg);  }
+    100% { transform: translate(-2%, -2%)   rotate(-0.8deg); }
 }
 
-/* Particles */
-.particles {
+/* ==================== LOGO GHOST BACKGROUND ==================== */
+.logo-ghosts {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
     z-index: 1;
     pointer-events: none;
+    overflow: hidden;
 }
 
-.particle {
+/* Äußeres Div: Drift-Bewegung */
+.logo-ghost-wrap {
     position: absolute;
-    border-radius: 50%;
-    animation: float-up linear infinite;
+    overflow: hidden;
 }
 
-@keyframes float-up {
-    0% { transform: translateY(720px) scale(0); opacity: 0; }
-    10% { opacity: 1; }
-    90% { opacity: 1; }
-    100% { transform: translateY(-20px) scale(1); opacity: 0; }
+/* Inneres img: Spin-Rotation */
+.logo-ghost-wrap img {
+    display: block;
+    filter: invert(1) hue-rotate(200deg);
+    animation: ghost-spin linear infinite;
+    transform-origin: 10.3% 50%; /* Drehmittelpunkt = Würfel-Zentrum */
+}
+
+/* Ghost 1 – groß, unten rechts */
+.logo-ghost-wrap.g1 {
+    width: 160px; height: 160px;
+    bottom: 7%; right: 5%;
+    animation: ghost-drift-1 22s ease-in-out infinite alternate;
+}
+.logo-ghost-wrap.g1 img {
+    width: 780px; height: 160px;
+    opacity: 0.14;
+    animation-duration: 50s;
+}
+
+/* Ghost 2 – mittel, oben links */
+.logo-ghost-wrap.g2 {
+    width: 110px; height: 110px;
+    top: 10%; left: 3%;
+    animation: ghost-drift-2 28s ease-in-out infinite alternate-reverse;
+    animation-delay: -10s;
+}
+.logo-ghost-wrap.g2 img {
+    width: 536px; height: 110px;
+    opacity: 0.12;
+    animation-duration: 65s;
+    animation-direction: reverse;
+}
+
+/* Ghost 3 – klein, mitte rechts */
+.logo-ghost-wrap.g3 {
+    width: 80px; height: 80px;
+    top: 42%; right: 14%;
+    animation: ghost-drift-3 18s ease-in-out infinite alternate;
+    animation-delay: -6s;
+}
+.logo-ghost-wrap.g3 img {
+    width: 390px; height: 80px;
+    opacity: 0.13;
+    animation-duration: 38s;
+    animation-delay: -15s;
+}
+
+@keyframes ghost-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+@keyframes ghost-drift-1 {
+    0%   { transform: translate(0px,   0px); }
+    33%  { transform: translate(-70px, -50px); }
+    66%  { transform: translate(40px,  -80px); }
+    100% { transform: translate(-50px,  60px); }
+}
+
+@keyframes ghost-drift-2 {
+    0%   { transform: translate(0px,  0px); }
+    40%  { transform: translate(80px, 60px); }
+    100% { transform: translate(30px, 90px); }
+}
+
+@keyframes ghost-drift-3 {
+    0%   { transform: translate(0px,   0px); }
+    50%  { transform: translate(-60px, -40px); }
+    100% { transform: translate(50px,  -60px); }
+}
+
+/* (Hintergrund-Partikel deaktiviert) */
+.particles {
+    display: none;
 }
 
 /* ==================== GPIO-WARNUNG ==================== */
@@ -159,12 +241,79 @@ html, body {
     position: relative;
     z-index: 10;
     width: 1280px;
-    height: 720px;
+    min-height: 720px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     padding: 20px 80px;
+}
+
+/* Unterseiten: Container darf wachsen */
+body.page-sub .container {
+    height: auto;
+    justify-content: flex-start;
+    padding-top: 30px;
+    padding-bottom: 40px;
+}
+
+/* ==================== NAVIGATION BAR ==================== */
+.navigation-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    width: 100%;
+}
+
+.nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 14px;
+    color: #f0e8e8;
+    text-decoration: none;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.nav-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(227, 6, 19, 0.4);
+    box-shadow: 0 4px 15px rgba(200, 20, 20, 0.12);
+}
+
+.nav-btn:active {
+    transform: scale(0.97);
+}
+
+.nav-icon {
+    font-size: 1.1em;
+}
+
+.nav-btn.home-btn {
+    background: rgba(227, 6, 19, 0.1);
+    border-color: rgba(227, 6, 19, 0.25);
+}
+
+.nav-btn.home-btn:hover {
+    background: rgba(227, 6, 19, 0.18);
+    border-color: rgba(227, 6, 19, 0.45);
+}
+
+.nav-btn.back-btn {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.nav-btn.back-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.3);
 }
 
 /* ==================== FROSTED GLASS CARD ==================== */
@@ -689,13 +838,6 @@ select option {
     background: linear-gradient(45deg, #ff4444, #ff6666);
     border-radius: 4px;
     transition: width 0.3s ease;
-}
-
-.back-btn {
-    position: fixed;
-    top: 20px;
-    left: 20px;
-    z-index: 1000;
 }
 
 @media (max-width: 768px) {

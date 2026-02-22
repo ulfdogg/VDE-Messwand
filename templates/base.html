@@ -5,10 +5,85 @@
     <meta name="viewport" content="width=1280, initial-scale=1.0">
     <title>{% block title %}VDE Messwand{% endblock %}</title>
     <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        /* === Touch-Feedback Animation === */
+        .touch-ripple {
+            position: fixed;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 99998;
+            transform: translate(-50%, -50%) scale(0);
+            animation: touch-ripple-anim 0.55s ease-out forwards;
+        }
+        @keyframes touch-ripple-anim {
+            0%   { transform: translate(-50%, -50%) scale(0);   opacity: 1; }
+            50%  { transform: translate(-50%, -50%) scale(1);   opacity: 0.6; }
+            100% { transform: translate(-50%, -50%) scale(2);   opacity: 0; }
+        }
+
+        /* === Bildschirmtastatur === */
+        #osk {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(15, 15, 25, 0.98);
+            border-top: 2px solid #e30613;
+            padding: 10px 8px 14px;
+            z-index: 99999;
+            box-shadow: 0 -6px 24px rgba(0,0,0,0.6);
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .osk-row {
+            display: flex;
+            justify-content: center;
+            gap: 4px;
+            margin-bottom: 5px;
+        }
+        .osk-key {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.18);
+            border-bottom: 2px solid rgba(255,255,255,0.25);
+            border-radius: 6px;
+            color: #ffffff;
+            font-size: 15px;
+            font-family: inherit;
+            padding: 10px 0;
+            min-width: 36px;
+            flex: 1;
+            max-width: 58px;
+            cursor: pointer;
+            text-align: center;
+            transition: background 0.08s, transform 0.05s;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        .osk-key:active {
+            background: rgba(227, 6, 19, 0.45);
+            transform: scale(0.93);
+        }
+        .osk-key.osk-wide  { max-width: 90px; flex: 2; font-size: 13px; }
+        .osk-key.osk-wider { max-width: 140px; flex: 2.5; font-size: 13px; }
+        .osk-key.osk-space { flex: 5; max-width: 320px; }
+        .osk-key.osk-shift-active { background: rgba(227,6,19,0.35); }
+        .osk-row-hint {
+            text-align: center;
+            font-size: 10px;
+            color: rgba(255,255,255,0.3);
+            margin-bottom: 6px;
+        }
+    </style>
 </head>
-<body>
+<body class="{% block body_class %}page-sub{% endblock %}">
 
 <div class="aurora-bg"></div>
+<div class="logo-ghosts">
+    <div class="logo-ghost-wrap g1"><img src="/static/company_logo.png" alt=""></div>
+    <div class="logo-ghost-wrap g2"><img src="/static/company_logo.png" alt=""></div>
+    <div class="logo-ghost-wrap g3"><img src="/static/company_logo.png" alt=""></div>
+</div>
 <div class="particles" id="particles"></div>
 
     <!-- GPIO-Warnung (oben fixiert) -->
@@ -21,33 +96,24 @@
     </div>
 
     <div class="container">
+        {% block navigation %}
+        <div class="navigation-bar">
+            <a href="javascript:history.back()" class="nav-btn back-btn" title="Zurück">
+                <span class="nav-icon">←</span>
+                <span class="nav-text">Zurück</span>
+            </a>
+            <a href="{{ url_for('index') }}" class="nav-btn home-btn" title="Startseite">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-text">Home</span>
+            </a>
+        </div>
+        {% endblock %}
         {% block content %}{% endblock %}
     </div>
 
     <script src="/static/script.js"></script>
     <script>
-        // Create floating particles
-        const particlesContainer = document.getElementById('particles');
-        for (let i = 0; i < 12; i++) {
-            const particle = document.createElement('div');
-            particle.classList.add('particle');
-            particle.style.left = Math.random() * 100 + '%';
-            particle.style.animationDuration = (10 + Math.random() * 15) + 's';
-            particle.style.animationDelay = (Math.random() * 10) + 's';
-            const size = (2 + Math.random() * 3);
-            particle.style.width = size + 'px';
-            particle.style.height = size + 'px';
-            const isRed = Math.random() > 0.5;
-            particle.style.background = isRed
-                ? 'rgba(227, 6, 19, 0.5)'
-                : 'rgba(255, 255, 255, 0.3)';
-            particle.style.boxShadow = isRed
-                ? '0 0 4px rgba(227, 6, 19, 0.4)'
-                : 'none';
-            particlesContainer.appendChild(particle);
-        }
-
-        // Touch ripple effect
+        // Touch ripple effect (menu items)
         document.querySelectorAll('.menu-item').forEach(item => {
             item.addEventListener('touchstart', function(e) {
                 const rect = this.getBoundingClientRect();
@@ -61,6 +127,20 @@
                 this.appendChild(ripple);
                 ripple.addEventListener('animationend', () => ripple.remove());
             }, { passive: true });
+        });
+
+        // Globale Touch-Feedback Animation (Fingerabdruck-Kreis) – Maus + Touch
+        document.addEventListener('pointerdown', function(e) {
+            const el = document.createElement('div');
+            el.className = 'touch-ripple';
+            el.style.left = e.clientX + 'px';
+            el.style.top  = e.clientY + 'px';
+            el.style.width  = '80px';
+            el.style.height = '80px';
+            el.style.background = 'radial-gradient(circle, rgba(227,6,19,0.8) 0%, rgba(227,6,19,0.2) 50%, transparent 70%)';
+            el.style.boxShadow = '0 0 0 3px rgba(227,6,19,0.9), 0 0 20px rgba(227,6,19,0.5)';
+            document.body.appendChild(el);
+            el.addEventListener('animationend', () => el.remove());
         });
     </script>
     <script>
@@ -103,5 +183,135 @@
         });
     </script>
     {% block scripts %}{% endblock %}
+    <script>
+    /* === Bildschirmtastatur (QWERTZ, Deutsch) === */
+    (function () {
+        'use strict';
+
+        var LOWER = [
+            ['1','2','3','4','5','6','7','8','9','0','ß','⌫'],
+            ['q','w','e','r','t','z','u','i','o','p','ü'],
+            ['a','s','d','f','g','h','j','k','l','ö','ä'],
+            ['⇧','y','x','c','v','b','n','m',',','.','-','↵'],
+            ['@','.de','{SP}','_','/','✕']
+        ];
+        var UPPER = [
+            ['!','"','§','$','%','&','/','(',')','=','?','⌫'],
+            ['Q','W','E','R','T','Z','U','I','O','P','Ü'],
+            ['A','S','D','F','G','H','J','K','L','Ö','Ä'],
+            ['⇧','Y','X','C','V','B','N','M',';',':','_','↵'],
+            ['@','.com','{SP}','(',')','✕']
+        ];
+
+        var shifted = false;
+        var activeEl = null;
+        var hideTimer = null;
+
+        function layout() { return shifted ? UPPER : LOWER; }
+
+        function insert(text) {
+            if (!activeEl) return;
+            var s = activeEl.selectionStart, e = activeEl.selectionEnd;
+            activeEl.value = activeEl.value.slice(0, s) + text + activeEl.value.slice(e);
+            activeEl.selectionStart = activeEl.selectionEnd = s + text.length;
+            activeEl.dispatchEvent(new Event('input', {bubbles: true}));
+        }
+
+        function handleKey(key) {
+            if (!activeEl) return;
+            if (key === '⌫') {
+                var s = activeEl.selectionStart, e = activeEl.selectionEnd;
+                if (s !== e) { insert(''); }
+                else if (s > 0) {
+                    activeEl.value = activeEl.value.slice(0, s - 1) + activeEl.value.slice(e);
+                    activeEl.selectionStart = activeEl.selectionEnd = s - 1;
+                    activeEl.dispatchEvent(new Event('input', {bubbles: true}));
+                }
+            } else if (key === '↵') {
+                if (activeEl.tagName === 'TEXTAREA') { insert('\n'); }
+                else { hideOSK(); activeEl.blur(); }
+            } else if (key === '{SP}') {
+                insert(' ');
+            } else if (key === '⇧') {
+                shifted = !shifted;
+                renderOSK();
+            } else if (key === '✕') {
+                hideOSK(); activeEl.blur();
+            } else {
+                insert(key);
+                if (shifted) { shifted = false; renderOSK(); }
+            }
+        }
+
+        function buildOSK() {
+            var osk = document.createElement('div');
+            osk.id = 'osk';
+            layout().forEach(function(row) {
+                var rowDiv = document.createElement('div');
+                rowDiv.className = 'osk-row';
+                row.forEach(function(key) {
+                    var btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'osk-key';
+                    if (key === '{SP}')  { btn.classList.add('osk-space'); btn.textContent = ' '; }
+                    else if (key === '⌫') { btn.classList.add('osk-wide'); btn.textContent = '⌫'; }
+                    else if (key === '↵') { btn.classList.add('osk-wide'); btn.textContent = '↵'; }
+                    else if (key === '⇧') { btn.classList.add('osk-wide'); btn.textContent = '⇧'; if (shifted) btn.classList.add('osk-shift-active'); }
+                    else if (key === '✕') { btn.classList.add('osk-wide'); btn.textContent = '✕'; btn.style.color='#e30613'; }
+                    else if (key === '.de' || key === '.com') { btn.classList.add('osk-wider'); btn.textContent = key; }
+                    else { btn.textContent = key; }
+                    btn.addEventListener('pointerdown', function(e) {
+                        e.preventDefault();
+                        clearTimeout(hideTimer);
+                        handleKey(key);
+                    });
+                    rowDiv.appendChild(btn);
+                });
+                osk.appendChild(rowDiv);
+            });
+            return osk;
+        }
+
+        function renderOSK() {
+            var old = document.getElementById('osk');
+            var osk = buildOSK();
+            osk.style.display = 'block';
+            if (old) { old.replaceWith(osk); }
+            else { document.body.appendChild(osk); }
+        }
+
+        function showOSK(el) {
+            clearTimeout(hideTimer);
+            activeEl = el;
+            renderOSK();
+            document.body.style.paddingBottom = '230px';
+            setTimeout(function() { el.scrollIntoView({behavior:'smooth', block:'nearest'}); }, 120);
+        }
+
+        function hideOSK() {
+            hideTimer = setTimeout(function() {
+                var osk = document.getElementById('osk');
+                if (osk) osk.style.display = 'none';
+                document.body.style.paddingBottom = '';
+                activeEl = null;
+            }, 180);
+        }
+
+        var TEXT_TYPES = ['text','password','email','search','number','tel','url',''];
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.addEventListener('focusin', function(e) {
+                var el = e.target;
+                if (el.tagName === 'TEXTAREA' ||
+                    (el.tagName === 'INPUT' && TEXT_TYPES.indexOf((el.type||'').toLowerCase()) !== -1 && !el.readOnly)) {
+                    showOSK(el);
+                }
+            });
+            document.addEventListener('focusout', function() {
+                hideOSK();
+            });
+        });
+    })();
+    </script>
 </body>
 </html>

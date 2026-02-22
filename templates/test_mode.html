@@ -3,17 +3,6 @@
 {% block title %}Test Durchlauf - VDE Messwand{% endblock %}
 
 {% block content %}
-<div class="navigation-bar">
-    <a href="javascript:history.back()" class="nav-btn back-btn" title="Einen Schritt zurück">
-        <span class="nav-icon">←</span>
-        <span class="nav-text">Zurück</span>
-    </a>
-    <a href="{{ url_for('index') }}" class="nav-btn home-btn" title="Zur Startseite">
-        <span class="nav-icon">🏠</span>
-        <span class="nav-text">Home</span>
-    </a>
-</div>
-
 <div class="glass-card">
     <h1>Test Durchlauf</h1>
 
@@ -247,44 +236,6 @@ function cancelTest() {
 </script>
 
 <style>
-.navigation-bar {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
-}
-
-.nav-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 20px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    border-radius: 10px;
-    color: #ffffff;
-    text-decoration: none;
-    transition: all 0.3s;
-    font-weight: 600;
-    cursor: pointer;
-}
-
-.nav-btn:hover {
-    background: rgba(255, 255, 255, 0.15);
-    border-color: rgba(255, 68, 68, 0.4);
-    transform: translateY(-2px);
-}
-
-.home-btn {
-    background: rgba(255, 68, 68, 0.2);
-    border-color: rgba(255, 68, 68, 0.4);
-}
-
-@media (max-width: 768px) {
-    .nav-text {
-        display: none;
-    }
-}
-
 .btn-danger {
     background: rgba(255, 68, 68, 0.3);
     border: 2px solid rgba(255, 68, 68, 0.5);

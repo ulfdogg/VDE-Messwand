@@ -1,528 +1,445 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Konfiguration - VDE Messwand</title>
-    <link rel="stylesheet" href="/static/css/style.css">
-    <style>
-        .tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 30px;
-            border-bottom: 3px solid rgba(255, 255, 255, 0.1);
-        }
+{% extends "base.html" %}
+{% block title %}Konfiguration - VDE Messwand{% endblock %}
 
-        .tab {
-            padding: 15px 30px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 2px solid rgba(255, 255, 255, 0.1);
-            border-bottom: none;
-            border-radius: 10px 10px 0 0;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-weight: 600;
-            color: rgba(255, 255, 255, 0.6);
-        }
+{% block content %}
+<div class="glass-card">
+    <h1>Konfiguration</h1>
+    <p style="text-align: center; opacity: 0.8; margin-bottom: 30px;">
+        Verwalten Sie Stromkreise und Kategorien für die gesamte Anwendung
+    </p>
 
-        .tab:hover {
-            background: rgba(255, 255, 255, 0.1);
-            color: rgba(255, 255, 255, 0.9);
-        }
-
-        .tab.active {
-            background: rgba(255, 68, 68, 0.2);
-            border-color: rgba(255, 68, 68, 0.5);
-            color: #ff4444;
-            box-shadow: 0 -3px 15px rgba(255, 68, 68, 0.3);
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        .item-list {
-            display: grid;
-            gap: 15px;
-        }
-
-        .item-card {
-            background: rgba(255, 255, 255, 0.05);
-            border: 2px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            padding: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: all 0.3s;
-        }
-
-        .item-card:hover {
-            border-color: rgba(255, 68, 68, 0.4);
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
-        }
-
-        .item-info {
-            flex: 1;
-        }
-
-        .item-name {
-            font-size: 1.3em;
-            font-weight: bold;
-            color: #ffffff;
-            margin-bottom: 5px;
-        }
-
-        .item-detail {
-            color: rgba(255, 255, 255, 0.6);
-            font-size: 0.9em;
-        }
-
-        .item-actions {
-            display: flex;
-            gap: 10px;
-        }
-
-        .navigation-bar {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        .nav-btn {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 12px 20px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            border-radius: 10px;
-            color: #ffffff;
-            text-decoration: none;
-            transition: all 0.3s;
-            font-weight: 600;
-            cursor: pointer;
-        }
-
-        .nav-btn:hover {
-            background: rgba(255, 255, 255, 0.15);
-            border-color: rgba(255, 68, 68, 0.4);
-            transform: translateY(-2px);
-        }
-
-        .nav-icon {
-            font-size: 1.3em;
-        }
-
-        .toolbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal.active {
-            display: flex;
-        }
-
-        .modal-content {
-            background: rgba(30, 30, 30, 0.98);
-            backdrop-filter: blur(20px);
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            border-radius: 15px;
-            padding: 30px;
-            max-width: 500px;
-            width: 90%;
-        }
-
-        .modal-header {
-            font-size: 1.8em;
-            margin-bottom: 20px;
-            color: #ff4444;
-        }
-
-        .modal-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 25px;
-            justify-content: flex-end;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: rgba(255, 255, 255, 0.5);
-            font-style: italic;
-        }
-
-        @media (max-width: 768px) {
-            .tabs {
-                flex-direction: column;
-                border-bottom: none;
-            }
-
-            .tab {
-                border-radius: 10px;
-                border: 2px solid rgba(255, 255, 255, 0.1);
-            }
-
-            .item-card {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            .item-actions {
-                width: 100%;
-                margin-top: 15px;
-            }
-
-            .nav-text {
-                display: none;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="navigation-bar">
-            <a href="javascript:history.back()" class="nav-btn back-btn">
-                <span class="nav-icon">←</span>
-                <span class="nav-text">Zurück</span>
-            </a>
-            <a href="{{ url_for('index') }}" class="nav-btn home-btn">
-                <span class="nav-icon">🏠</span>
-                <span class="nav-text">Home</span>
-            </a>
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('stromkreise')">
+            Stromkreise
         </div>
-
-        <div class="glass-card">
-            <h1>⚙️ Konfiguration</h1>
-            <p style="text-align: center; opacity: 0.8; margin-bottom: 30px;">
-                Verwalten Sie Stromkreise und Kategorien für die gesamte Anwendung
-            </p>
-
-            <div class="tabs">
-                <div class="tab active" onclick="switchTab('stromkreise')">
-                    ⚡ Stromkreise
-                </div>
-                <div class="tab" onclick="switchTab('kategorien')">
-                    🏷️ Kategorien
-                </div>
-            </div>
-
-            <div id="messageBox" class="message"></div>
-
-            <!-- STROMKREISE TAB -->
-            <div id="tab-stromkreise" class="tab-content active">
-                <div class="toolbar">
-                    <h2 style="margin: 0; color: #ff4444;">Stromkreise</h2>
-                    <button class="btn" onclick="openStromkreisModal()">➕ Neuer Stromkreis</button>
-                </div>
-
-                <div class="item-list" id="stromkreiseList">
-                    {% if stromkreise %}
-                        {% for sk_id, sk_data in stromkreise.items() %}
-                        <div class="item-card">
-                            <div class="item-info">
-                                <div class="item-name">{{ sk_data.name }}</div>
-                                <div class="item-detail">
-                                    {% if sk_data.description %}{{ sk_data.description }} | {% endif %}
-                                    {{ sk_data.relays|length }} Relais
-                                    {% if sk_data.relays %}
-                                    ({{ sk_data.relays[0] }} - {{ sk_data.relays[-1] }})
-                                    {% endif %}
-                                </div>
-                            </div>
-                            <div class="item-actions">
-                                {% if sk_id not in [1, 2, 3, 4, 5, 6, 7] %}
-                                <button class="btn btn-secondary" onclick="editStromkreis({{ sk_id }})">✏️</button>
-                                <button class="btn btn-danger" onclick="deleteStromkreis({{ sk_id }})">🗑️</button>
-                                {% else %}
-                                <span style="color: rgba(255, 255, 255, 0.5); font-size: 0.9em;">📌 System</span>
-                                {% endif %}
-                            </div>
-                        </div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="empty-state">
-                            Noch keine Stromkreise definiert. Erstellen Sie einen neuen Stromkreis!
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-
-            <!-- KATEGORIEN TAB -->
-            <div id="tab-kategorien" class="tab-content">
-                <div class="toolbar">
-                    <h2 style="margin: 0; color: #ff4444;">Kategorien</h2>
-                    <button class="btn" onclick="openKategorieModal()">➕ Neue Kategorie</button>
-                </div>
-
-                <div class="item-list" id="kategorienList">
-                    {% if kategorien %}
-                        {% for kat in kategorien %}
-                        <div class="item-card">
-                            <div class="item-info">
-                                <div class="item-name">{{ kat }}</div>
-                            </div>
-                            <div class="item-actions">
-                                {% if kat not in ['RISO', 'Zi', 'Zs', 'Drehfeld', 'RCD'] %}
-                                <button class="btn btn-danger" onclick="deleteKategorie('{{ kat }}')">🗑️</button>
-                                {% else %}
-                                <span style="color: rgba(255, 255, 255, 0.5); font-size: 0.9em;">📌 Standard</span>
-                                {% endif %}
-                            </div>
-                        </div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="empty-state">
-                            Noch keine Kategorien definiert. Erstellen Sie eine neue Kategorie!
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
+        <div class="tab" onclick="switchTab('kategorien')">
+            Kategorien
         </div>
     </div>
 
-    <!-- STROMKREIS MODAL -->
-    <div id="stromkreisModal" class="modal">
-        <div class="modal-content">
-            <h2 class="modal-header" id="stromkreisModalTitle">Neuer Stromkreis</h2>
-            <form id="stromkreisForm">
-                <input type="hidden" id="stromkreis_id">
-                <div class="form-group">
-                    <label>Name *</label>
-                    <input type="text" id="stromkreis_name" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label>Beschreibung</label>
-                    <textarea id="stromkreis_description" class="form-control" rows="2"></textarea>
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                    <div class="form-group">
-                        <label>Start-Relais *</label>
-                        <input type="number" id="stromkreis_start" class="form-control" min="0" max="63" required>
+    <div id="messageBox" class="message"></div>
+
+    <!-- STROMKREISE TAB -->
+    <div id="tab-stromkreise" class="tab-content active">
+        <div class="toolbar">
+            <h2 style="margin: 0; color: #ff4444;">Stromkreise</h2>
+            <button class="btn" onclick="openStromkreisModal()">Neuer Stromkreis</button>
+        </div>
+
+        <div class="item-list" id="stromkreiseList">
+            {% if stromkreise %}
+                {% for sk_id, sk_data in stromkreise.items() %}
+                <div class="item-card">
+                    <div class="item-info">
+                        <div class="item-name">{{ sk_data.name }}</div>
+                        <div class="item-detail">
+                            {% if sk_data.description %}{{ sk_data.description }} | {% endif %}
+                            {{ sk_data.relays|length }} Relais
+                            {% if sk_data.relays %}
+                            ({{ sk_data.relays[0] }} - {{ sk_data.relays[-1] }})
+                            {% endif %}
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>Anzahl Relais *</label>
-                        <input type="number" id="stromkreis_count" class="form-control" min="1" max="64" required>
+                    <div class="item-actions">
+                        <button class="btn btn-secondary" onclick="editStromkreis({{ sk_id }})">Bearbeiten</button>
+                        <button class="btn btn-danger" onclick="deleteStromkreis({{ sk_id }})">Löschen</button>
                     </div>
                 </div>
-                <div class="modal-actions">
-                    <button type="button" class="btn btn-secondary" onclick="closeStromkreisModal()">Abbrechen</button>
-                    <button type="submit" class="btn">💾 Speichern</button>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    Noch keine Stromkreise definiert. Erstellen Sie einen neuen Stromkreis!
                 </div>
-            </form>
+            {% endif %}
         </div>
     </div>
 
-    <!-- KATEGORIE MODAL -->
-    <div id="kategorieModal" class="modal">
-        <div class="modal-content">
-            <h2 class="modal-header">Neue Kategorie</h2>
-            <form id="kategorieForm">
+    <!-- KATEGORIEN TAB -->
+    <div id="tab-kategorien" class="tab-content">
+        <div class="toolbar">
+            <h2 style="margin: 0; color: #ff4444;">Kategorien</h2>
+            <button class="btn" onclick="openKategorieModal()">Neue Kategorie</button>
+        </div>
+
+        <div class="item-list" id="kategorienList">
+            {% if kategorien %}
+                {% for kat in kategorien %}
+                <div class="item-card">
+                    <div class="item-info">
+                        <div class="item-name">{{ kat }}</div>
+                    </div>
+                    <div class="item-actions">
+                        <button class="btn btn-danger" onclick="deleteKategorie('{{ kat }}')">Löschen</button>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    Noch keine Kategorien definiert. Erstellen Sie eine neue Kategorie!
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- STROMKREIS MODAL -->
+<div id="stromkreisModal" class="modal">
+    <div class="modal-content">
+        <h2 class="modal-header" id="stromkreisModalTitle">Neuer Stromkreis</h2>
+        <form id="stromkreisForm">
+            <input type="hidden" id="stromkreis_id">
+            <div class="form-group">
+                <label>Name *</label>
+                <input type="text" id="stromkreis_name" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Beschreibung</label>
+                <textarea id="stromkreis_description" class="form-control" rows="2"></textarea>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                 <div class="form-group">
-                    <label>Kategorie-Name *</label>
-                    <input type="text" id="kategorie_name" class="form-control" required placeholder="z.B. Spannungsfall">
+                    <label>Start-Relais *</label>
+                    <input type="number" id="stromkreis_start" class="form-control" min="0" max="63" required>
                 </div>
-                <div class="modal-actions">
-                    <button type="button" class="btn btn-secondary" onclick="closeKategorieModal()">Abbrechen</button>
-                    <button type="submit" class="btn">💾 Speichern</button>
+                <div class="form-group">
+                    <label>Anzahl Relais *</label>
+                    <input type="number" id="stromkreis_count" class="form-control" min="1" max="64" required>
                 </div>
-            </form>
-        </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeStromkreisModal()">Abbrechen</button>
+                <button type="submit" class="btn">Speichern</button>
+            </div>
+        </form>
     </div>
+</div>
 
-    <script>
-        let currentStromkreise = {{ stromkreise|tojson }};
-        let isEditMode = false;
+<!-- KATEGORIE MODAL -->
+<div id="kategorieModal" class="modal">
+    <div class="modal-content">
+        <h2 class="modal-header">Neue Kategorie</h2>
+        <form id="kategorieForm">
+            <div class="form-group">
+                <label>Kategorie-Name *</label>
+                <input type="text" id="kategorie_name" class="form-control" required placeholder="z.B. Spannungsfall">
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeKategorieModal()">Abbrechen</button>
+                <button type="submit" class="btn">Speichern</button>
+            </div>
+        </form>
+    </div>
+</div>
 
-        function showMessage(message, type) {
-            const msgBox = document.getElementById('messageBox');
-            msgBox.textContent = message;
-            msgBox.className = type === 'success' ? 'status-success' : 'status-error';
-            msgBox.style.display = 'block';
-            setTimeout(() => {
-                msgBox.style.display = 'none';
-            }, 5000);
-        }
+<style>
+    .tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 30px;
+        border-bottom: 2px solid rgba(255, 255, 255, 0.06);
+    }
 
-        function switchTab(tabName) {
-            // Update tab buttons
-            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-            event.target.classList.add('active');
+    .tab {
+        padding: 15px 30px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-bottom: none;
+        border-radius: 10px 10px 0 0;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.6);
+    }
 
-            // Update tab content
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            document.getElementById(`tab-${tabName}`).classList.add('active');
-        }
+    .tab:hover {
+        background: rgba(255, 255, 255, 0.06);
+        color: rgba(255, 255, 255, 0.9);
+    }
 
-        // STROMKREIS FUNKTIONEN
-        function openStromkreisModal() {
-            isEditMode = false;
-            document.getElementById('stromkreisModalTitle').textContent = 'Neuer Stromkreis';
-            document.getElementById('stromkreisForm').reset();
-            document.getElementById('stromkreis_id').value = '';
-            document.getElementById('stromkreisModal').classList.add('active');
-        }
+    .tab.active {
+        background: rgba(227, 6, 19, 0.12);
+        border-color: rgba(227, 6, 19, 0.3);
+        color: #ff4444;
+        box-shadow: 0 -3px 15px rgba(227, 6, 19, 0.15);
+    }
 
-        function editStromkreis(id) {
-            isEditMode = true;
-            const sk = currentStromkreise[id];
-            document.getElementById('stromkreisModalTitle').textContent = 'Stromkreis bearbeiten';
-            document.getElementById('stromkreis_id').value = id;
-            document.getElementById('stromkreis_name').value = sk.name;
-            document.getElementById('stromkreis_description').value = sk.description || '';
-            document.getElementById('stromkreis_start').value = sk.relays[0];
-            document.getElementById('stromkreis_count').value = sk.relays.length;
-            document.getElementById('stromkreisModal').classList.add('active');
-        }
+    .tab-content {
+        display: none;
+    }
 
-        function closeStromkreisModal() {
-            document.getElementById('stromkreisModal').classList.remove('active');
-        }
+    .tab-content.active {
+        display: block;
+    }
 
-        document.getElementById('stromkreisForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
+    .item-list {
+        display: grid;
+        gap: 15px;
+    }
 
-            const data = {
-                stromkreis_id: document.getElementById('stromkreis_id').value,
-                name: document.getElementById('stromkreis_name').value,
-                description: document.getElementById('stromkreis_description').value,
-                relay_start: parseInt(document.getElementById('stromkreis_start').value),
-                relay_count: parseInt(document.getElementById('stromkreis_count').value)
-            };
+    .item-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 12px;
+        padding: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: all 0.3s;
+    }
 
-            const endpoint = isEditMode ? '/api/stromkreise/update' : '/api/stromkreise/add';
+    .item-card:hover {
+        border-color: rgba(227, 6, 19, 0.3);
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+    }
 
-            try {
-                const response = await fetch(endpoint, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
+    .item-info {
+        flex: 1;
+    }
 
-                const result = await response.json();
+    .item-name {
+        font-size: 1.3em;
+        font-weight: bold;
+        color: #ffffff;
+        margin-bottom: 5px;
+    }
 
-                if (result.success) {
-                    showMessage(result.message, 'success');
-                    closeStromkreisModal();
-                    setTimeout(() => location.reload(), 1000);
-                } else {
-                    showMessage(result.message, 'error');
-                }
-            } catch (error) {
-                showMessage('Netzwerkfehler: ' + error.message, 'error');
+    .item-detail {
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 0.9em;
+    }
+
+    .item-actions {
+        display: flex;
+        gap: 10px;
+    }
+
+    .toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .modal.active {
+        display: flex;
+    }
+
+    .modal-content {
+        background: rgba(20, 20, 30, 0.98);
+        backdrop-filter: blur(30px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 20px;
+        padding: 30px;
+        max-width: 500px;
+        width: 90%;
+    }
+
+    .modal-header {
+        font-size: 1.8em;
+        margin-bottom: 20px;
+        color: #ff4444;
+    }
+
+    .modal-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 25px;
+        justify-content: flex-end;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: rgba(255, 255, 255, 0.5);
+        font-style: italic;
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let currentStromkreise = {{ stromkreise|tojson }};
+    let isEditMode = false;
+
+    function showMessage(message, type) {
+        const msgBox = document.getElementById('messageBox');
+        msgBox.textContent = message;
+        msgBox.className = type === 'success' ? 'status-success' : 'status-error';
+        msgBox.style.display = 'block';
+        setTimeout(() => {
+            msgBox.style.display = 'none';
+        }, 5000);
+    }
+
+    function switchTab(tabName) {
+        document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+        event.target.classList.add('active');
+
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        document.getElementById(`tab-${tabName}`).classList.add('active');
+    }
+
+    // STROMKREIS FUNKTIONEN
+    function openStromkreisModal() {
+        isEditMode = false;
+        document.getElementById('stromkreisModalTitle').textContent = 'Neuer Stromkreis';
+        document.getElementById('stromkreisForm').reset();
+        document.getElementById('stromkreis_id').value = '';
+        document.getElementById('stromkreisModal').classList.add('active');
+    }
+
+    function editStromkreis(id) {
+        isEditMode = true;
+        const sk = currentStromkreise[id];
+        document.getElementById('stromkreisModalTitle').textContent = 'Stromkreis bearbeiten';
+        document.getElementById('stromkreis_id').value = id;
+        document.getElementById('stromkreis_name').value = sk.name;
+        document.getElementById('stromkreis_description').value = sk.description || '';
+        document.getElementById('stromkreis_start').value = sk.relays[0];
+        document.getElementById('stromkreis_count').value = sk.relays.length;
+        document.getElementById('stromkreisModal').classList.add('active');
+    }
+
+    function closeStromkreisModal() {
+        document.getElementById('stromkreisModal').classList.remove('active');
+    }
+
+    document.getElementById('stromkreisForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const data = {
+            stromkreis_id: document.getElementById('stromkreis_id').value,
+            name: document.getElementById('stromkreis_name').value,
+            description: document.getElementById('stromkreis_description').value,
+            relay_start: parseInt(document.getElementById('stromkreis_start').value),
+            relay_count: parseInt(document.getElementById('stromkreis_count').value)
+        };
+
+        const endpoint = isEditMode ? '/api/stromkreise/update' : '/api/stromkreise/add';
+
+        try {
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showMessage(result.message, 'success');
+                closeStromkreisModal();
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showMessage(result.message, 'error');
             }
-        });
+        } catch (error) {
+            showMessage('Netzwerkfehler: ' + error.message, 'error');
+        }
+    });
 
-        async function deleteStromkreis(id) {
-            if (!confirm('Stromkreis wirklich löschen?')) return;
+    async function deleteStromkreis(id) {
+        if (!confirm('Stromkreis wirklich löschen?')) return;
 
-            try {
-                const response = await fetch('/api/stromkreise/delete', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ stromkreis_id: id })
-                });
+        try {
+            const response = await fetch('/api/stromkreise/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ stromkreis_id: id })
+            });
 
-                const result = await response.json();
+            const result = await response.json();
 
-                if (result.success) {
-                    showMessage(result.message, 'success');
-                    setTimeout(() => location.reload(), 1000);
-                } else {
-                    showMessage(result.message, 'error');
-                }
-            } catch (error) {
-                showMessage('Netzwerkfehler: ' + error.message, 'error');
+            if (result.success) {
+                showMessage(result.message, 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showMessage(result.message, 'error');
             }
+        } catch (error) {
+            showMessage('Netzwerkfehler: ' + error.message, 'error');
         }
+    }
 
-        // KATEGORIE FUNKTIONEN
-        function openKategorieModal() {
-            document.getElementById('kategorieForm').reset();
-            document.getElementById('kategorieModal').classList.add('active');
-        }
+    // KATEGORIE FUNKTIONEN
+    function openKategorieModal() {
+        document.getElementById('kategorieForm').reset();
+        document.getElementById('kategorieModal').classList.add('active');
+    }
 
-        function closeKategorieModal() {
-            document.getElementById('kategorieModal').classList.remove('active');
-        }
+    function closeKategorieModal() {
+        document.getElementById('kategorieModal').classList.remove('active');
+    }
 
-        document.getElementById('kategorieForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
+    document.getElementById('kategorieForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
 
-            const name = document.getElementById('kategorie_name').value;
+        const name = document.getElementById('kategorie_name').value;
 
-            try {
-                const response = await fetch('/api/kategorien/add', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: name })
-                });
+        try {
+            const response = await fetch('/api/kategorien/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: name })
+            });
 
-                const result = await response.json();
+            const result = await response.json();
 
-                if (result.success) {
-                    showMessage(result.message, 'success');
-                    closeKategorieModal();
-                    setTimeout(() => location.reload(), 1000);
-                } else {
-                    showMessage(result.message, 'error');
-                }
-            } catch (error) {
-                showMessage('Netzwerkfehler: ' + error.message, 'error');
+            if (result.success) {
+                showMessage(result.message, 'success');
+                closeKategorieModal();
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showMessage(result.message, 'error');
             }
-        });
-
-        async function deleteKategorie(name) {
-            if (!confirm(`Kategorie "${name}" wirklich löschen?`)) return;
-
-            try {
-                const response = await fetch('/api/kategorien/delete', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: name })
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    showMessage(result.message, 'success');
-                    setTimeout(() => location.reload(), 1000);
-                } else {
-                    showMessage(result.message, 'error');
-                }
-            } catch (error) {
-                showMessage('Netzwerkfehler: ' + error.message, 'error');
-            }
+        } catch (error) {
+            showMessage('Netzwerkfehler: ' + error.message, 'error');
         }
+    });
 
-        // Modal schließen bei Klick außerhalb
-        document.getElementById('stromkreisModal').addEventListener('click', (e) => {
-            if (e.target.id === 'stromkreisModal') closeStromkreisModal();
-        });
+    async function deleteKategorie(name) {
+        if (!confirm(`Kategorie "${name}" wirklich löschen?`)) return;
 
-        document.getElementById('kategorieModal').addEventListener('click', (e) => {
-            if (e.target.id === 'kategorieModal') closeKategorieModal();
-        });
-    </script>
-</body>
-</html>
+        try {
+            const response = await fetch('/api/kategorien/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: name })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showMessage(result.message, 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showMessage(result.message, 'error');
+            }
+        } catch (error) {
+            showMessage('Netzwerkfehler: ' + error.message, 'error');
+        }
+    }
+
+    // Modal schließen bei Klick außerhalb
+    document.getElementById('stromkreisModal').addEventListener('click', (e) => {
+        if (e.target.id === 'stromkreisModal') closeStromkreisModal();
+    });
+
+    document.getElementById('kategorieModal').addEventListener('click', (e) => {
+        if (e.target.id === 'kategorieModal') closeKategorieModal();
+    });
+</script>
+{% endblock %}

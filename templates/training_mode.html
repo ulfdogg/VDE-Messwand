@@ -1,93 +1,590 @@
 {% extends "base.html" %}
 {% block title %}Übungsmodus - VDE Messwand{% endblock %}
+
 {% block content %}
-<div class="navigation-bar">
-    <a href="{{ url_for('index') }}" class="nav-btn home-btn" title="Zur Startseite">
-        <span class="nav-icon">🏠</span>
-        <span class="nav-text">Home</span>
-    </a>
-</div>
+<style>
+    .info-section {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 15px;
+        padding: 25px;
+        margin-bottom: 30px;
+    }
+
+    .info-section h2 {
+        color: #ff4444;
+        margin-bottom: 15px;
+        font-size: 1.4em;
+    }
+
+    .info-section p,
+    .info-section li {
+        color: rgba(255, 255, 255, 0.85);
+        line-height: 1.8;
+    }
+
+    .info-section ol {
+        padding-left: 25px;
+        margin: 15px 0;
+    }
+
+    .info-section li {
+        margin-bottom: 8px;
+    }
+
+    .section-label {
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 0.9em;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 15px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .menu-grid {
+        margin-bottom: 30px;
+    }
+
+    /* Modal */
+    .info-modal {
+        display: none;
+        position: fixed;
+        z-index: 9999;
+        inset: 0;
+        background-color: rgba(0, 0, 0, 0.85);
+        overflow: auto;
+    }
+
+    .info-modal-content {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        margin: 4% auto;
+        padding: 35px;
+        border: 2px solid rgba(255, 68, 68, 0.3);
+        border-radius: 20px;
+        width: 90%;
+        max-width: 900px;
+        position: relative;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        max-height: 88vh;
+        overflow-y: auto;
+    }
+
+    .info-modal-close {
+        position: absolute;
+        right: 20px;
+        top: 15px;
+        color: #ff4444;
+        font-size: 40px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s;
+        z-index: 10000;
+    }
+
+    .info-modal-close:hover {
+        color: #ffffff;
+        transform: scale(1.2);
+    }
+
+    .modal-title {
+        color: #ff4444;
+        margin-bottom: 20px;
+    }
+
+    .modal-text-content {
+        color: rgba(255, 255, 255, 0.88);
+        line-height: 1.85;
+        font-size: 1.05rem;
+    }
+
+    .modal-text-content h3 {
+        color: #4caf50;
+        margin-top: 22px;
+        margin-bottom: 10px;
+        font-size: 1.15rem;
+    }
+
+    .modal-text-content h3:first-child {
+        margin-top: 0;
+    }
+
+    .modal-text-content ul,
+    .modal-text-content ol {
+        padding-left: 25px;
+    }
+
+    .modal-text-content li {
+        margin-bottom: 8px;
+    }
+
+    .modal-text-content strong {
+        color: rgba(255, 255, 255, 0.95);
+    }
+
+    .video-toggle-btn {
+        display: block;
+        width: 100%;
+        margin-top: 25px;
+        padding: 14px 20px;
+        background: rgba(255, 68, 68, 0.15);
+        border: 2px solid rgba(255, 68, 68, 0.4);
+        border-radius: 12px;
+        color: #ff4444;
+        font-size: 1rem;
+        font-weight: bold;
+        cursor: pointer;
+        text-align: center;
+        transition: all 0.3s;
+    }
+
+    .video-toggle-btn:hover {
+        background: rgba(255, 68, 68, 0.28);
+        border-color: rgba(255, 68, 68, 0.7);
+    }
+
+    .video-toggle-btn.active {
+        background: rgba(255, 68, 68, 0.25);
+        border-color: #ff4444;
+    }
+
+    .video-container {
+        display: none;
+        margin-top: 18px;
+    }
+
+    .video-container video {
+        width: 100%;
+        border-radius: 12px;
+        border: 2px solid rgba(255, 68, 68, 0.3);
+    }
+</style>
 
 <div class="glass-card">
-    <h1>📚 Übungsmodus</h1>
+    <h1>Übungsmodus</h1>
     <p style="text-align: center; opacity: 0.8; margin-bottom: 30px;">
-        Wählen Sie Ihr Messgerät für Anleitungen und Tutorials
+        Prüfung elektrischer Anlagen nach DIN VDE 0100-600
     </p>
 
+    <div class="info-section">
+        <h2>Allgemeine Hinweise</h2>
+        <p>Die Erstprüfung nach DIN VDE 0100-600 ist vor Inbetriebnahme jeder neuen oder wesentlich geänderten Anlage zwingend durchzuführen. Der Prüfungsablauf folgt einer festen Reihenfolge:</p>
+        <ol>
+            <li><strong>Besichtigen</strong> – Sichtprüfung der Anlage</li>
+            <li><strong>Erproben</strong> – Funktionsprüfungen (z.B. RCD-Testtaste)</li>
+            <li><strong>Messen</strong> – Elektrische Messungen durchführen</li>
+            <li><strong>Dokumentieren</strong> – Messwerte und Bewertung protokollieren</li>
+        </ol>
+        <p style="margin-top: 15px;">
+            <strong style="color: #ff4444;">5 Sicherheitsregeln:</strong>
+            Freischalten → Gegen Wiedereinschalten sichern → Spannungsfreiheit feststellen → Erden und kurzschließen → Benachbarte spannungsführende Teile abdecken
+        </p>
+    </div>
+
+    <div class="section-label">Vorbereitung</div>
     <div class="menu-grid">
-        <a href="{{ url_for('training_general') }}" class="menu-item">
-            <h3>📘 Allgemeine VDE-Anleitung</h3>
-            <p>Normgrundlagen und Prüfungsablauf nach DIN VDE 0100-600</p>
-        </a>
+        <div class="menu-item" onclick="openModal('vor_der_messung')">
+            <h3>Vor der Messung</h3>
+            <p>Prüfumfang, Stromkreise identifizieren, Messgerät vorbereiten</p>
+        </div>
+        <div class="menu-item" onclick="openModal('sichtpruefung')">
+            <h3>Sichtprüfung</h3>
+            <p>Anlage visuell auf Mängel und korrekte Installation prüfen</p>
+        </div>
+        <div class="menu-item" onclick="openModal('sicherheit')">
+            <h3>Sicherheit</h3>
+            <p>Spannungsfreischalten und Spannungsfreiheit feststellen</p>
+        </div>
+    </div>
 
-        <a href="{{ url_for('training_fluke') }}" class="menu-item">
+    <div class="section-label">Spannungsfreie Messungen</div>
+    <div class="menu-grid">
+        <div class="menu-item" onclick="openModal('rlo')">
+            <h3>Schutzleiter (R-Low)</h3>
+            <p>Durchgängigkeit des Schutzleiters prüfen</p>
+        </div>
+        <div class="menu-item" onclick="openModal('riso')">
+            <h3>Isolationswiderstand (RISO)</h3>
+            <p>Isolationswiderstand zwischen Leitern messen</p>
+        </div>
+    </div>
+
+    <div class="section-label">Messungen unter Spannung</div>
+    <div class="menu-grid">
+        <div class="menu-item" onclick="openModal('spannungsmessung')">
+            <h3>Spannungsmessung</h3>
+            <p>Leiterzuordnung klären und Spannungen prüfen</p>
+        </div>
+        <div class="menu-item" onclick="openModal('messen_unter_spannung')">
+            <h3>Messen unter Spannung</h3>
+            <p>Anlage sicher einschalten und Messpunkte zuordnen</p>
+        </div>
+        <div class="menu-item" onclick="openModal('impedanzen')">
+            <h3>Schleifenimpedanz</h3>
+            <p>Fehlerschleifenimpedanz und Abschaltstrom prüfen</p>
+        </div>
+        <div class="menu-item" onclick="openModal('rcd_zeit')">
+            <h3>RCD Auslösezeit</h3>
+            <p>Auslösezeit des Fehlerstromschutzschalters messen</p>
+        </div>
+        <div class="menu-item" onclick="openModal('rcd_i')">
+            <h3>RCD Auslösestrom</h3>
+            <p>Auslösestrom des RCD bestimmen</p>
+        </div>
+    </div>
+
+    <div class="section-label">Abschluss</div>
+    <div class="menu-grid">
+        <div class="menu-item" onclick="openModal('funktionstest')">
+            <h3>Funktionsprüfung</h3>
+            <p>Funktionen der Anlage ohne Messwerte prüfen</p>
+        </div>
+        <div class="menu-item" onclick="openModal('doku')">
+            <h3>Dokumentation</h3>
+            <p>Messwerte, Prüfer und Mängel protokollieren</p>
+        </div>
+    </div>
+
+    <div class="section-label">Messgeräte</div>
+    <div class="menu-grid">
+        <div class="menu-item" onclick="openModal('fluke')">
             <h3>Fluke</h3>
-            <p>Anleitungen für Fluke Messgeräte</p>
-        </a>
-
-        <a href="{{ url_for('training_benning') }}" class="menu-item">
+            <p>Bedienung und Funktionen des Fluke-Messgeräts</p>
+        </div>
+        <div class="menu-item" onclick="openModal('gossen')">
+            <h3>Gossen Metrawatt</h3>
+            <p>Bedienung und Funktionen des Gossen-Metrawatt-Messgeräts</p>
+        </div>
+        <div class="menu-item" onclick="openModal('benning')">
             <h3>Benning</h3>
-            <p>Anleitungen für Benning Messgeräte</p>
-        </a>
+            <p>Bedienung und Funktionen des Benning-Messgeräts</p>
+        </div>
+    </div>
 
-        <a href="{{ url_for('training_gossen') }}" class="menu-item">
-            <h3>Gossen-Metrawatt</h3>
-            <p>Anleitungen für Gossen-Metrawatt Messgeräte</p>
+    <div class="section-label">Messarten mit Relais-Steuerung</div>
+    <div class="menu-grid">
+        <a href="{{ url_for('training_spannungsfrei') }}" class="menu-item">
+            <h3>Spannungsfrei üben</h3>
+            <p>Schutzleiter (PE) und Isolationswiderstand (RISO) mit Relais</p>
+        </a>
+        <a href="{{ url_for('training_unter_spannung') }}" class="menu-item">
+            <h3>Unter Spannung üben</h3>
+            <p>Schleifenimpedanz, Zi, RCD und Drehfeld mit Relais</p>
         </a>
     </div>
 </div>
 
-<style>
-.navigation-bar {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
-}
+<div id="infoModal" class="info-modal">
+    <div class="info-modal-content">
+        <span class="info-modal-close" onclick="closeModal()">&times;</span>
+        <h2 id="modalTitle" class="modal-title"></h2>
+        <div id="modalTextContent" class="modal-text-content"></div>
+        <button class="video-toggle-btn" id="videoToggleBtn" onclick="toggleVideo()">Video ansehen</button>
+        <div class="video-container" id="videoContainer">
+            <video id="videoPlayer" controls>
+                <source id="videoSource" src="" type="video/mp4">
+                Ihr Browser unterstützt kein Video-Playback.
+            </video>
+        </div>
+    </div>
+</div>
+{% endblock %}
 
-.nav-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 20px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    border-radius: 10px;
-    color: #ffffff;
-    text-decoration: none;
-    transition: all 0.3s;
-    font-weight: 600;
-    cursor: pointer;
-}
+{% block scripts %}
+<script>
+    const videos = {
+        vor_der_messung: {
+            title: 'Vor der Messung',
+            url: '/static/videos/Vor der Messung.mp4',
+            description: `
+                <h3>Vorbereitung und Sicherheit</h3>
+                <p>Bevor wir mit dem Messen an der VDE-Messwand beginnen, einmal ein Video zur Vorbereitung und grundsätzlichen Sicherheit. Wir arbeiten hier an einer VDE-Messwand im TN-C-S-Netz. Das heisst, der PEN-Leiter wird an einer Stelle in PE und N aufgetrennt.</p>
+                <p>Bevor du mit der Messung startest, musst du erstmal den Prüfumfang feststellen, die Stromkreise identifizieren und dein Protokoll bereitlegen, damit du alles parat hast, um mit der Messung zu starten.</p>
+                <p>Danach musst du das Messgerät prüfen: Gehäuse in Ordnung, Messleitungen und Spitzen in Ordnung, richtige Messkategorie, Batterie voll genug. Dann bist du betriebsbereit und kannst mit der Messung beginnen.</p>
+            `
+        },
+        sichtpruefung: {
+            title: 'Sichtprüfung',
+            url: '/static/videos/Sichtprüfung.mp4',
+            description: `
+                <h3>Visuelle Prüfung der Anlage</h3>
+                <p>Bei der Sichtprüfung wird noch nicht gemessen – wir schauen zunächst genau hin und suchen nach Fehlern.</p>
+                <p>Zu prüfen:</p>
+                <ul>
+                    <li>Ist das TN-C-S-Netz eindeutig erkennbar und der PEN-Aufteilungspunkt korrekt?</li>
+                    <li>Sind PE und N hinter der Aufteilung sauber getrennt geführt?</li>
+                    <li>Sind Leitungsklemmen und Betriebsmittel unbeschädigt und fest montiert?</li>
+                    <li>Sind Stromkreise beschriftet und richtig zuordnbar?</li>
+                </ul>
+                <p>Schwere Mängel bei der Sichtprüfung: zuerst beheben, dann weitermessen.</p>
+            `
+        },
+        sicherheit: {
+            title: 'Sicherheit – Spannungsfreischalten',
+            url: '/static/videos/1. Sicherheit.mp4',
+            description: `
+                <h3>Spannungsfrei arbeiten</h3>
+                <p>Die ersten Messungen sind spannungsfrei. Dazu wird die Anlage ausgeschaltet, gegen Wiedereinschalten gesichert und zweipolig die Spannungsfreiheit festgestellt. Erst dann darf gemessen werden.</p>
+            `
+        },
+        rlo: {
+            title: 'Schutzleiter-Durchgängigkeit (R-Low)',
+            url: '/static/videos/RLO.mp4',
+            description: `
+                <h3>Durchgängigkeit des Schutzleiters</h3>
+                <p>Der Schutzleiter muss durchgängig sein, damit im Fehlerfall keine gefährlichen Berührungsspannungen entstehen. Diese Messung wird auf dem Messgerät R-Low genannt.</p>
+                <h3>Durchführung</h3>
+                <ul>
+                    <li>Messgerät auf R-Low einstellen</li>
+                    <li>Messung spannungsfrei, Prüfstrom mindestens 200 mA</li>
+                    <li>Vorher Nullabgleich durchführen, damit der Leitungswiderstand der Prüfspitzen herausgerechnet wird</li>
+                    <li>Messen von der PE-Schiene zum Schutzkontakt der Steckdose, zu metallischen Teilen oder den PE-Klemmen der Abgänge</li>
+                </ul>
+                <h3>Bewertung</h3>
+                <p>Keinen festen Grenzwert, aber möglichst unter 1 Ohm bleiben.</p>
+                <h3>Typische Fehler</h3>
+                <p>Kein Nullabgleich, falscher Referenzpunkt, lose Messspitzen.</p>
+            `
+        },
+        riso: {
+            title: 'Isolationswiderstand (RISO)',
+            url: '/static/videos/RISO.mp4',
+            description: `
+                <h3>Isolationsmessung</h3>
+                <p>Der Isolationswiderstand zeigt, ob Leiter gegeneinander ausreichend isoliert sind.</p>
+                <h3>Durchführung</h3>
+                <ul>
+                    <li>Anlage spannungsfreischalten</li>
+                    <li>Messgerät auf Isolationsmessung stellen</li>
+                    <li>Messen zwischen L–PE, N–PE und L–N</li>
+                    <li>Prüfspannung: 500 Volt</li>
+                    <li>Alle Verbraucher abklemmen – sie können durch die Prüfspannung beschädigt werden oder das Ergebnis verfälschen</li>
+                </ul>
+                <h3>Bewertung</h3>
+                <p>Mindestens 1 Megaohm erforderlich. Je höher der Wert, desto besser.</p>
+                <h3>Typische Fehler</h3>
+                <p>Verbraucher nicht abgeklemmt oder falsche Prüfspannung gewählt.</p>
+            `
+        },
+        spannungsmessung: {
+            title: 'Spannungsmessung',
+            url: '/static/videos/Spannungsmessung.mp4',
+            description: `
+                <h3>Leiterzuordnung und Spannungsprüfung</h3>
+                <p>Vor den spannungsführenden Messungen muss zunächst die Leiterzuordnung geklärt werden. Dazu misst man an der Steckdose die Leiter gegeneinander:</p>
+                <ul>
+                    <li>L – N: ca. 230 V</li>
+                    <li>L – PE: ca. 230 V</li>
+                    <li>N – PE: im Normalfall 0 V</li>
+                </ul>
+                <p>Wenn die Werte nicht plausibel sind: stoppen, überprüfen, dann erst weitermessen.</p>
+            `
+        },
+        messen_unter_spannung: {
+            title: 'Messen unter Spannung',
+            url: '/static/videos/Messen unter Spannung.mp4',
+            description: `
+                <h3>Vorbereitung für Messungen unter Spannung</h3>
+                <p>Zunächst prüfen, ob die Anlage sicher geschlossen ist. Danach einschalten, Messpunkte eindeutig zuordnen und mit den Messungen beginnen.</p>
+            `
+        },
+        impedanzen: {
+            title: 'Schleifenimpedanz',
+            url: '/static/videos/Impedanzen.mp4',
+            description: `
+                <h3>Messung der Schleifenimpedanz</h3>
+                <p>Spannungsführende Messung zur Prüfung, ob im Fehlerfall die automatische Abschaltung durch die Sicherung erfolgt.</p>
+                <h3>Durchführung</h3>
+                <ul>
+                    <li>Schleifenimpedanz: zwischen L und PE</li>
+                    <li>Netzimpedanz: zwischen L und N</li>
+                    <li>Gemessen wird vom entferntesten Punkt des Stromkreises zum Trafo und zurück</li>
+                </ul>
+                <h3>Bewertung</h3>
+                <p>Möglichst niedrigen Widerstand anstreben, damit der Abschaltstrom ausreicht.</p>
+                <p><strong>Rechenbeispiel B16:</strong> 5 × 16 A = 80 A Abschaltstrom. 230 V / 80 A = 2,87 Ohm – dieser Wert darf nicht überschritten werden.</p>
+            `
+        },
+        rcd_zeit: {
+            title: 'RCD Auslösezeit',
+            url: '/static/videos/RCD Zeit.mp4',
+            description: `
+                <h3>Messung der Auslösezeit des RCD</h3>
+                <p>Prüfung, ob der RCD im Fehlerfall schnell genug auslöst.</p>
+                <h3>Durchführung</h3>
+                <ul>
+                    <li>Milliampere-Wert vom RCD ablesen und am Messgerät einstellen</li>
+                    <li>Ohne Steckdose: zwischen L und PE messen</li>
+                </ul>
+                <h3>Grenzwerte</h3>
+                <ul>
+                    <li>1-facher Nennfehlerstrom: Auslösung unter 300 ms</li>
+                    <li>5-facher Nennfehlerstrom: Auslösung unter 40 ms</li>
+                </ul>
+            `
+        },
+        rcd_i: {
+            title: 'RCD Auslösestrom',
+            url: '/static/videos/RCD I.mp4',
+            description: `
+                <h3>Messung des Auslösestroms vom RCD</h3>
+                <p>Spannungsführende Messung. Das Messgerät erhöht den Fehlerstrom schrittweise, bis der RCD auslöst.</p>
+                <h3>Durchführung</h3>
+                <ul>
+                    <li>Typ und Milliampere-Zahl vom RCD ablesen und am Messgerät einstellen</li>
+                    <li>Ohne Steckdose: zwischen L und PE messen</li>
+                </ul>
+                <h3>Bewertung</h3>
+                <ul>
+                    <li>Unter 0,5-fachem Nennstrom: darf nicht auslösen</li>
+                    <li>Zwischen 0,5- und 1-fachem Nennstrom: muss auslösen</li>
+                    <li>Beispiel 30-mA-RCD: Auslösung zwischen 15 und 30 mA</li>
+                </ul>
+            `
+        },
+        funktionstest: {
+            title: 'Funktionsprüfung',
+            url: '/static/videos/Funktionstest.mp4',
+            description: `
+                <h3>Funktionsprüfung der Anlage</h3>
+                <p>Prüfung aller Funktionen unter Spannung, ohne Messwerte aufzunehmen.</p>
+                <h3>Durchführung</h3>
+                <ul>
+                    <li>Anlage einschalten</li>
+                    <li>Hauptschalter, Stromkreise und Abgänge betätigen und auf Funktion prüfen</li>
+                    <li>Verbraucher an der Messwand prüfen</li>
+                    <li>RCD-Prüftaste testen, danach RCD wieder einschalten</li>
+                </ul>
+                <p>Festgestellte Mängel werden dokumentiert.</p>
+            `
+        },
+        doku: {
+            title: 'Dokumentation',
+            url: '/static/videos/Doku.mp4',
+            description: `
+                <h3>Dokumentation der Prüfung</h3>
+                <p>Folgendes muss dokumentiert werden:</p>
+                <ul>
+                    <li>Alle Messwerte, Messpunkte und Stromkreise</li>
+                    <li>Verwendetes Messgerät</li>
+                    <li>Datum und Prüfer</li>
+                    <li>Festgestellte Mängel</li>
+                </ul>
+                <p>Was nicht geprüft oder dokumentiert wurde, gilt als nicht geprüft. Die Anlage darf erst bewertet und freigegeben werden, wenn Sichtprüfung, Messungen, Funktionsprüfung und Dokumentation vollständig abgeschlossen sind.</p>
+            `
+        },
+        fluke: {
+            title: 'Fluke Messgerät',
+            url: '/static/videos/fluke.mp4',
+            description: `
+                <h3>Bedienung des Fluke-Messgeräts</h3>
+                <ul>
+                    <li><strong>Einschaltknopf:</strong> Zum Hochfahren des Geräts</li>
+                    <li><strong>Drehschalter:</strong> Messart einstellen</li>
+                    <li><strong>Tasten:</strong> F4 – Prüfspannung umstellen; F1 – Messart bzw. Messleitungen auswählen</li>
+                    <li><strong>Prüftaste:</strong> Links am Gerät oder direkt an der Messspitze</li>
+                    <li><strong>Krokodilklemme:</strong> Für festen Kontaktpunkt</li>
+                    <li><strong>Nullabgleich:</strong> Messspitzen zusammenstecken und nullen, damit der Leitungswiderstand herausgerechnet wird</li>
+                    <li><strong>Steckdosenadapter:</strong> In die drei Kontaktpunkte oben stecken und direkt in die Steckdose einführen</li>
+                </ul>
+            `
+        },
+        gossen: {
+            title: 'Gossen Metrawatt Messgerät',
+            url: '/static/videos/Gossen.mp4',
+            description: `
+                <h3>Bedienung des Gossen Metrawatt Messgeräts</h3>
+                <ul>
+                    <li><strong>Startknopf:</strong> Zum Einschalten</li>
+                    <li><strong>Drehschalter:</strong> Messart auswählen (z.B. A-ISO für Isolationsmessung)</li>
+                    <li><strong>Seitliche Tasten:</strong> Einstellungen vornehmen, z.B. Prüfspannung auf 250 V umstellen</li>
+                    <li><strong>Schleifenmessung:</strong> Leitungsschutzschalter, Leitungsquerschnitt und Aderzahl (3- oder 5-adrig) einstellen</li>
+                    <li><strong>RCD-Messungen:</strong> Entsprechende Werte einstellen</li>
+                    <li><strong>Messleitungen:</strong> Kombinierte Leitung mit zwei Messspitzen und Krokodilklemme; Schutzkappen aufsteckbar</li>
+                    <li><strong>Steckdosenadapter:</strong> Direkt an den Griff anschraubbar (Messspitze abschrauben, Adapter aufsetzen)</li>
+                    <li><strong>CEE-Adapter:</strong> Direkt einsteckbar, z.B. für Drehfeldmessungen</li>
+                </ul>
+            `
+        },
+        benning: {
+            title: 'Benning Messgerät',
+            url: '/static/videos/Benning.mp4',
+            description: `
+                <h3>Bedienung des Benning-Messgeräts</h3>
+                <ul>
+                    <li><strong>Einschaltknopf:</strong> Unten am Gerät</li>
+                    <li><strong>Touchscreen:</strong> Einstellungen direkt über den Bildschirm oder alternativ über Pfeiltasten</li>
+                    <li><strong>Isolationsmessung:</strong> Prüfspannung per Touch umstellen</li>
+                    <li><strong>Schleifenmessung:</strong> Auswahl mit oder ohne RCD</li>
+                    <li><strong>RCD-Messungen:</strong> Auslöseart und weitere Einstellungen über das Menü</li>
+                    <li><strong>Testtaste:</strong> Links am Gerät und an der Prüfspitze</li>
+                    <li><strong>Messspitzen:</strong> Abziehbar, mit Licht- und Bedienfunktion</li>
+                    <li><strong>Steckdosenadapter:</strong> Oben anschliessbar, mit Bedienelementen</li>
+                    <li><strong>CEE-Adapter:</strong> Oben ansteckbar, besonders praktisch für Drehfeldmessungen</li>
+                </ul>
+                <p>Das Gerät ist durch den Touchscreen sehr einfach zu bedienen.</p>
+            `
+        }
+    };
 
-.nav-btn:hover {
-    background: rgba(255, 255, 255, 0.15);
-    border-color: rgba(255, 68, 68, 0.4);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(255, 68, 68, 0.2);
-}
+    let currentVideoUrl = '';
+    let videoVisible = false;
 
-.nav-icon {
-    font-size: 1.3em;
-}
+    function openModal(key) {
+        const data = videos[key];
+        if (!data) return;
 
-.home-btn {
-    background: rgba(255, 68, 68, 0.2);
-    border-color: rgba(255, 68, 68, 0.4);
-}
+        currentVideoUrl = data.url;
+        videoVisible = false;
 
-.home-btn:hover {
-    background: rgba(255, 68, 68, 0.3);
-    border-color: rgba(255, 68, 68, 0.6);
-}
+        document.getElementById('modalTitle').textContent = data.title;
+        document.getElementById('modalTextContent').innerHTML = data.description;
 
-@media (max-width: 768px) {
-    .nav-text {
-        display: none;
+        const videoPlayer = document.getElementById('videoPlayer');
+        videoPlayer.pause();
+        document.getElementById('videoContainer').style.display = 'none';
+
+        const btn = document.getElementById('videoToggleBtn');
+        btn.textContent = 'Video ansehen';
+        btn.classList.remove('active');
+
+        document.getElementById('infoModal').style.display = 'block';
     }
 
-    .nav-btn {
-        padding: 12px 15px;
+    function toggleVideo() {
+        const videoContainer = document.getElementById('videoContainer');
+        const videoPlayer = document.getElementById('videoPlayer');
+        const btn = document.getElementById('videoToggleBtn');
+
+        if (videoVisible) {
+            videoPlayer.pause();
+            videoContainer.style.display = 'none';
+            btn.textContent = 'Video ansehen';
+            btn.classList.remove('active');
+            videoVisible = false;
+        } else {
+            document.getElementById('videoSource').src = currentVideoUrl;
+            videoPlayer.load();
+            videoContainer.style.display = 'block';
+            videoPlayer.play();
+            btn.textContent = 'Video ausblenden';
+            btn.classList.add('active');
+            videoVisible = true;
+            videoContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
     }
-}
-</style>
+
+    function closeModal() {
+        document.getElementById('videoPlayer').pause();
+        document.getElementById('infoModal').style.display = 'none';
+    }
+
+    document.getElementById('infoModal').addEventListener('click', function(event) {
+        if (event.target === this) closeModal();
+    });
+
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') closeModal();
+    });
+</script>
 {% endblock %}

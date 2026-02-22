@@ -1,10 +1,8 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manuelle Fehlerauswahl - VDE Messwand</title>
-    <link rel="stylesheet" href="/static/css/style.css">
+{% extends "base.html" %}
+
+{% block title %}Manuelle Fehlerauswahl - VDE Messwand{% endblock %}
+
+{% block content %}
     <style>
         /* Spezifische Styles für manuelle Fehlerauswahl */
         .stromkreis-section {
@@ -219,58 +217,6 @@
             display: block;
         }
 
-        .navigation-bar {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        .nav-btn {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 12px 20px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            border-radius: 10px;
-            color: #ffffff;
-            text-decoration: none;
-            transition: all 0.3s;
-            font-weight: 600;
-            cursor: pointer;
-        }
-
-        .nav-btn:hover {
-            background: rgba(255, 255, 255, 0.15);
-            border-color: rgba(255, 68, 68, 0.4);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(255, 68, 68, 0.2);
-        }
-
-        .nav-icon {
-            font-size: 1.3em;
-        }
-
-        .back-btn {
-            background: rgba(255, 255, 255, 0.1);
-            border-color: rgba(255, 255, 255, 0.3);
-        }
-
-        .back-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-            border-color: rgba(255, 255, 255, 0.5);
-        }
-
-        .home-btn {
-            background: rgba(255, 68, 68, 0.2);
-            border-color: rgba(255, 68, 68, 0.4);
-        }
-
-        .home-btn:hover {
-            background: rgba(255, 68, 68, 0.3);
-            border-color: rgba(255, 68, 68, 0.6);
-        }
-
         @media (max-width: 768px) {
             .relay-selection {
                 grid-template-columns: 1fr;
@@ -279,109 +225,89 @@
             .stromkreis-title {
                 font-size: 1.2em;
             }
-
-            .nav-text {
-                display: none;
-            }
-
-            .nav-btn {
-                padding: 12px 15px;
-            }
         }
     </style>
-</head>
-<body>
-    <div class="container">
-        <div class="navigation-bar">
-            <a href="javascript:history.back()" class="nav-btn back-btn" title="Einen Schritt zurück">
-                <span class="nav-icon">←</span>
-                <span class="nav-text">Zurück</span>
-            </a>
-            <a href="{{ url_for('index') }}" class="nav-btn home-btn" title="Zur Startseite">
-                <span class="nav-icon">🏠</span>
-                <span class="nav-text">Home</span>
-            </a>
+
+    <div class="glass-card">
+        <h1>🔧 Manuelle Fehlerauswahl</h1>
+        <p style="text-align: center; opacity: 0.8; margin-bottom: 30px;">
+            Wählen Sie Fehler für jeden Stromkreis aus
+        </p>
+
+        <div id="messageBox" class="message"></div>
+
+        <div class="status-box">
+            <h3>Ausgewählte Fehler</h3>
+            <div class="selected-count" id="selectedCount">0</div>
+            <div id="selectedList" class="no-selection">Noch keine Fehler ausgewählt</div>
         </div>
 
-        <div class="glass-card">
-            <h1>🔧 Manuelle Fehlerauswahl</h1>
-            <p style="text-align: center; opacity: 0.8; margin-bottom: 30px;">
-                Wählen Sie Fehler für jeden Stromkreis aus
-            </p>
-
-            <div id="messageBox" class="message"></div>
-
-            <div class="status-box">
-                <h3>Ausgewählte Fehler</h3>
-                <div class="selected-count" id="selectedCount">0</div>
-                <div id="selectedList" class="no-selection">Noch keine Fehler ausgewählt</div>
-            </div>
-
-            <form id="errorForm">
-                {% for sk_num, sk_data in stromkreise.items() %}
-                <div class="stromkreis-section{% if sk_data.disabled %} disabled{% endif %}">
-                    <div class="stromkreis-header">
-                        <div>
-                            <div class="stromkreis-title">
-                                {{ sk_data.name }}
-                                {% if sk_data.disabled %}
-                                <span class="disabled-badge">DEAKTIVIERT</span>
-                                {% endif %}
-                            </div>
-                            {% if sk_data.description %}
-                            <div class="stromkreis-description">{{ sk_data.description }}</div>
-                            {% endif %}
+        <form id="errorForm">
+            {% for sk_num, sk_data in stromkreise.items() %}
+            <div class="stromkreis-section{% if sk_data.disabled %} disabled{% endif %}">
+                <div class="stromkreis-header">
+                    <div>
+                        <div class="stromkreis-title">
+                            {{ sk_data.name }}
                             {% if sk_data.disabled %}
-                            <div class="stromkreis-description" style="color: #ff8888;">
-                                Wallbox ist auf der Startseite deaktiviert
-                            </div>
+                            <span class="disabled-badge">DEAKTIVIERT</span>
                             {% endif %}
                         </div>
-                    </div>
-
-                    <div class="relay-selection">
-                        {% if sk_data.relays %}
-                            {% for relay in sk_data.relays %}
-                            <div class="relay-option" onclick="{% if not sk_data.disabled %}selectRelay({{ sk_num }}, {{ relay.number }}, this){% endif %}">
-                                <input type="radio"
-                                       name="stromkreis_{{ sk_num }}"
-                                       value="{{ relay.number }}"
-                                       id="relay_{{ sk_num }}_{{ relay.number }}"
-                                       {% if sk_data.disabled %}disabled{% endif %}>
-                                <label for="relay_{{ sk_num }}_{{ relay.number }}" class="relay-label">
-                                    <div class="relay-name">{{ relay.name }}</div>
-                                    <div class="relay-number">
-                                        {% if relay.is_group %}
-                                        Relais: {{ relay.group_relays|join(', ') }}
-                                        {% else %}
-                                        Relais {{ relay.number }}
-                                        {% endif %}
-                                    </div>
-                                </label>
-                                {% if relay.is_group %}
-                                <span class="group-badge">GRUPPE</span>
-                                {% endif %}
-                            </div>
-                            {% endfor %}
-                        {% else %}
-                            <div class="no-selection">Keine Relais in diesem Stromkreis</div>
+                        {% if sk_data.description %}
+                        <div class="stromkreis-description">{{ sk_data.description }}</div>
+                        {% endif %}
+                        {% if sk_data.disabled %}
+                        <div class="stromkreis-description" style="color: #ff8888;">
+                            Wallbox ist auf der Startseite deaktiviert
+                        </div>
                         {% endif %}
                     </div>
                 </div>
-                {% endfor %}
 
-                <div class="btn-group">
-                    <button type="button" class="btn btn-danger" onclick="resetSelection()">
-                        🗑️ Alles zurücksetzen
-                    </button>
-                    <button type="submit" class="btn">
-                        ⚡ Fehler aktivieren
-                    </button>
+                <div class="relay-selection">
+                    {% if sk_data.relays %}
+                        {% for relay in sk_data.relays %}
+                        <div class="relay-option" onclick="{% if not sk_data.disabled %}selectRelay({{ sk_num }}, {{ relay.number }}, this){% endif %}">
+                            <input type="radio"
+                                   name="stromkreis_{{ sk_num }}"
+                                   value="{{ relay.number }}"
+                                   id="relay_{{ sk_num }}_{{ relay.number }}"
+                                   {% if sk_data.disabled %}disabled{% endif %}>
+                            <label for="relay_{{ sk_num }}_{{ relay.number }}" class="relay-label">
+                                <div class="relay-name">{{ relay.name }}</div>
+                                <div class="relay-number">
+                                    {% if relay.is_group %}
+                                    Relais: {{ relay.group_relays|join(', ') }}
+                                    {% else %}
+                                    Relais {{ relay.number }}
+                                    {% endif %}
+                                </div>
+                            </label>
+                            {% if relay.is_group %}
+                            <span class="group-badge">GRUPPE</span>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="no-selection">Keine Relais in diesem Stromkreis</div>
+                    {% endif %}
                 </div>
-            </form>
-        </div>
-    </div>
+            </div>
+            {% endfor %}
 
+            <div class="btn-group">
+                <button type="button" class="btn btn-danger" onclick="resetSelection()">
+                    🗑️ Alles zurücksetzen
+                </button>
+                <button type="submit" class="btn">
+                    ⚡ Fehler aktivieren
+                </button>
+            </div>
+        </form>
+    </div>
+{% endblock %}
+
+{% block scripts %}
     <script>
         let selectedErrors = {};
 
@@ -391,7 +317,7 @@
 
             const siblings = element.parentElement.querySelectorAll('.relay-option');
             siblings.forEach(opt => opt.classList.remove('selected'));
-            
+
             element.classList.add('selected');
             selectedErrors[`stromkreis_${stromkreis}`] = relayNum;
 
@@ -403,13 +329,13 @@
             document.getElementById('selectedCount').textContent = count;
 
             const listDiv = document.getElementById('selectedList');
-            
+
             if (count === 0) {
                 listDiv.className = 'no-selection';
                 listDiv.textContent = 'Noch keine Fehler ausgewählt';
             } else {
                 listDiv.className = '';
-                
+
                 const selectedNames = [];
                 Object.entries(selectedErrors).forEach(([key, relayNum]) => {
                     const radio = document.querySelector(`input[name="${key}"][value="${relayNum}"]`);
@@ -418,7 +344,7 @@
                         selectedNames.push(label.textContent);
                     }
                 });
-                
+
                 listDiv.innerHTML = '<strong>Ausgewählt:</strong><br>' + selectedNames.join(' • ');
             }
         }
@@ -463,7 +389,7 @@
             const msgBox = document.getElementById('messageBox');
             msgBox.textContent = message;
             msgBox.className = `message ${type}`;
-            
+
             setTimeout(() => {
                 msgBox.style.display = 'none';
             }, 5000);
@@ -512,5 +438,4 @@
             updateSelectedDisplay();
         });
     </script>
-</body>
-</html>
+{% endblock %}

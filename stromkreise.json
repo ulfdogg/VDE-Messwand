@@ -1,0 +1,37 @@
+{
+  "1": {
+    "name": "CEE 16A",
+    "relays": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+    "description": "CEE Steckdose 16A"
+  },
+  "2": {
+    "name": "Herdanschlussdose",
+    "relays": [10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
+    "description": "Herdanschlussdose 400V"
+  },
+  "3": {
+    "name": "Steckdose+Lampe 1",
+    "relays": [20, 21, 22, 23, 24, 25, 26, 27, 28, 29],
+    "description": "Steckdosenkreis mit Beleuchtung"
+  },
+  "4": {
+    "name": "Steckdose+Lampe 2",
+    "relays": [30, 31, 32, 33, 34, 35, 36, 37, 38, 39],
+    "description": "Steckdosenkreis mit Beleuchtung"
+  },
+  "5": {
+    "name": "Badsteckdose über RCBO",
+    "relays": [40, 41, 42, 43, 44, 45, 46, 47, 48, 49],
+    "description": "Badezimmer mit RCBO"
+  },
+  "6": {
+    "name": "Wallbox",
+    "relays": [50, 51, 52, 53, 54, 55, 56, 57, 58, 59],
+    "description": "E-Auto Ladestation"
+  },
+  "7": {
+    "name": "RLO",
+    "relays": [60, 61, 62, 63],
+    "description": "RLO Messungen"
+  }
+}

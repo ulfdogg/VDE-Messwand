@@ -101,10 +101,8 @@ def get_training_pages():
         Liste von Dictionaries mit page_id und display_name
     """
     return [
-        {'page_id': 'fluke', 'name': 'Fluke'},
-        {'page_id': 'benning', 'name': 'Benning'},
-        {'page_id': 'gossen', 'name': 'Gossen-Metrawatt'},
-        {'page_id': 'general', 'name': 'Allgemeine VDE'}
+        {'page_id': 'spannungsfrei', 'name': 'Spannungsfreie Messungen'},
+        {'page_id': 'unter_spannung', 'name': 'Messungen unter Spannung'}
     ]
 
 

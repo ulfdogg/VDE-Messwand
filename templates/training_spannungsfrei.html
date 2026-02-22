@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+
+{% block title %}Spannungsfreie Messungen - VDE Messwand{% endblock %}
+
+{% block content %}
+    <style>
+        .modal {
+            position: fixed;
+            z-index: 9999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            overflow: auto;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            margin: 5% auto;
+            padding: 40px;
+            border: 2px solid rgba(255, 68, 68, 0.3);
+            border-radius: 20px;
+            width: 90%;
+            max-width: 1000px;
+            position: relative;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .modal-close {
+            color: #ff4444;
+            position: absolute;
+            right: 20px;
+            top: 15px;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            z-index: 10000;
+        }
+
+        .modal-close:hover {
+            color: #ffffff;
+            transform: scale(1.2);
+        }
+
+        .content-section {
+            margin-bottom: 30px;
+        }
+
+        .content-section h3 {
+            color: #4caf50;
+            margin-bottom: 15px;
+            margin-top: 25px;
+            font-size: 1.3rem;
+        }
+
+        .content-section ul, .content-section ol {
+            padding-left: 25px;
+            line-height: 1.8;
+        }
+
+        .content-section li {
+            margin-bottom: 10px;
+        }
+
+        .highlight-box {
+            background: rgba(255, 68, 68, 0.1);
+            border-left: 4px solid #ff4444;
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+
+        .info-box {
+            background: rgba(76, 175, 80, 0.1);
+            border-left: 4px solid #4caf50;
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+
+        .warning-box {
+            background: rgba(255, 193, 7, 0.1);
+            border-left: 4px solid #ffc107;
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .modal-content {
+                width: 95%;
+                padding: 20px;
+            }
+        }
+    </style>
+
+    <div class="glass-card">
+        <h1>Spannungsfreie Messungen</h1>
+        <p style="text-align: center; opacity: 0.8; margin-bottom: 30px;">
+            Messungen im spannungsfreien Zustand der Anlage
+        </p>
+
+        <div class="menu-grid">
+            <div class="menu-item" onclick="showSection('schutzleiter')">
+                <h3>Schutzleiter (PE)</h3>
+                <p>Durchgängigkeitsprüfung des Schutzleiters</p>
+            </div>
+
+            <div class="menu-item" onclick="showSection('isolation')">
+                <h3>Isolationswiderstand (RISO)</h3>
+                <p>Isolationswiderstandsmessung zwischen Leitern und PE</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content Modal -->
+    <div id="contentModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal()">&times;</span>
+            <h2 id="modalTitle" style="color: #ff4444; margin-bottom: 20px;"></h2>
+            <div id="relayInfo" style="display: none; margin-bottom: 20px; padding: 15px 20px; background: rgba(255, 68, 68, 0.1); border-radius: 12px; border: 2px solid rgba(255, 68, 68, 0.3);">
+                <strong style="color: #ff4444;">Aktivierte Relais:</strong>
+                <div id="relayList" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;"></div>
+            </div>
+            <div id="modalContent" style="color: #ffffff; font-size: 1.1rem; line-height: 1.8; max-width: 900px; margin: 0 auto;"></div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        const content = {
+            'schutzleiter': {
+                title: 'Durchgängigkeit Schutzleiter (PE)',
+                content: `
+                    <div class="content-section">
+                        <h3>Ziel der Messung</h3>
+                        <p>Alle berührbaren leitfähigen Teile müssen sicher mit dem Schutzleiter (PE) verbunden sein. Diese Messung wird <strong>immer zuerst</strong> durchgeführt.</p>
+
+                        <h3>Vorbereitung</h3>
+                        <ul>
+                            <li>Anlage <strong>spannungsfrei</strong> schalten (5 Sicherheitsregeln beachten)</li>
+                            <li>Alle Verbraucher abschalten</li>
+                            <li>Messgerät auf Niederohmmessung / Durchgängigkeit einstellen</li>
+                        </ul>
+
+                        <h3>Durchführung</h3>
+                        <ul>
+                            <li><strong>Messgerät:</strong> Niederohmmessgerät (typisch 200 mA Prüfstrom)</li>
+                            <li><strong>Messung:</strong> Zwischen PE-Schiene und leitfähigem Gehäuse/Teil</li>
+                            <li><strong>Bewertung:</strong> Möglichst geringer Widerstand, Verbindungen fest und korrosionsfrei</li>
+                        </ul>
+
+                        <div class="info-box">
+                            <strong>Praxistipp:</strong> Kontaktstellen vorher reinigen und fest anschließen. Lose Verbindungen können zu erhöhten Widerständen führen.
+                        </div>
+
+                        <h3>Bewertung</h3>
+                        <ul>
+                            <li>Der Widerstand sollte möglichst gering sein (typisch < 1 Ω)</li>
+                            <li>Bei längeren Leitungen sind höhere Werte möglich – Querschnitt und Länge berücksichtigen</li>
+                            <li>Alle PE-Verbindungen müssen fest und korrosionsfrei sein</li>
+                        </ul>
+
+                        <div class="highlight-box">
+                            <strong>Wichtig:</strong> Ein fehlender oder unterbrochener Schutzleiter ist ein schwerwiegender Mangel! Die Anlage darf nicht in Betrieb genommen werden.
+                        </div>
+                    </div>
+                `
+            },
+            'isolation': {
+                title: 'Isolationswiderstand (RISO)',
+                content: `
+                    <div class="content-section">
+                        <h3>Ziel der Messung</h3>
+                        <p>Nachweis ausreichender Isolation zwischen aktiven Leitern und PE. Wird nach erfolgreicher Schutzleiterprüfung durchgeführt.</p>
+
+                        <h3>Vorbereitung</h3>
+                        <ul>
+                            <li>Anlage <strong>spannungsfrei</strong> schalten</li>
+                            <li>Alle Verbraucher abklemmen oder abschalten</li>
+                            <li>Empfindliche Elektronik (z.B. FI, Dimmer, Steuerungen) <strong>unbedingt abklemmen</strong></li>
+                            <li>Sicherungen/LS einschalten, damit alle Leitungen geprüft werden</li>
+                        </ul>
+
+                        <h3>Durchführung</h3>
+                        <ul>
+                            <li><strong>Messgerät:</strong> Isolationsmessgerät</li>
+                            <li><strong>Prüfspannung:</strong> 500 V DC (bei Anlagen ≤ 500 V AC)</li>
+                            <li><strong>Messung:</strong> Leiter (L/N) gegen PE je Stromkreis</li>
+                            <li><strong>Messdauer:</strong> Mindestens 1 Minute warten bis stabiler Wert</li>
+                        </ul>
+
+                        <div class="warning-box">
+                            <strong>Achtung:</strong> Empfindliche elektronische Geräte vor der Messung unbedingt abklemmen! Die 500V Prüfspannung kann diese zerstören.
+                        </div>
+
+                        <h3>Bewertung</h3>
+                        <ul>
+                            <li><strong>Mindestwert:</strong> ≥ 1 MΩ (bei SELV/PELV-Kreisen ≥ 0,5 MΩ)</li>
+                            <li>Höhere Werte sind besser – neue Anlagen liegen typisch bei > 100 MΩ</li>
+                        </ul>
+
+                        <p>Ein zu niedriger Isolationswiderstand deutet auf:</p>
+                        <ul>
+                            <li>Beschädigte Isolierung</li>
+                            <li>Feuchtigkeit in der Anlage</li>
+                            <li>Alterung der Leitungen</li>
+                            <li>Nicht abgeklemmte Verbraucher</li>
+                        </ul>
+
+                        <div class="highlight-box">
+                            <strong>Wichtig:</strong> Bei Werten unter 1 MΩ muss der Fehler gesucht und behoben werden, bevor weitere Messungen durchgeführt werden.
+                        </div>
+                    </div>
+                `
+            }
+        };
+
+        const sectionToCategory = {
+            'schutzleiter': 'RLO',
+            'isolation': 'RISO'
+        };
+
+        async function showSection(section) {
+            const data = content[section];
+            if (!data) return;
+
+            document.getElementById('modalTitle').textContent = data.title;
+            document.getElementById('modalContent').innerHTML = data.content;
+            document.getElementById('relayInfo').style.display = 'none';
+            document.getElementById('contentModal').style.display = 'block';
+
+            const category = sectionToCategory[section];
+            if (category) {
+                try {
+                    const response = await fetch('/api/training/activate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ page_id: 'spannungsfrei', category: category })
+                    });
+                    const result = await response.json();
+                    if (result.success && result.activated_relais && result.activated_relais.length > 0) {
+                        document.getElementById('relayList').innerHTML = result.activated_relais
+                            .map(r => `<span style="background:rgba(255,68,68,0.3);color:#ff4444;padding:6px 12px;border-radius:8px;border:1px solid rgba(255,68,68,0.5);font-weight:bold;">Relais ${r}</span>`)
+                            .join('');
+                        document.getElementById('relayInfo').style.display = 'block';
+                    }
+                } catch (e) { /* kein Relay konfiguriert – ok */ }
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('contentModal').style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('contentModal');
+            if (event.target == modal) {
+                closeModal();
+            }
+        }
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                const modal = document.getElementById('contentModal');
+                if (modal.style.display === 'block') {
+                    closeModal();
+                }
+            }
+        });
+    </script>
+{% endblock %}

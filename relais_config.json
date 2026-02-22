@@ -1,386 +1,74 @@
 {
   "0": {
     "group_number": 0,
-    "name": "L1 Schleifenimpedanzfehler 1800Ω",
-    "category": "Zi",
-    "stromkreis": "CEE 16A"
+    "name": "Herd Drehfeldfehler",
+    "category": "Drehfeld",
+    "stromkreis": "Herdanschlussdose"
   },
   "1": {
     "group_number": 0,
-    "name": "L1 Schleifenimpedanzfehler 400Ω (3x1,2kΩ)",
-    "category": "Zi",
-    "stromkreis": "CEE 16A"
-  },
-  "2": {
-    "group_number": 0,
-    "name": "",
-    "category": "Zs",
-    "stromkreis": "CEE 16A"
-  },
-  "3": {
-    "group_number": 1,
-    "name": "N Isolationsfehler (vor widerstand) 800.000Ω",
-    "category": "RISO",
+    "name": "CEE Drehfeldfehler",
+    "category": "Drehfeld",
     "stromkreis": "CEE 16A"
   },
   "4": {
-    "group_number": 1,
-    "name": "N Isolationsfehler (nach widerstand)",
+    "group_number": 0,
+    "name": "",
     "category": "RISO",
-    "stromkreis": "CEE 16A"
-  },
-  "5": {
-    "group_number": 0,
-    "name": "N-PE Vertauscht relais",
-    "category": "",
-    "stromkreis": "CEE 16A"
-  },
-  "6": {
-    "group_number": 0,
-    "name": "CEE Verdrahtungsfehler",
-    "category": "",
-    "stromkreis": "CEE 16A"
-  },
-  "7": {
-    "group_number": 0,
-    "name": "",
-    "category": "",
-    "stromkreis": "CEE 16A"
-  },
-  "8": {
-    "group_number": 0,
-    "name": "",
-    "category": "",
-    "stromkreis": "CEE 16A"
-  },
-  "9": {
-    "group_number": 0,
-    "name": "Drehfeldänderung Schütze Drehfeld",
-    "category": "Drehfeld",
-    "stromkreis": "CEE 16A"
-  },
-  "10": {
-    "group_number": 0,
-    "name": "L1 Schleifenimpedanzfehler 1800Ω",
-    "category": "Zi",
-    "stromkreis": "Herdanschlussdose"
-  },
-  "11": {
-    "group_number": 0,
-    "name": "L1 Schleifenimpedanzfehler 400Ω (3x1,2kΩ)",
-    "category": "Zi",
-    "stromkreis": "Herdanschlussdose"
-  },
-  "12": {
-    "group_number": 0,
-    "name": "PE Isolationsfehler (vor widerstand) 800.000Ω",
-    "category": "RISO",
-    "stromkreis": "Herdanschlussdose"
-  },
-  "13": {
-    "group_number": 2,
-    "name": "iso fehler",
-    "category": "RISO",
-    "stromkreis": "Herdanschlussdose"
-  },
-  "14": {
-    "group_number": 2,
-    "name": "iso fehler",
-    "category": "",
-    "stromkreis": "Herdanschlussdose"
-  },
-  "15": {
-    "group_number": 0,
-    "name": "",
-    "category": "",
-    "stromkreis": "Herdanschlussdose"
-  },
-  "16": {
-    "group_number": 0,
-    "name": "",
-    "category": "",
-    "stromkreis": "Herdanschlussdose"
-  },
-  "17": {
-    "group_number": 0,
-    "name": "",
-    "category": "",
-    "stromkreis": "Herdanschlussdose"
-  },
-  "18": {
-    "group_number": 0,
-    "name": "",
-    "category": "",
-    "stromkreis": "Herdanschlussdose"
+    "stromkreis": ""
   },
   "19": {
     "group_number": 0,
-    "name": "Drehfeldfehler Schütze Drehfeld",
+    "name": "",
     "category": "Drehfeld",
-    "stromkreis": "Herdanschlussdose"
+    "stromkreis": ""
   },
   "20": {
     "group_number": 0,
-    "name": "L1 Schleifenimpedanzfehler 1800Ω",
+    "name": "",
     "category": "Zi",
-    "stromkreis": "Steckdose+Lampe 1"
-  },
-  "21": {
-    "group_number": 0,
-    "name": "L1 Schleifenimpedanzfehler 400Ω (3x1,2kΩ)",
-    "category": "Zi",
-    "stromkreis": "Steckdose+Lampe 1"
-  },
-  "22": {
-    "group_number": 0,
-    "name": "N Isolationsfehler (vor widerstand) 800.000Ω",
-    "category": "RISO",
-    "stromkreis": "Steckdose+Lampe 1"
-  },
-  "23": {
-    "group_number": 0,
-    "name": "N Isolationsfehler (nach widerstand)",
-    "category": "RISO",
-    "stromkreis": "Steckdose+Lampe 1"
-  },
-  "24": {
-    "group_number": 0,
-    "name": "L1 Abriss Vor dem Schalter",
-    "category": "",
-    "stromkreis": "Steckdose+Lampe 1"
-  },
-  "25": {
-    "group_number": 0,
-    "name": "N Abriss Vor dem Schalter",
-    "category": "",
-    "stromkreis": "Steckdose+Lampe 1"
-  },
-  "26": {
-    "group_number": 0,
-    "name": "L1 Schleifenimpedanzfehler 1800Ω Lampe",
-    "category": "ZS",
-    "stromkreis": "Steckdose+Lampe 1"
-  },
-  "27": {
-    "group_number": 0,
-    "name": "L1 Schleifenimpedanzfehler 400Ω (3x1,2kΩ) Lampe",
-    "category": "ZS",
-    "stromkreis": "Steckdose+Lampe 1"
+    "stromkreis": ""
   },
   "28": {
     "group_number": 0,
-    "name": "PE Isolationsfehler (vor widerstand) 800.000Ω Lampe",
+    "name": "",
     "category": "RISO",
-    "stromkreis": "Steckdose+Lampe 1"
+    "stromkreis": ""
   },
   "29": {
     "group_number": 0,
-    "name": "PE Isolationsfehler (nach widerstand) Lampe",
-    "category": "RISO",
-    "stromkreis": "Steckdose+Lampe 1"
-  },
-  "30": {
-    "group_number": 0,
-    "name": "L1 Schleifenimpedanzfehler 1800Ω",
-    "category": "ZS",
-    "stromkreis": "Steckdose+Lampe 2"
-  },
-  "31": {
-    "group_number": 0,
-    "name": "L1 Schleifenimpedanzfehler 400Ω (3x1,2kΩ)",
-    "category": "ZI",
-    "stromkreis": "Steckdose+Lampe 2"
-  },
-  "32": {
-    "group_number": 0,
-    "name": "PE Isolationsfehler (vor widerstand) 800.000Ω",
-    "category": "RISO",
-    "stromkreis": "Steckdose+Lampe 2"
-  },
-  "33": {
-    "group_number": 0,
-    "name": "PE Isolationsfehler (nach widerstand)",
-    "category": "RISO",
-    "stromkreis": "Steckdose+Lampe 2"
-  },
-  "34": {
-    "group_number": 0,
-    "name": "L1 Abriss Vor dem Schalter",
-    "category": "Abriss",
-    "stromkreis": "Steckdose+Lampe 2"
-  },
-  "35": {
-    "group_number": 0,
-    "name": "N Abriss Vor dem Schalter",
-    "category": "Abriss",
-    "stromkreis": "Steckdose+Lampe 2"
-  },
-  "36": {
-    "group_number": 0,
-    "name": "L1 Schleifenimpedanzfehler 1800Ω Lampe",
-    "category": "ZS",
-    "stromkreis": "Steckdose+Lampe 2"
-  },
-  "37": {
-    "group_number": 0,
-    "name": "L1 Schleifenimpedanzfehler 400Ω (3x1,2kΩ) Lampe",
-    "category": "ZS",
-    "stromkreis": "Steckdose+Lampe 2"
-  },
-  "38": {
-    "group_number": 0,
     "name": "",
-    "category": "",
-    "stromkreis": "Steckdose+Lampe 2"
-  },
-  "39": {
-    "group_number": 0,
-    "name": "Lampen Vertauscht (Schalter schaltet die Falsche)",
-    "category": "",
-    "stromkreis": "Steckdose+Lampe 2"
-  },
-  "40": {
-    "group_number": 0,
-    "name": "N-PE Vertauscht Relais",
-    "category": "",
-    "stromkreis": "Badsteckdose über RCBO"
-  },
-  "41": {
-    "group_number": 0,
-    "name": "L1 Schleifenimpedanzfehler 1800Ω",
-    "category": "ZS",
-    "stromkreis": "Badsteckdose über RCBO"
-  },
-  "42": {
-    "group_number": 0,
-    "name": "L1 Schleifenimpedanzfehler 400Ω (3x1,2kΩ)",
-    "category": "ZS",
-    "stromkreis": "Badsteckdose über RCBO"
+    "category": "RISO",
+    "stromkreis": ""
   },
   "43": {
     "group_number": 0,
-    "name": "PE Isolationsfehler (vor widerstand) 800.000Ω",
+    "name": "",
     "category": "RISO",
-    "stromkreis": "Badsteckdose über RCBO"
+    "stromkreis": ""
   },
   "44": {
     "group_number": 0,
-    "name": "PE Isolationsfehler (nach widerstand)",
+    "name": "",
     "category": "RISO",
-    "stromkreis": "Badsteckdose über RCBO"
+    "stromkreis": ""
   },
-  "45": {
-    "group_number": 0,
+  "7": {
+    "group_number": 1,
     "name": "",
-    "category": "",
-    "stromkreis": "Badsteckdose über RCBO"
+    "category": "Abriss",
+    "stromkreis": ""
   },
-  "46": {
-    "group_number": 0,
+  "6": {
+    "group_number": 1,
     "name": "",
+    "category": "Abriss",
+    "stromkreis": ""
+  },
+  "2": {
+    "group_number": 0,
+    "name": "hhhh",
     "category": "",
-    "stromkreis": "Badsteckdose über RCBO"
-  },
-  "47": {
-    "group_number": 0,
-    "name": "",
-    "category": "",
-    "stromkreis": "Badsteckdose über RCBO"
-  },
-  "48": {
-    "group_number": 0,
-    "name": "",
-    "category": "",
-    "stromkreis": "Badsteckdose über RCBO"
-  },
-  "49": {
-    "group_number": 0,
-    "name": "",
-    "category": "",
-    "stromkreis": "Badsteckdose über RCBO"
-  },
-  "50": {
-    "group_number": 0,
-    "name": "L1 Schleifenimpedanzfehler 1800Ω",
-    "category": "ZS",
-    "stromkreis": "Wallbox"
-  },
-  "51": {
-    "group_number": 0,
-    "name": "L1 Schleifenimpedanzfehler 400Ω (3x1,2kΩ)",
-    "category": "ZS",
-    "stromkreis": "Wallbox"
-  },
-  "52": {
-    "group_number": 0,
-    "name": "PE Isolationsfehler (vor widerstand) 800.000Ω",
-    "category": "RISO",
-    "stromkreis": "Wallbox"
-  },
-  "53": {
-    "group_number": 0,
-    "name": "PE Isolationsfehler (nach widerstand)",
-    "category": "RISO",
-    "stromkreis": "Wallbox"
-  },
-  "54": {
-    "group_number": 0,
-    "name": "",
-    "category": "",
-    "stromkreis": "Wallbox"
-  },
-  "55": {
-    "group_number": 0,
-    "name": "",
-    "category": "",
-    "stromkreis": "Wallbox"
-  },
-  "56": {
-    "group_number": 0,
-    "name": "",
-    "category": "",
-    "stromkreis": "Wallbox"
-  },
-  "57": {
-    "group_number": 0,
-    "name": "",
-    "category": "",
-    "stromkreis": "Wallbox"
-  },
-  "58": {
-    "group_number": 0,
-    "name": "",
-    "category": "",
-    "stromkreis": "Wallbox"
-  },
-  "59": {
-    "group_number": 0,
-    "name": "",
-    "category": "",
-    "stromkreis": "Wallbox"
-  },
-  "60": {
-    "group_number": 0,
-    "name": "Abriss Abwasser",
-    "category": "RLO",
-    "stromkreis": "RLO"
-  },
-  "61": {
-    "group_number": 0,
-    "name": "Abriss Zulauf",
-    "category": "RLO",
-    "stromkreis": "RLO"
-  },
-  "62": {
-    "group_number": 0,
-    "name": "Abriss Zulauf",
-    "category": "RLO",
-    "stromkreis": "RLO"
-  },
-  "63": {
-    "group_number": 0,
-    "name": "Hoher Widerstand zulauf 1kohm",
-    "category": "RLO",
-    "stromkreis": "RLO"
+    "stromkreis": ""
   }
 }

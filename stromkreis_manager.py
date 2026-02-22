@@ -14,12 +14,14 @@ def load_stromkreise_from_file():
     Lädt Stromkreise aus JSON-Datei
 
     Returns:
-        Dictionary mit Stromkreisen
+        Dictionary mit Stromkreisen (int-Keys)
     """
     if os.path.exists(STROMKREISE_FILE):
         try:
             with open(STROMKREISE_FILE, 'r', encoding='utf-8') as f:
-                return json.load(f)
+                data = json.load(f)
+                # String-Keys aus JSON zu int konvertieren
+                return {int(k): v for k, v in data.items()}
         except Exception as e:
             print(f"Error loading stromkreise: {e}")
             return {}
@@ -290,22 +292,14 @@ def save_kategorien_to_file(kategorien):
 
 def get_all_kategorien():
     """
-    Gibt alle verfügbaren Kategorien zurück (Standard + Custom)
+    Gibt alle verfügbaren Kategorien zurück (aus kategorien.json)
 
     Returns:
         Liste von Kategorien
     """
-    # Standard-Kategorien
-    default_kategorien = ['RISO', 'Zi', 'Zs', 'Drehfeld', 'RCD']
-
-    # Custom-Kategorien aus Datei
-    custom_kategorien = load_kategorien_from_file()
-
-    # Merge und deduplizieren
-    all_kategorien = list(set(default_kategorien + custom_kategorien))
-    all_kategorien.sort()
-
-    return all_kategorien
+    kategorien = load_kategorien_from_file()
+    kategorien.sort()
+    return kategorien
 
 
 def add_kategorie(name):
@@ -340,7 +334,7 @@ def add_kategorie(name):
 
 def delete_kategorie(name):
     """
-    Löscht eine Custom-Kategorie
+    Löscht eine Kategorie
 
     Args:
         name: Name der zu löschenden Kategorie
@@ -348,11 +342,6 @@ def delete_kategorie(name):
     Returns:
         (success, message)
     """
-    default_kategorien = ['RISO', 'Zi', 'Zs', 'Drehfeld', 'RCD']
-
-    if name in default_kategorien:
-        return False, "Standard-Kategorien können nicht gelöscht werden"
-
     kategorien = load_kategorien_from_file()
 
     if name not in kategorien:

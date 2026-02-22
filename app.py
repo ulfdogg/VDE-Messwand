@@ -212,12 +212,6 @@ def manual_mode():
                          wallbox_enabled=wallbox_enabled)
 
 
-@app.route('/manual_mode_pi')
-def manual_mode_pi():
-    """Manuelle Fehlerauswahl (Pi-Version) - leitet zu manual_mode weiter"""
-    return manual_mode()
-
-
 @app.route('/set_manual_errors', methods=['POST'])
 def set_manual_errors():
     """Setzt manuell ausgewählte Fehler"""
@@ -437,28 +431,16 @@ def training_mode():
     return render_template('training_mode.html')
 
 
-@app.route('/training/general')
-def training_general():
-    """Allgemeine VDE-Anleitung"""
-    return render_template('training_general_new.html')
+@app.route('/training/spannungsfrei')
+def training_spannungsfrei():
+    """Spannungsfreie Messungen (PE, RISO)"""
+    return render_template('training_spannungsfrei.html')
 
 
-@app.route('/training/fluke')
-def training_fluke():
-    """Fluke Übungen"""
-    return render_template('training_fluke_new.html')
-
-
-@app.route('/training/benning')
-def training_benning():
-    """Benning Übungen"""
-    return render_template('training_benning_new.html')
-
-
-@app.route('/training/gossen')
-def training_gossen():
-    """Gossen-Metrawatt Übungen"""
-    return render_template('training_gossen_new.html')
+@app.route('/training/unter_spannung')
+def training_unter_spannung():
+    """Messungen unter Spannung (Zs, Zi, RCD, Drehfeld)"""
+    return render_template('training_unter_spannung.html')
 
 
 # ==================== ADMIN-BEREICH ====================
@@ -484,302 +466,7 @@ def admin_panel():
     return render_template('admin_panel.html')
 
 
-# ==================== GRUPPEN-VERWALTUNG ====================
 
-@app.route('/admin_groups')
-def admin_groups():
-    """Gruppen-Verwaltung GUI"""
-    stats = get_group_statistics()
-    available_relays = sorted(get_available_relays())
-    kategorien = get_all_kategorien()
-
-    return render_template('admin_groups.html',
-                         groups=stats['groups'],
-                         total_groups=stats['total_groups'],
-                         grouped_relays=stats['total_grouped_relays'],
-                         available_relays=available_relays,
-                         kategorien=kategorien)
-
-
-@app.route('/admin_relay_names')
-def admin_relay_names():
-    """Relais-Benennungs GUI"""
-    all_names = get_all_relay_names()
-    groups = get_all_groups()
-    stromkreise = get_all_stromkreise()
-    kategorien = get_all_kategorien()
-
-    # Gruppiere Relais nach Stromkreisen für bessere Übersicht
-    relay_info = []
-    for i in range(64):
-        # Prüfe ob in Gruppe
-        in_group = None
-        for group_id, group_data in groups.items():
-            if i in group_data['relays']:
-                in_group = group_data['name']
-                break
-
-        # Finde Stromkreis
-        stromkreis_name = None
-        for sk_data in stromkreise.values():
-            if i in sk_data['relays']:
-                stromkreis_name = sk_data['name']
-                break
-
-        # Hole vollständige Relais-Daten (Name, Kategorie, Stromkreis)
-        relay_data = all_names.get(i, {})
-        if isinstance(relay_data, str):
-            # Alte Struktur: nur String
-            relay_name = relay_data
-            category = ''
-            stromkreis_info = ''
-        elif isinstance(relay_data, dict):
-            # Neue Struktur: Dictionary mit name, category, stromkreis
-            relay_name = relay_data.get('name', '')
-            category = relay_data.get('category', '')
-            stromkreis_info = relay_data.get('stromkreis', '')
-        else:
-            relay_name = ''
-            category = ''
-            stromkreis_info = ''
-
-        relay_info.append({
-            'number': i,
-            'name': relay_name,
-            'category': category,
-            'stromkreis': stromkreis_info or stromkreis_name,
-            'group': in_group,
-            'editable': in_group is None
-        })
-
-    return render_template('admin_relay_names.html',
-                         relay_info=relay_info,
-                         stromkreise=stromkreise,
-                         kategorien=kategorien)
-
-
-@app.route('/api/groups', methods=['GET'])
-def api_get_groups():
-    """API: Alle Gruppen abrufen"""
-    stats = get_group_statistics()
-    return jsonify({
-        'success': True,
-        'groups': stats['groups'],
-        'statistics': {
-            'total_groups': stats['total_groups'],
-            'grouped_relays': stats['total_grouped_relays'],
-            'available_relays': stats['available_relays']
-        }
-    })
-
-
-@app.route('/api/relay_names', methods=['GET'])
-def api_get_relay_names():
-    """API: Alle Relais-Namen abrufen"""
-    names = get_all_relay_names()
-    return jsonify({
-        'success': True,
-        'relay_names': names
-    })
-
-
-@app.route('/api/relay_names/set', methods=['POST'])
-def api_set_relay_name():
-    """API: Einzelnen Relais-Namen setzen"""
-    data = request.json
-    relay_num = data.get('relay_num')
-    name = data.get('name', '')
-    
-    try:
-        relay_num = int(relay_num)
-    except:
-        return jsonify({'success': False, 'message': 'Ungültige Relais-Nummer'})
-    
-    success, message = set_relay_name(relay_num, name)
-    
-    if success:
-        reload_relay_config()
-    
-    return jsonify({
-        'success': success,
-        'message': message
-    })
-
-
-@app.route('/api/relay_names/bulk', methods=['POST'])
-def api_bulk_set_relay_names():
-    """API: Mehrere Relais-Namen auf einmal setzen"""
-    data = request.json
-    # Unterstütze alte 'names' und neue 'relay_data' Struktur
-    relay_data_dict = data.get('relay_data', data.get('names', {}))
-
-    success, message, failed = bulk_set_relay_names(relay_data_dict)
-
-    if success:
-        reload_relay_config()
-
-    return jsonify({
-        'success': success,
-        'message': message,
-        'failed': failed
-    })
-
-
-@app.route('/api/groups/available_relays', methods=['GET'])
-def api_get_available_relays():
-    """API: Verfügbare (nicht gruppierte) Relais"""
-    available = sorted(get_available_relays())
-    return jsonify({
-        'success': True,
-        'available_relays': available
-    })
-
-
-@app.route('/api/groups/add', methods=['POST'])
-def api_add_group():
-    """API: Neue Gruppe erstellen"""
-    data = request.json
-
-    group_id = data.get('group_id', '').strip()
-    name = data.get('name', '').strip()
-    relays = data.get('relays', [])
-    description = data.get('description', '').strip()
-    category = data.get('category', '').strip()
-    stromkreis = data.get('stromkreis', '').strip()
-
-    success, message = add_group(group_id, name, relays, description, category, stromkreis)
-
-    # Bei Erfolg: Gruppen in config neu laden
-    if success:
-        reload_relay_config()
-
-    return jsonify({
-        'success': success,
-        'message': message
-    })
-
-
-@app.route('/api/groups/update', methods=['POST'])
-def api_update_group():
-    """API: Gruppe aktualisieren"""
-    data = request.json
-
-    group_id = data.get('group_id', '').strip()
-    name = data.get('name', '').strip()
-    relays = data.get('relays', [])
-    description = data.get('description', '').strip()
-    category = data.get('category', '').strip()
-    stromkreis = data.get('stromkreis', '').strip()
-
-    success, message = update_group(group_id, name, relays, description, category, stromkreis)
-
-    if success:
-        reload_relay_config()
-
-    return jsonify({
-        'success': success,
-        'message': message
-    })
-
-
-@app.route('/api/groups/delete', methods=['POST'])
-def api_delete_group():
-    """API: Gruppe löschen"""
-    data = request.json
-    group_id = data.get('group_id', '')
-
-    success, message = delete_group(group_id)
-
-    if success:
-        reload_relay_config()
-
-    return jsonify({
-        'success': success,
-        'message': message
-    })
-
-
-@app.route('/api/relays/by_category/<category>', methods=['GET'])
-def api_get_relays_by_category(category):
-    """API: Relais und Gruppen nach Kategorie abrufen"""
-    from group_manager import get_relays_by_category
-
-    result = get_relays_by_category(category)
-
-    return jsonify({
-        'success': True,
-        'category': category,
-        'relays': result['relays'],
-        'groups': result['groups']
-    })
-
-
-@app.route('/api/relays/activate_category', methods=['POST'])
-def api_activate_category():
-    """API: Alle Relais einer Kategorie aktivieren (nach Stromkreis gruppiert)"""
-    from group_manager import get_relays_by_category
-
-    data = request.json
-    category = data.get('category', '')
-
-    if not category:
-        return jsonify({'success': False, 'message': 'Kategorie fehlt'})
-
-    try:
-        result = get_relays_by_category(category)
-
-        # Sammle alle Relais, die aktiviert werden sollen
-        relays_to_activate = []
-
-        # Gruppiere nach Stromkreis
-        stromkreise = {}
-
-        # Einzelne Relais hinzufügen
-        for relay_info in result['relays']:
-            sk = relay_info['stromkreis'] or 'default'
-            if sk not in stromkreise:
-                stromkreise[sk] = []
-            stromkreise[sk].append({
-                'relay_num': relay_info['relay_num'],
-                'name': relay_info['name']
-            })
-
-        # Gruppen hinzufügen
-        for group_info in result['groups']:
-            sk = group_info['stromkreis'] or 'default'
-            if sk not in stromkreise:
-                stromkreise[sk] = []
-            stromkreise[sk].append({
-                'group': group_info['name'],
-                'relays': group_info['relays']
-            })
-
-        # Aktiviere die Relais (nur unterschiedliche Stromkreise gleichzeitig)
-        activated = []
-        for sk, items in stromkreise.items():
-            for item in items:
-                if 'relay_num' in item:
-                    # Einzelnes Relais
-                    relay_controller.set_relay(item['relay_num'], True)
-                    activated.append(f"Relais {item['relay_num']} ({item['name']})")
-                elif 'group' in item:
-                    # Gruppe
-                    for relay_num in item['relays']:
-                        relay_controller.set_relay(relay_num, True)
-                    activated.append(f"Gruppe {item['group']}")
-
-        return jsonify({
-            'success': True,
-            'message': f"{len(activated)} Relais/Gruppen aktiviert",
-            'activated': activated,
-            'stromkreise': list(stromkreise.keys())
-        })
-
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'message': f'Fehler: {str(e)}'
-        })
 
 
 def reload_relay_config():
@@ -800,15 +487,6 @@ def reload_relay_config():
 
 
 # ==================== STROMKREIS-VERWALTUNG ====================
-
-@app.route('/admin_stromkreise')
-def admin_stromkreise():
-    """Stromkreis-Verwaltung GUI (alte Seite)"""
-    stats = get_stromkreis_statistics()
-
-    return render_template('admin_stromkreise.html',
-                         stromkreise=stats['stromkreise'],
-                         stats=stats)
 
 
 @app.route('/admin_config')

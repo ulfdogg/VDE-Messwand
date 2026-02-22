@@ -1,0 +1,360 @@
+{% extends "base.html" %}
+
+{% block title %}Messungen unter Spannung - VDE Messwand{% endblock %}
+
+{% block content %}
+    <style>
+        .modal {
+            position: fixed;
+            z-index: 9999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            overflow: auto;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            margin: 5% auto;
+            padding: 40px;
+            border: 2px solid rgba(255, 68, 68, 0.3);
+            border-radius: 20px;
+            width: 90%;
+            max-width: 1000px;
+            position: relative;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .modal-close {
+            color: #ff4444;
+            position: absolute;
+            right: 20px;
+            top: 15px;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            z-index: 10000;
+        }
+
+        .modal-close:hover {
+            color: #ffffff;
+            transform: scale(1.2);
+        }
+
+        .content-section {
+            margin-bottom: 30px;
+        }
+
+        .content-section h3 {
+            color: #4caf50;
+            margin-bottom: 15px;
+            margin-top: 25px;
+            font-size: 1.3rem;
+        }
+
+        .content-section ul, .content-section ol {
+            padding-left: 25px;
+            line-height: 1.8;
+        }
+
+        .content-section li {
+            margin-bottom: 10px;
+        }
+
+        .highlight-box {
+            background: rgba(255, 68, 68, 0.1);
+            border-left: 4px solid #ff4444;
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+
+        .info-box {
+            background: rgba(76, 175, 80, 0.1);
+            border-left: 4px solid #4caf50;
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+
+        .warning-box {
+            background: rgba(255, 193, 7, 0.1);
+            border-left: 4px solid #ffc107;
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .modal-content {
+                width: 95%;
+                padding: 20px;
+            }
+        }
+    </style>
+
+    <div class="glass-card">
+        <h1>Messungen unter Spannung</h1>
+        <p style="text-align: center; opacity: 0.8; margin-bottom: 30px;">
+            Messungen im betriebsbereiten Zustand der Anlage
+        </p>
+
+        <div class="menu-grid">
+            <div class="menu-item" onclick="showSection('schleife')">
+                <h3>Schleifenimpedanz (Zs)</h3>
+                <p>Fehlerschleifenimpedanz und Kurzschlussstrom</p>
+            </div>
+
+            <div class="menu-item" onclick="showSection('zi')">
+                <h3>Netzinnenwiderstand (Zi)</h3>
+                <p>Innenwiderstand der Stromversorgung</p>
+            </div>
+
+            <div class="menu-item" onclick="showSection('rcd')">
+                <h3>RCD / FI-Schutzschalter</h3>
+                <p>Fehlerstromschutz prüfen</p>
+            </div>
+
+            <div class="menu-item" onclick="showSection('drehfeld')">
+                <h3>Drehfeldprüfung</h3>
+                <p>Drehrichtung bei Drehstromanschlüssen</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content Modal -->
+    <div id="contentModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal()">&times;</span>
+            <h2 id="modalTitle" style="color: #ff4444; margin-bottom: 20px;"></h2>
+            <div id="relayInfo" style="display: none; margin-bottom: 20px; padding: 15px 20px; background: rgba(255, 68, 68, 0.1); border-radius: 12px; border: 2px solid rgba(255, 68, 68, 0.3);">
+                <strong style="color: #ff4444;">Aktivierte Relais:</strong>
+                <div id="relayList" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;"></div>
+            </div>
+            <div id="modalContent" style="color: #ffffff; font-size: 1.1rem; line-height: 1.8; max-width: 900px; margin: 0 auto;"></div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        const content = {
+            'schleife': {
+                title: 'Schleifenimpedanz (Zs)',
+                content: `
+                    <div class="content-section">
+                        <h3>Ziel der Messung</h3>
+                        <p>Sicherstellen, dass bei einem Fehler ausreichend Fehlerstrom fließt, um die Schutzeinrichtung (Sicherung/LS) innerhalb der geforderten Abschaltzeit auszulösen.</p>
+
+                        <h3>Vorbereitung</h3>
+                        <ul>
+                            <li>Anlage muss <strong>unter Spannung</strong> stehen</li>
+                            <li>Alle Sicherungen und LS müssen eingeschaltet sein</li>
+                            <li>Bei RCD-geschützten Kreisen: speziellen Messmodus verwenden</li>
+                        </ul>
+
+                        <h3>Durchführung</h3>
+                        <ul>
+                            <li><strong>Messgerät:</strong> Schleifenimpedanzmesser</li>
+                            <li><strong>Messung:</strong> An Steckdosen/Anschlusspunkten (L–PE)</li>
+                            <li><strong>Ergebnis:</strong> Zs-Wert und berechneter Kurzschlussstrom Ik</li>
+                        </ul>
+
+                        <div class="warning-box">
+                            <strong>Achtung:</strong> Diese Messung erfolgt unter Spannung! Sicherheitsregeln beachten und geeignete PSA tragen.
+                        </div>
+
+                        <h3>Bewertung</h3>
+                        <ul>
+                            <li>Die Schleifenimpedanz muss so niedrig sein, dass der Kurzschlussstrom Ik ausreicht, um die vorgeschaltete Sicherung auszulösen</li>
+                            <li><strong>Abschaltzeiten:</strong> < 0,4 s (Steckdosenkreise) bzw. < 5 s (Verteilungskreise)</li>
+                            <li>Typische Grenzwerte: < 0,5 Ω bei kleinen Anlagen</li>
+                        </ul>
+
+                        <div class="info-box">
+                            <strong>Hinweis:</strong> Den gemessenen Zs-Wert mit dem zulässigen Maximalwert aus der Tabelle des Sicherungstyps vergleichen. Sicherheitsfaktor von 1,5 berücksichtigen (Erwärmung).
+                        </div>
+                    </div>
+                `
+            },
+            'zi': {
+                title: 'Netzinnenwiderstand (Zi)',
+                content: `
+                    <div class="content-section">
+                        <h3>Ziel der Messung</h3>
+                        <p>Bestimmung des Innenwiderstands der Stromversorgung am Einspeisepunkt. Der Zi-Wert gibt Auskunft über die Qualität und Belastbarkeit des vorgelagerten Netzes.</p>
+
+                        <h3>Vorbereitung</h3>
+                        <ul>
+                            <li>Anlage muss <strong>unter Spannung</strong> stehen</li>
+                            <li>Messung am Einspeisepunkt (Hauptverteilung) durchführen</li>
+                            <li>Möglichst wenig Verbraucher aktiv (für genaueres Ergebnis)</li>
+                        </ul>
+
+                        <h3>Durchführung</h3>
+                        <ul>
+                            <li><strong>Messgerät:</strong> Schleifenimpedanzmesser (Zi-Modus)</li>
+                            <li><strong>Messung:</strong> Zwischen L und N am Einspeisepunkt</li>
+                            <li><strong>Ergebnis:</strong> Zi-Wert in Ohm und prospektiver Kurzschlussstrom Ik</li>
+                        </ul>
+
+                        <h3>Bewertung</h3>
+                        <ul>
+                            <li>Der Zi-Wert muss mit dem Wert des Energieversorgers übereinstimmen</li>
+                            <li>Typische Werte: 0,1 – 0,5 Ω (je nach Netzanschluss)</li>
+                            <li>Der prospektive Kurzschlussstrom Ik muss bekannt sein für die Dimensionierung der Schutzeinrichtungen</li>
+                        </ul>
+
+                        <div class="info-box">
+                            <strong>Hinweis:</strong> Der Zi-Wert ist die Basis für alle weiteren Schleifenimpedanzmessungen. Er addiert sich zum Widerstand der Anlage.
+                        </div>
+
+                        <div class="highlight-box">
+                            <strong>Wichtig:</strong> Der maximale prospektive Kurzschlussstrom muss kleiner sein als das Schaltvermögen der eingesetzten Schutzeinrichtungen.
+                        </div>
+                    </div>
+                `
+            },
+            'rcd': {
+                title: 'RCD / FI-Schutzschalter',
+                content: `
+                    <div class="content-section">
+                        <h3>Ziel der Messung</h3>
+                        <p>Nachweis der Wirksamkeit des Fehlerstromschutzes. Der RCD muss bei Fehlerstrom zuverlässig und innerhalb der vorgeschriebenen Zeit auslösen.</p>
+
+                        <h3>Vorbereitung</h3>
+                        <ul>
+                            <li>Anlage muss <strong>unter Spannung</strong> stehen</li>
+                            <li>RCD muss eingeschaltet sein</li>
+                            <li>Empfindliche Geräte ggf. vorher ausschalten (RCD löst aus!)</li>
+                        </ul>
+
+                        <h3>Durchführung</h3>
+                        <ul>
+                            <li><strong>Messgerät:</strong> RCD-Prüfgerät</li>
+                            <li><strong>Messgrößen:</strong> Auslösezeit, Auslösestrom, Berührungsspannung</li>
+                            <li><strong>Prüfungen:</strong>
+                                <ul>
+                                    <li>0,5 × IΔn – Darf <strong>NICHT</strong> auslösen</li>
+                                    <li>1 × IΔn – <strong>MUSS</strong> auslösen</li>
+                                    <li>5 × IΔn – Schnellauslösung prüfen</li>
+                                </ul>
+                            </li>
+                        </ul>
+
+                        <h3>Grenzwerte (30 mA RCD)</h3>
+                        <ul>
+                            <li><strong>0,5 × IΔn (15 mA):</strong> Darf NICHT auslösen</li>
+                            <li><strong>1 × IΔn (30 mA):</strong> Muss auslösen in < 300 ms</li>
+                            <li><strong>5 × IΔn (150 mA):</strong> Muss auslösen in < 40 ms</li>
+                        </ul>
+
+                        <div class="highlight-box">
+                            <strong>Lebenswichtig:</strong> Ein funktionierender RCD rettet Menschenleben! Jeder RCD-geschützte Stromkreis muss einzeln geprüft werden.
+                        </div>
+
+                        <div class="info-box">
+                            <strong>Hinweis:</strong> Nach jeder Auslösung den RCD wieder einschalten und kurz warten, bevor die nächste Messung durchgeführt wird.
+                        </div>
+                    </div>
+                `
+            },
+            'drehfeld': {
+                title: 'Drehfeldprüfung',
+                content: `
+                    <div class="content-section">
+                        <h3>Ziel der Messung</h3>
+                        <p>Überprüfung der korrekten Phasenfolge (Rechtsdrehfeld) bei Drehstromanschlüssen. Ein falsches Drehfeld kann Motoren in die falsche Richtung drehen lassen.</p>
+
+                        <h3>Vorbereitung</h3>
+                        <ul>
+                            <li>Anlage muss <strong>unter Spannung</strong> stehen</li>
+                            <li>Drehstrom-Anschlusspunkt (CEE-Steckdose oder Klemmen) zugänglich</li>
+                        </ul>
+
+                        <h3>Durchführung</h3>
+                        <ul>
+                            <li><strong>Messgerät:</strong> Drehfeldmessgerät / Drehfeldrichtungsanzeiger</li>
+                            <li><strong>Anschluss:</strong> Alle drei Phasen (L1, L2, L3) anschließen</li>
+                            <li><strong>Ablesung:</strong> Anzeige des Drehfelds (Rechtsdrehfeld / Linksdrehfeld)</li>
+                        </ul>
+
+                        <h3>Bewertung</h3>
+                        <ul>
+                            <li><strong>Rechtsdrehfeld:</strong> Korrekte Phasenfolge L1 → L2 → L3 (Standard)</li>
+                            <li><strong>Linksdrehfeld:</strong> Zwei Phasen vertauscht – muss korrigiert werden</li>
+                        </ul>
+
+                        <div class="warning-box">
+                            <strong>Achtung:</strong> Ein falsches Drehfeld kann bei Drehstrommotoren zu Schäden führen (z.B. Pumpen laufen rückwärts, Kompressoren werden beschädigt).
+                        </div>
+
+                        <div class="info-box">
+                            <strong>Praxistipp:</strong> Bei CEE-Steckdosen ist die Phasenfolge durch die Norm festgelegt. Bei Klemmenkästen die Belegung laut Schaltplan prüfen.
+                        </div>
+                    </div>
+                `
+            }
+        };
+
+        const sectionToCategory = {
+            'schleife': 'Zs',
+            'zi': 'Zi',
+            'rcd': 'RCD',
+            'drehfeld': 'Drehfeld'
+        };
+
+        async function showSection(section) {
+            const data = content[section];
+            if (!data) return;
+
+            document.getElementById('modalTitle').textContent = data.title;
+            document.getElementById('modalContent').innerHTML = data.content;
+            document.getElementById('relayInfo').style.display = 'none';
+            document.getElementById('contentModal').style.display = 'block';
+
+            const category = sectionToCategory[section];
+            if (category) {
+                try {
+                    const response = await fetch('/api/training/activate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ page_id: 'unter_spannung', category: category })
+                    });
+                    const result = await response.json();
+                    if (result.success && result.activated_relais && result.activated_relais.length > 0) {
+                        document.getElementById('relayList').innerHTML = result.activated_relais
+                            .map(r => `<span style="background:rgba(255,68,68,0.3);color:#ff4444;padding:6px 12px;border-radius:8px;border:1px solid rgba(255,68,68,0.5);font-weight:bold;">Relais ${r}</span>`)
+                            .join('');
+                        document.getElementById('relayInfo').style.display = 'block';
+                    }
+                } catch (e) { /* kein Relay konfiguriert – ok */ }
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('contentModal').style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('contentModal');
+            if (event.target == modal) {
+                closeModal();
+            }
+        }
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                const modal = document.getElementById('contentModal');
+                if (modal.style.display === 'block') {
+                    closeModal();
+                }
+            }
+        });
+    </script>
+{% endblock %}
