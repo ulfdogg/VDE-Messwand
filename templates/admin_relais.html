@@ -415,125 +415,62 @@
 
     // ==================== EXCEL IMPORT/EXPORT ====================
 
-    async function openExcelDialog() {
-        try {
-            const response = await fetch('/api/relais/excel/template/predefined');
-            const result = await response.json();
-
-            let applyTemplatesHtml = '';
-            let downloadTemplatesHtml = '';
-
-            if (result.success && result.templates.length > 0) {
-                result.templates.forEach(template => {
-                    applyTemplatesHtml += `
-                        <div style="padding: 14px; background: rgba(255,255,255,0.05); border-radius: 10px; border: 1px solid rgba(255,255,255,0.1);">
-                            <div style="font-weight: bold; color: #ff8888; margin-bottom: 4px;">${template.name}</div>
-                            <div style="color: rgba(255,255,255,0.55); font-size: 0.83em; margin-bottom: 10px;">${template.description} (${template.relais_count} Relais)</div>
-                            <div style="display: flex; gap: 8px; align-items: center;">
-                                <label style="color: rgba(255,255,255,0.7); font-size: 0.85em; white-space: nowrap;">Start-Relais:</label>
-                                <input type="number" id="startRelay_${template.id}" value="0" min="0" max="63"
-                                       style="width: 60px; padding: 6px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: #fff; text-align: center;">
-                                <button onclick="applySystemTemplate('${template.id}', '${template.name}')"
-                                        style="flex: 1; padding: 8px 14px; background: linear-gradient(135deg, #c0010e, #e30613); border: none; color: white; border-radius: 7px; cursor: pointer; font-weight: 600; font-size: 0.9em;">
-                                    ✓ Direkt anwenden
-                                </button>
-                                <button onclick="downloadPredefinedTemplate('${template.id}', '${template.name}')"
-                                        title="Als Excel herunterladen"
-                                        style="padding: 8px 10px; background: rgba(255,193,7,0.12); border: 1px solid rgba(255,193,7,0.3); color: #ffc107; border-radius: 7px; cursor: pointer; font-size: 0.85em;">
-                                    ⬇ Excel
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                });
-            }
-
-            const dialog = document.createElement('div');
-            dialog.id = 'excelDialog';
-            dialog.style.cssText = `
-                position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-                background: rgba(0,0,0,0.8); display: flex;
-                align-items: center; justify-content: center; z-index: 10000;
-            `;
-
-            dialog.innerHTML = `
-                <div style="background: rgba(20,20,30,0.98); backdrop-filter: blur(30px);
-                            padding: 28px; border-radius: 20px; max-width: 680px; width: 92%;
-                            max-height: 88vh; overflow-y: auto; border: 1px solid rgba(255,255,255,0.08);">
-                    <h2 style="color: #ff4444; margin: 0 0 22px 0; text-align: center;">
-                        Import / Export / Vorlagen
-                    </h2>
-
-                    <!-- Vorlagen direkt anwenden -->
-                    ${applyTemplatesHtml ? `
-                    <div style="margin-bottom: 26px;">
-                        <h3 style="color: #fff; margin: 0 0 12px 0; font-size: 1.05em;">
-                            🗂 Systemvorlagen direkt anwenden
-                        </h3>
-                        <p style="color: rgba(255,255,255,0.45); font-size: 0.82em; margin: 0 0 12px 0;">
-                            Wähle ein Start-Relais und wende die Vorlage direkt in die Konfiguration ein — kein Excel nötig.
-                        </p>
-                        <div style="display: flex; flex-direction: column; gap: 10px;">
-                            ${applyTemplatesHtml}
-                        </div>
-                    </div>
-                    <hr style="border-color: rgba(255,255,255,0.08); margin-bottom: 22px;">
-                    ` : ''}
-
-                    <!-- Export-Bereich -->
-                    <div style="margin-bottom: 24px;">
-                        <h3 style="color: #fff; margin: 0 0 12px 0; font-size: 1.05em;">
-                            ⬇ Exportieren
-                        </h3>
-                        <div style="display: flex; gap: 10px;">
-                            <button onclick="downloadEmptyTemplate()"
-                                    style="flex: 1; padding: 12px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: white; border-radius: 8px; cursor: pointer;">
-                                Leere Excel-Vorlage
-                            </button>
-                            <button onclick="downloadCurrentConfig()"
-                                    style="flex: 1; padding: 12px; background: rgba(255,193,7,0.08); border: 1px solid rgba(255,193,7,0.3); color: #ffc107; border-radius: 8px; cursor: pointer;">
-                                Aktuelle Konfiguration
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Upload-Bereich -->
-                    <div style="margin-bottom: 20px;">
-                        <h3 style="color: #fff; margin: 0 0 12px 0; font-size: 1.05em;">
-                            ⬆ Excel-Datei importieren
-                        </h3>
-                        <div style="background: rgba(255,255,255,0.03); padding: 18px; border-radius: 10px; border: 2px dashed rgba(255,255,255,0.12);">
-                            <input type="file" id="excelFileInput" accept=".xlsx,.xls" style="display:none;" onchange="handleFileSelect(event)">
-                            <div id="uploadArea" onclick="document.getElementById('excelFileInput').click()"
-                                 style="text-align: center; cursor: pointer; padding: 16px;">
-                                <div style="font-size: 2.5em; margin-bottom: 8px;">📁</div>
-                                <div style="color: rgba(255,255,255,0.8); margin-bottom: 4px;">Klicken zum Auswählen</div>
-                                <div style="color: rgba(255,255,255,0.45); font-size: 0.85em;">.xlsx / .xls</div>
-                            </div>
-                            <div id="fileInfo" style="display:none; margin-top:12px; padding:10px; background:rgba(255,193,7,0.1); border-radius:5px; border:1px solid rgba(255,193,7,0.3);">
-                                <div style="color:#ffc107; font-weight:bold;" id="fileName"></div>
-                            </div>
-                            <button id="uploadButton" onclick="uploadExcelFile()" disabled
-                                    style="width:100%; margin-top:12px; padding:12px; background:linear-gradient(135deg,#ff4444,#cc0000); border:none; color:white; border-radius:8px; cursor:not-allowed; font-weight:bold; opacity:0.5;">
-                                Hochladen und Importieren
-                            </button>
-                        </div>
-                    </div>
-
-                    <div style="text-align:center; margin-top:16px;">
-                        <button onclick="closeExcelDialog()"
-                                style="padding:10px 30px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:white; border-radius:8px; cursor:pointer;">
-                            Schließen
+    function openExcelDialog() {
+        const dialog = document.createElement('div');
+        dialog.id = 'excelDialog';
+        dialog.style.cssText = `
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8); display: flex;
+            align-items: center; justify-content: center; z-index: 10000;
+        `;
+        dialog.innerHTML = `
+            <div style="background: rgba(20,20,30,0.98); backdrop-filter: blur(30px);
+                        padding: 28px; border-radius: 20px; max-width: 520px; width: 92%;
+                        border: 1px solid rgba(255,255,255,0.08);">
+                <h2 style="color: #ff4444; margin: 0 0 22px 0; text-align: center;">
+                    Excel Import / Export
+                </h2>
+                <div style="margin-bottom: 24px;">
+                    <h3 style="color: #fff; margin: 0 0 12px 0; font-size: 1.05em;">⬇ Exportieren</h3>
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="downloadEmptyTemplate()"
+                                style="flex: 1; padding: 12px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: white; border-radius: 8px; cursor: pointer;">
+                            Leere Vorlage
+                        </button>
+                        <button onclick="downloadCurrentConfig()"
+                                style="flex: 1; padding: 12px; background: rgba(255,193,7,0.08); border: 1px solid rgba(255,193,7,0.3); color: #ffc107; border-radius: 8px; cursor: pointer;">
+                            Aktuelle Konfiguration
                         </button>
                     </div>
                 </div>
-            `;
-
-            document.body.appendChild(dialog);
-
-        } catch (error) {
-            showMessage('Fehler beim Öffnen des Dialogs: ' + error.message, 'error');
-        }
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color: #fff; margin: 0 0 12px 0; font-size: 1.05em;">⬆ Importieren</h3>
+                    <div style="background: rgba(255,255,255,0.03); padding: 18px; border-radius: 10px; border: 2px dashed rgba(255,255,255,0.12);">
+                        <input type="file" id="excelFileInput" accept=".xlsx,.xls" style="display:none;" onchange="handleFileSelect(event)">
+                        <div id="uploadArea" onclick="document.getElementById('excelFileInput').click()"
+                             style="text-align: center; cursor: pointer; padding: 16px;">
+                            <div style="font-size: 2.5em; margin-bottom: 8px;">📁</div>
+                            <div style="color: rgba(255,255,255,0.8); margin-bottom: 4px;">Klicken zum Auswählen</div>
+                            <div style="color: rgba(255,255,255,0.45); font-size: 0.85em;">.xlsx / .xls</div>
+                        </div>
+                        <div id="fileInfo" style="display:none; margin-top:12px; padding:10px; background:rgba(255,193,7,0.1); border-radius:5px; border:1px solid rgba(255,193,7,0.3);">
+                            <div style="color:#ffc107; font-weight:bold;" id="fileName"></div>
+                        </div>
+                        <button id="uploadButton" onclick="uploadExcelFile()" disabled
+                                style="width:100%; margin-top:12px; padding:12px; background:linear-gradient(135deg,#ff4444,#cc0000); border:none; color:white; border-radius:8px; cursor:not-allowed; font-weight:bold; opacity:0.5;">
+                            Hochladen und Importieren
+                        </button>
+                    </div>
+                </div>
+                <div style="text-align:center; margin-top:16px;">
+                    <button onclick="closeExcelDialog()"
+                            style="padding:10px 30px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); color:white; border-radius:8px; cursor:pointer;">
+                        Schließen
+                    </button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(dialog);
     }
 
     function closeExcelDialog() {
@@ -549,38 +486,6 @@
     function downloadCurrentConfig() {
         window.location.href = '/api/relais/excel/template/current';
         showMessage('Aktuelle Konfiguration wird heruntergeladen...', 'success');
-    }
-
-    function downloadPredefinedTemplate(templateId, templateName) {
-        window.location.href = `/api/relais/excel/template/predefined/${templateId}`;
-        showMessage(`Vorlage "${templateName}" wird heruntergeladen...`, 'success');
-    }
-
-    function applySystemTemplate(templateId, templateName) {
-        const startRelayInput = document.getElementById(`startRelay_${templateId}`);
-        const startRelay = parseInt(startRelayInput ? startRelayInput.value : '0');
-
-        showConfirm(
-            `Vorlage "${templateName}" ab Relais ${startRelay} anwenden?\n\nBestehende Konfigurationen der betroffenen Relais werden überschrieben.`,
-            function() {
-                fetch('/api/relais/apply_template', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ template_id: templateId, start_relay: startRelay })
-                })
-                .then(r => r.json())
-                .then(result => {
-                    if (result.success) {
-                        showMessage(`Vorlage "${templateName}" erfolgreich angewendet (${result.count} Relais).`, 'success');
-                        closeExcelDialog();
-                        setTimeout(() => location.reload(), 1500);
-                    } else {
-                        showMessage('Fehler: ' + result.message, 'error');
-                    }
-                })
-                .catch(err => showMessage('Netzwerkfehler: ' + err.message, 'error'));
-            }
-        );
     }
 
     let selectedFile = null;
