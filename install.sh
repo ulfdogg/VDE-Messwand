@@ -73,7 +73,7 @@ check_root
 # ----------------------------------------------------------------------------
 # Schritt 1: Hostname abfragen
 # ----------------------------------------------------------------------------
-print_step "1/12" "System-Konfiguration"
+print_step "1/13" "System-Konfiguration"
 
 echo ""
 echo "Der Hostname wird für folgende Zwecke verwendet:"
@@ -100,7 +100,7 @@ fi
 # ----------------------------------------------------------------------------
 # Schritt 2: System aktualisieren
 # ----------------------------------------------------------------------------
-print_step "2/12" "System aktualisieren (apt update && upgrade)"
+print_step "2/13" "System aktualisieren (apt update && upgrade)"
 
 apt update
 apt upgrade -y
@@ -110,7 +110,7 @@ print_success "System aktualisiert"
 # ----------------------------------------------------------------------------
 # Schritt 3: Pakete installieren
 # ----------------------------------------------------------------------------
-print_step "3/12" "Erforderliche Pakete installieren"
+print_step "3/13" "Erforderliche Pakete installieren"
 
 apt install -y \
     python3 \
@@ -120,15 +120,18 @@ apt install -y \
     python3-smbus \
     python3-rpi.gpio \
     python3-libgpiod \
+    python3-pil \
     git \
     network-manager \
     curl \
     evtest \
     i2c-tools \
     rsync \
-    unclutter \
     wlr-randr \
     wayvnc \
+    swaybg \
+    plymouth \
+    plymouth-themes \
     fonts-noto-color-emoji
 
 print_success "Pakete installiert"
@@ -172,7 +175,7 @@ print_success "Bildschirmtastatur und Keyring komplett deaktiviert (systemd + D-
 # ----------------------------------------------------------------------------
 # Schritt 4: Display-Konfiguration
 # ----------------------------------------------------------------------------
-print_step "4/12" "Display konfigurieren (7\" Touchscreen)"
+print_step "4/13" "Display konfigurieren (7\" Touchscreen)"
 
 CONFIG_FILE="/boot/firmware/config.txt"
 
@@ -195,7 +198,7 @@ fi
 # labwc Autostart erstellen (Display-Rotation, VNC, Cursor ausblenden)
 LABWC_DIR="/home/$SERVICE_USER/.config/labwc"
 mkdir -p "$LABWC_DIR"
-cat > "$LABWC_DIR/autostart" << 'AUTOSTART_EOF'
+cat > "$LABWC_DIR/autostart" << AUTOSTART_EOF
 #!/bin/bash
 # VDE Messwand - labwc Autostart (KEIN Panel/Tastatur/Desktop!)
 
@@ -214,11 +217,11 @@ export GNOME_KEYRING_PID=
 wlr-randr --output DSI-2 --off 2>/dev/null || true
 wlr-randr --output DSI-1 --transform 270 2>/dev/null || true
 
+# Hintergrund sofort setzen: weißer Hintergrund mit Logo (verhindert Desktop-Flash)
+swaybg -o DSI-1 -i $INSTALL_DIR/static/desktop_bg.png -m fit -c ffffff &
+
 # VNC Server starten (Wayland-kompatibel, nur DSI-1 Display)
 wayvnc -o DSI-1 0.0.0.0 5900 &
-
-# Mauszeiger ausblenden
-unclutter -idle 0.1 &
 
 # WICHTIG: Wir starten hier KEIN Panel, keine Tastatur, keinen Desktop!
 # Chromium wird von kiosk.service gestartet
@@ -226,12 +229,100 @@ AUTOSTART_EOF
 chmod +x "$LABWC_DIR/autostart"
 chown -R $SERVICE_USER:$SERVICE_USER "$LABWC_DIR"
 
-print_success "Display-Overlay konfiguriert + labwc Autostart erstellt (Rotation 270°, VNC, Cursor)"
+print_success "Display-Overlay konfiguriert + labwc Autostart erstellt (Rotation 270°, VNC, swaybg)"
+
+# ----------------------------------------------------------------------------
+# Schritt 5: Plymouth Boot-Splash konfigurieren
+# ----------------------------------------------------------------------------
+print_step "5/13" "Plymouth Boot-Splash einrichten"
+
+PLYMOUTH_THEME_DIR="/usr/share/plymouth/themes/vde-messwand"
+mkdir -p "$PLYMOUTH_THEME_DIR"
+
+# Plymouth theme config
+cat > "$PLYMOUTH_THEME_DIR/vde-messwand.plymouth" << 'EOF'
+[Plymouth Theme]
+Name=VDE Messwand
+Description=VDE Messwand Boot-Splash
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/vde-messwand
+ScriptFile=/usr/share/plymouth/themes/vde-messwand/vde-messwand.script
+EOF
+
+# Plymouth script (weißer Hintergrund, Bild zentriert, kein Strecken)
+cat > "$PLYMOUTH_THEME_DIR/vde-messwand.script" << 'EOF'
+/* VDE Messwand Plymouth Theme */
+
+screen_width = Window.GetWidth();
+screen_height = Window.GetHeight();
+
+/* Hintergrund weiß füllen */
+Window.SetBackgroundTopColor(1.0, 1.0, 1.0);
+Window.SetBackgroundBottomColor(1.0, 1.0, 1.0);
+
+/* Splash-Bild laden und zentriert anzeigen (kein Skalieren) */
+theme_image = Image("splash.png");
+img_w = theme_image.GetWidth();
+img_h = theme_image.GetHeight();
+
+x = (screen_width  - img_w) / 2;
+y = (screen_height - img_h) / 2;
+
+sprite = Sprite(theme_image);
+sprite.SetPosition(x, y, -100);
+EOF
+
+# Splash-Bild generieren (720x1280, weißer Hintergrund, Logo zentriert, -90° gedreht)
+LOGO_SRC="$INSTALL_DIR/static/company_logo.png"
+SPLASH_DST="$PLYMOUTH_THEME_DIR/splash.png"
+DESKTOP_DST="$INSTALL_DIR/static/desktop_bg.png"
+
+python3 -c "
+from PIL import Image
+logo = Image.open('$LOGO_SRC').convert('RGBA')
+lw, lh = logo.size
+scale = min(768/lw, 200/lh)
+nw, nh = int(lw*scale), int(lh*scale)
+logo = logo.resize((nw, nh), Image.LANCZOS)
+canvas = Image.new('RGBA', (1280, 720), (255,255,255,255))
+canvas.paste(logo, ((1280-nw)//2, (720-nh)//2), logo)
+splash = canvas.rotate(-90, expand=True).convert('RGB')
+splash.save('$SPLASH_DST')
+print(f'Plymouth splash generiert: {splash.size}')
+"
+
+# Desktop-Hintergrundbild generieren (1280x720, Wayland-Logikgröße)
+python3 -c "
+from PIL import Image
+logo = Image.open('$LOGO_SRC').convert('RGBA')
+lw, lh = logo.size
+scale = min(700/lw, 200/lh)
+nw, nh = int(lw*scale), int(lh*scale)
+logo = logo.resize((nw, nh), Image.LANCZOS)
+canvas = Image.new('RGBA', (1280, 720), (255,255,255,255))
+canvas.paste(logo, ((1280-nw)//2, (720-nh)//2), logo)
+canvas.convert('RGB').save('$DESKTOP_DST')
+print(f'Desktop-Hintergrund generiert: 1280x720')
+"
+
+# Plymouth-Theme aktivieren und initramfs neu bauen
+if command -v plymouth-set-default-theme &>/dev/null; then
+    plymouth-set-default-theme vde-messwand
+    print_success "Plymouth-Theme 'vde-messwand' aktiviert"
+else
+    print_warning "plymouth-set-default-theme nicht gefunden"
+fi
+
+echo "Rebuilding initramfs (dauert ~30 Sekunden)..."
+update-initramfs -u 2>&1 | tail -3
+print_success "Plymouth Boot-Splash eingerichtet und initramfs neu gebaut"
 
 # ----------------------------------------------------------------------------
 # Schritt 6: Hostname setzen
 # ----------------------------------------------------------------------------
-print_step "5/12" "Hostname konfigurieren"
+print_step "6/13" "Hostname konfigurieren"
 
 # Aktuellen Hostname speichern
 OLD_HOSTNAME=$(hostname)
@@ -252,7 +343,7 @@ print_success "Hostname gesetzt: $HOSTNAME"
 # ----------------------------------------------------------------------------
 # Schritt 7: Benutzerberechtigungen
 # ----------------------------------------------------------------------------
-print_step "6/12" "Benutzerberechtigungen konfigurieren"
+print_step "8/13" "Benutzerberechtigungen konfigurieren"
 
 # Benutzer zu notwendigen Gruppen hinzufügen
 usermod -a -G dialout $SERVICE_USER 2>/dev/null || true
@@ -276,7 +367,7 @@ print_success "Benutzerberechtigungen konfiguriert"
 # ----------------------------------------------------------------------------
 # Schritt 8: Virtuelle Umgebung und Python-Abhängigkeiten
 # ----------------------------------------------------------------------------
-print_step "7/12" "Python-Umgebung einrichten"
+print_step "9/13" "Python-Umgebung einrichten"
 
 cd "$INSTALL_DIR"
 
@@ -290,14 +381,14 @@ fi
 
 # Abhängigkeiten installieren
 sudo -u $SERVICE_USER bash -c "source venv/bin/activate && pip install --upgrade pip"
-sudo -u $SERVICE_USER bash -c "source venv/bin/activate && pip install Flask==2.3.3 smbus2==0.4.2 pyserial gunicorn RPi.GPIO openpyxl gpiod"
+sudo -u $SERVICE_USER bash -c "source venv/bin/activate && pip install Flask==2.3.3 smbus2==0.4.2 pyserial gunicorn RPi.GPIO openpyxl gpiod fpdf2"
 
 print_success "Python-Abhängigkeiten installiert"
 
 # ----------------------------------------------------------------------------
 # Schritt 9: Hotspot-Konfiguration aktualisieren
 # ----------------------------------------------------------------------------
-print_step "8/12" "Hotspot-Konfiguration anpassen"
+print_step "10/13" "Hotspot-Konfiguration anpassen"
 
 # network_manager.py mit korrekter SSID aktualisieren
 NETWORK_MANAGER_FILE="$INSTALL_DIR/network_manager.py"
@@ -311,7 +402,7 @@ fi
 # ----------------------------------------------------------------------------
 # Schritt 10: Systemd-Service einrichten
 # ----------------------------------------------------------------------------
-print_step "9/12" "Systemd-Service einrichten"
+print_step "11/13" "Systemd-Service einrichten"
 
 SERVICE_FILE="/etc/systemd/system/VDE-Messwand.service"
 cat > "$SERVICE_FILE" << EOF
@@ -344,7 +435,7 @@ print_success "Systemd-Service eingerichtet und aktiviert"
 # ----------------------------------------------------------------------------
 # Schritt 11: Power-Button (J2) konfigurieren
 # ----------------------------------------------------------------------------
-print_step "10/12" "Power-Button (J2-Header) konfigurieren"
+print_step "12/13" "Power-Button (J2-Header) konfigurieren"
 
 echo "Der Raspberry Pi 5 hat einen J2-Header für einen externen Power-Button."
 echo "Standard: Button kann Ein- UND Ausschalten"
@@ -402,7 +493,7 @@ fi
 # ----------------------------------------------------------------------------
 # Schritt 12: Datenbank initialisieren
 # ----------------------------------------------------------------------------
-print_step "11/12" "Datenbank initialisieren"
+print_step "12/13" "Datenbank initialisieren"
 
 cd "$INSTALL_DIR"
 if [ ! -f "vde_messwand.db" ]; then
@@ -415,7 +506,7 @@ fi
 # ----------------------------------------------------------------------------
 # Schritt 13: Kiosk-Modus konfigurieren
 # ----------------------------------------------------------------------------
-print_step "12/12" "Kiosk-Modus einrichten (Autologin + Chromium)"
+print_step "13/13" "Kiosk-Modus einrichten (Autologin + Chromium)"
 
 # Chromium installieren falls nicht vorhanden
 if ! command -v chromium &> /dev/null && ! command -v chromium-browser &> /dev/null; then
