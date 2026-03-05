@@ -30,7 +30,7 @@
             right: 0;
             background: rgba(15, 15, 25, 0.98);
             border-top: 2px solid #e30613;
-            padding: 10px 8px 14px;
+            padding: 12px 10px 18px;
             z-index: 99999;
             box-shadow: 0 -6px 24px rgba(0,0,0,0.6);
             user-select: none;
@@ -39,8 +39,8 @@
         .osk-row {
             display: flex;
             justify-content: center;
-            gap: 4px;
-            margin-bottom: 5px;
+            gap: 5px;
+            margin-bottom: 6px;
         }
         .osk-key {
             background: rgba(255,255,255,0.08);
@@ -48,12 +48,12 @@
             border-bottom: 2px solid rgba(255,255,255,0.25);
             border-radius: 6px;
             color: #ffffff;
-            font-size: 15px;
+            font-size: 19px;
             font-family: inherit;
-            padding: 10px 0;
-            min-width: 36px;
+            padding: 13px 0;
+            min-width: 44px;
             flex: 1;
-            max-width: 58px;
+            max-width: 70px;
             cursor: pointer;
             text-align: center;
             transition: background 0.08s, transform 0.05s;
@@ -64,9 +64,9 @@
             background: rgba(227, 6, 19, 0.45);
             transform: scale(0.93);
         }
-        .osk-key.osk-wide  { max-width: 90px; flex: 2; font-size: 13px; }
-        .osk-key.osk-wider { max-width: 140px; flex: 2.5; font-size: 13px; }
-        .osk-key.osk-space { flex: 5; max-width: 320px; }
+        .osk-key.osk-wide  { max-width: 110px; flex: 2; font-size: 16px; }
+        .osk-key.osk-wider { max-width: 170px; flex: 2.5; font-size: 16px; }
+        .osk-key.osk-space { flex: 5; max-width: 380px; }
         .osk-key.osk-shift-active { background: rgba(227,6,19,0.35); }
         .osk-row-hint {
             text-align: center;
@@ -109,6 +109,17 @@
         </div>
         {% endblock %}
         {% block content %}{% endblock %}
+    </div>
+
+    <!-- Custom Confirm Modal (ersetzt window.confirm() im Kiosk-Modus) -->
+    <div id="confirm-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:999999; justify-content:center; align-items:center;">
+        <div style="background: linear-gradient(135deg, rgba(15,15,25,0.98), rgba(25,25,40,0.98)); border: 1px solid rgba(227,6,19,0.5); border-radius: 18px; padding: 36px 32px; max-width: 440px; width: 90%; box-shadow: 0 12px 48px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.05);">
+            <p id="confirm-message" style="color: rgba(255,255,255,0.9); margin: 0 0 28px 0; text-align:center; font-size: 1.15rem; line-height: 1.5; white-space: pre-line;"></p>
+            <div style="display: flex; gap: 14px; justify-content: center;">
+                <button id="confirm-yes" style="background: linear-gradient(45deg, #dc3545, #e74c3c); border: none; border-radius: 12px; color: white; padding: 14px 32px; font-size: 1.05rem; font-weight: 600; cursor: pointer; min-width: 130px; box-shadow: 0 4px 15px rgba(220,53,69,0.4); touch-action: manipulation;">Ja</button>
+                <button id="confirm-no" style="background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.25); border-radius: 12px; color: rgba(255,255,255,0.8); padding: 14px 32px; font-size: 1.05rem; font-weight: 600; cursor: pointer; min-width: 130px; touch-action: manipulation;">Abbrechen</button>
+            </div>
+        </div>
     </div>
 
     <script src="/static/script.js"></script>
@@ -284,7 +295,7 @@
             clearTimeout(hideTimer);
             activeEl = el;
             renderOSK();
-            document.body.style.paddingBottom = '230px';
+            document.body.style.paddingBottom = '290px';
             setTimeout(function() { el.scrollIntoView({behavior:'smooth', block:'nearest'}); }, 120);
         }
 

@@ -13,9 +13,9 @@
   },
   "4": {
     "group_number": 0,
-    "name": "",
-    "category": "RISO",
-    "stromkreis": ""
+    "name": "500 ohm",
+    "category": "Zi",
+    "stromkreis": "CEE 16A"
   },
   "19": {
     "group_number": 0,
@@ -54,7 +54,7 @@
     "stromkreis": ""
   },
   "7": {
-    "group_number": 1,
+    "group_number": 0,
     "name": "",
     "category": "Abriss",
     "stromkreis": ""
@@ -62,13 +62,25 @@
   "6": {
     "group_number": 1,
     "name": "",
-    "category": "Abriss",
+    "category": "RISO",
     "stromkreis": ""
   },
   "2": {
     "group_number": 0,
-    "name": "hhhh",
-    "category": "",
-    "stromkreis": ""
+    "name": "Lampentausch",
+    "category": "Lampentausch",
+    "stromkreis": "Lampen"
+  },
+  "3": {
+    "group_number": 0,
+    "name": "1800 ohm",
+    "category": "Zi",
+    "stromkreis": "CEE 16A"
+  },
+  "5": {
+    "group_number": 1,
+    "name": "iso 820kohm",
+    "category": "RISO",
+    "stromkreis": "CEE 16A"
   }
 }

@@ -13,3 +13,6 @@ RPi.GPIO
 
 # Production Server (optional)
 gunicorn
+
+# PDF-Generierung (Dokumentenverwaltung)
+fpdf2

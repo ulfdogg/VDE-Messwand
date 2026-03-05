@@ -108,12 +108,17 @@
 
             <div class="form-field">
                 <label>Stromkreis</label>
-                <input type="text"
-                       id="stromkreis_{{ relay_num }}"
-                       value="{{ relay_data.stromkreis }}"
-                       placeholder="z.B. CEE 16A, L1-PE"
-                       data-original="{{ relay_data.stromkreis }}"
-                       oninput="markChanged({{ relay_num }})">
+                <select id="stromkreis_{{ relay_num }}"
+                        data-original="{{ relay_data.stromkreis }}"
+                        onchange="markChanged({{ relay_num }})">
+                    <option value="">-- Keiner --</option>
+                    {% for sk_id, sk_data in stromkreise.items() %}
+                    <option value="{{ sk_data.name }}"
+                            {% if relay_data.stromkreis == sk_data.name %}selected{% endif %}>
+                        {{ sk_data.name }}
+                    </option>
+                    {% endfor %}
+                </select>
             </div>
 
             <div class="action-buttons">

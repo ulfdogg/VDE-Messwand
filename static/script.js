@@ -3,6 +3,25 @@ let examTimer = null;
 let examStartTime = null;
 let currentExamNumber = null;
 
+// Custom confirm dialog (ersetzt window.confirm(), da Kiosk-Modus es blockiert)
+function showConfirm(message, onConfirm) {
+    const modal = document.getElementById('confirm-modal');
+    if (!modal) {
+        // Fallback wenn Modal nicht im DOM
+        if (confirm(message)) onConfirm();
+        return;
+    }
+    document.getElementById('confirm-message').textContent = message;
+    modal.style.display = 'flex';
+    document.getElementById('confirm-yes').onclick = function() {
+        modal.style.display = 'none';
+        onConfirm();
+    };
+    document.getElementById('confirm-no').onclick = function() {
+        modal.style.display = 'none';
+    };
+}
+
 // Utility functions
 function showMessage(message, type = 'success') {
     const messageDiv = document.createElement('div');
@@ -342,7 +361,7 @@ function connectWifi() {
 }
 
 function shutdownSystem() {
-    if (confirm('System wirklich herunterfahren?')) {
+    showConfirm('System wirklich herunterfahren?', function() {
         fetch('/shutdown_system', {
             method: 'POST',
             headers: {
@@ -358,7 +377,7 @@ function shutdownSystem() {
         .then(data => {
             if (data.success) {
                 showMessage('System wird heruntergefahren...', 'success');
-                
+
                 // Show shutdown message
                 document.body.innerHTML = `
                     <div class="container">
@@ -379,7 +398,7 @@ function shutdownSystem() {
             showMessage('Netzwerkfehler!', 'error');
             console.error('Error:', error);
         });
-    }
+    });
 }
 
 // Debug function for manual mode
@@ -479,50 +498,48 @@ function updateStatusDisplay() {
 }
 
 function resetRelays() {
-    if (!confirm('🔄 Alle Relais zurücksetzen?\n\nDies deaktiviert alle aktiven Fehler.')) {
-        return;
-    }
+    showConfirm('Alle Relais zurücksetzen?\n\nDies deaktiviert alle aktiven Fehler.', function() {
+        debugLog('Resetting relays...');
 
-    debugLog('Resetting relays...');
+        fetch('/reset_relays', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            debugLog('Reset response: ' + JSON.stringify(data));
 
-    fetch('/reset_relays', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        }
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        debugLog('Reset response: ' + JSON.stringify(data));
-        
-        // Reset all select elements
-        for (let i = 1; i <= 7; i++) {
-            const selectElement = document.getElementById('stromkreis' + i);
-            const descriptionDiv = document.getElementById('description' + i);
-            if (selectElement) {
-                selectElement.value = '';
+            // Reset all select elements
+            for (let i = 1; i <= 7; i++) {
+                const selectElement = document.getElementById('stromkreis' + i);
+                const descriptionDiv = document.getElementById('description' + i);
+                if (selectElement) {
+                    selectElement.value = '';
+                }
+                if (descriptionDiv) {
+                    descriptionDiv.innerHTML = '<em>Kein Fehler ausgewählt</em>';
+                }
             }
-            if (descriptionDiv) {
-                descriptionDiv.innerHTML = '<em>Kein Fehler ausgewählt</em>';
+
+            updateStatusDisplay();
+
+            if (data.success) {
+                showMessage('Alle Relais zurückgesetzt!', 'success');
+            } else {
+                showMessage(`Reset teilweise erfolgreich: ${data.message || 'Unbekannter Status'}`, 'error');
             }
-        }
-        
-        updateStatusDisplay();
-        
-        if (data.success) {
-            alert('✅ Alle Relais zurückgesetzt!');
-        } else {
-            alert(`⚠ Reset teilweise erfolgreich: ${data.message || 'Unbekannter Status'}`);
-        }
-    })
-    .catch(error => {
-        debugLog('Reset error: ' + error);
-        alert('🚫 Verbindungsfehler beim Reset!');
+        })
+        .catch(error => {
+            debugLog('Reset error: ' + error);
+            showMessage('Verbindungsfehler beim Reset!', 'error');
+        });
     });
 }
 

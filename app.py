@@ -3,6 +3,7 @@ VDE Messwand - Hauptanwendung
 """
 from flask import Flask, render_template, request, jsonify, Response, send_file
 from jinja2 import FileSystemLoader
+import os
 import subprocess
 import io
 import csv
@@ -522,18 +523,9 @@ def api_add_stromkreis():
 
     name = data.get('name', '').strip()
     description = data.get('description', '').strip()
-    relay_start = data.get('relay_start', 0)
-    relay_count = data.get('relay_count', 10)
 
-    try:
-        relay_start = int(relay_start)
-        relay_count = int(relay_count)
-    except:
-        return jsonify({'success': False, 'message': 'Ungültige Relais-Werte'})
+    success, message, stromkreis_id = add_stromkreis(name, description)
 
-    success, message, stromkreis_id = add_stromkreis(name, description, relay_start, relay_count)
-
-    # Bei Erfolg: Config neu laden
     if success:
         reload_relay_config()
 
@@ -552,16 +544,8 @@ def api_update_stromkreis():
     stromkreis_id = data.get('stromkreis_id')
     name = data.get('name', '').strip()
     description = data.get('description', '').strip()
-    relay_start = data.get('relay_start', 0)
-    relay_count = data.get('relay_count', 10)
 
-    try:
-        relay_start = int(relay_start)
-        relay_count = int(relay_count)
-    except:
-        return jsonify({'success': False, 'message': 'Ungültige Relais-Werte'})
-
-    success, message = update_stromkreis(stromkreis_id, name, description, relay_start, relay_count)
+    success, message = update_stromkreis(stromkreis_id, name, description)
 
     if success:
         reload_relay_config()
@@ -1345,10 +1329,54 @@ def shutdown_system():
     """Fährt das System herunter"""
     try:
         relay_controller.reset_all_relays()
-        subprocess.Popen(['sudo', 'shutdown', '-h', '+1'])
+        subprocess.Popen(['sudo', 'shutdown', '-h', 'now'])
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/restart_system', methods=['POST'])
+def restart_system():
+    """Startet das System neu"""
+    try:
+        relay_controller.reset_all_relays()
+        subprocess.Popen(['sudo', 'reboot'])
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+# ==================== DOKUMENTE / PDF-VIEWER ====================
+
+PDF_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'pdfs')
+
+@app.route('/api/pdfs', methods=['GET'])
+def api_list_pdfs():
+    """Listet alle PDFs im pdfs/-Ordner"""
+    import os as _os
+    try:
+        if not _os.path.exists(PDF_DIR):
+            _os.makedirs(PDF_DIR)
+        files = sorted([
+            f for f in _os.listdir(PDF_DIR)
+            if f.lower().endswith('.pdf')
+        ])
+        return jsonify({'success': True, 'files': files})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/pdfs/<path:filename>')
+def serve_pdf(filename):
+    """Stellt eine PDF-Datei bereit"""
+    import os as _os
+    from flask import send_from_directory, abort
+    # Sicherheit: nur .pdf und kein Pfad-Traversal
+    if '..' in filename or '/' in filename or not filename.lower().endswith('.pdf'):
+        abort(400)
+    if not _os.path.exists(_os.path.join(PDF_DIR, filename)):
+        abort(404)
+    return send_from_directory(PDF_DIR, filename, mimetype='application/pdf')
 
 
 # ==================== DEBUG/STATUS ====================
@@ -1407,7 +1435,7 @@ def initialize_app(skip_gpio_check=False):
     print(f"Benannte Relais: {len(config.RELAY_NAMES)} definiert")
     print(f"Stromkreise für UI-Gruppierung:")
     for sk_num, sk_data in STROMKREISE.items():
-        print(f"  {sk_num}. {sk_data['name']}: Relais {sk_data['relays'][0]}-{sk_data['relays'][-1]}")
+        print(f"  {sk_num}. {sk_data['name']}")
     print("=" * 60)
 
     try:

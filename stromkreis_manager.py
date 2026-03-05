@@ -50,31 +50,21 @@ def save_stromkreise_to_file(stromkreise):
 
 def get_all_stromkreise():
     """
-    Gibt alle definierten Stromkreise zurück (config.py + JSON)
+    Gibt alle definierten Stromkreise zurück (aus stromkreise.json)
 
     Returns:
         Dictionary mit allen Stromkreisen
     """
-    from config import STROMKREISE
-
-    file_stromkreise = load_stromkreise_from_file()
-
-    # Merge: File-Stromkreise haben Vorrang
-    all_stromkreise = STROMKREISE.copy()
-    all_stromkreise.update(file_stromkreise)
-
-    return all_stromkreise
+    return load_stromkreise_from_file()
 
 
-def add_stromkreis(name, description='', relay_start=0, relay_count=10):
+def add_stromkreis(name, description=''):
     """
     Fügt einen neuen Stromkreis hinzu
 
     Args:
         name: Name des Stromkreises
         description: Beschreibung
-        relay_start: Start-Relais-Nummer
-        relay_count: Anzahl der Relais in diesem Stromkreis
 
     Returns:
         (success, message, stromkreis_id)
@@ -82,33 +72,16 @@ def add_stromkreis(name, description='', relay_start=0, relay_count=10):
     if not name or not name.strip():
         return False, "Name darf nicht leer sein", None
 
-    if relay_count < 1:
-        return False, "Mindestens 1 Relais erforderlich", None
-
-    if relay_start < 0 or relay_start > 63:
-        return False, "Ungültige Start-Relais-Nummer", None
-
-    if relay_start + relay_count > 64:
-        return False, f"Relais-Bereich überschreitet Maximum (64 Relais)", None
-
-    # Prüfe auf Überschneidungen
-    all_stromkreise = get_all_stromkreise()
-    new_range = set(range(relay_start, relay_start + relay_count))
-
-    for sk_id, sk_data in all_stromkreise.items():
-        existing_range = set(sk_data.get('relays', []))
-        overlap = new_range & existing_range
-        if overlap:
-            return False, f"Überschneidung mit Stromkreis '{sk_data['name']}' bei Relais {sorted(overlap)}", None
-
     # Lade bestehende File-Stromkreise
     stromkreise = load_stromkreise_from_file()
 
+    # Prüfe ob Name bereits vergeben
+    for sk_data in stromkreise.values():
+        if sk_data['name'].strip().lower() == name.strip().lower():
+            return False, f"Stromkreis '{name}' existiert bereits", None
+
     # Finde nächste freie ID
-    existing_ids = set()
-    from config import STROMKREISE
-    existing_ids.update(STROMKREISE.keys())
-    existing_ids.update(stromkreise.keys())
+    existing_ids = set(stromkreise.keys())
 
     new_id = 1
     while new_id in existing_ids:
@@ -117,8 +90,7 @@ def add_stromkreis(name, description='', relay_start=0, relay_count=10):
     # Füge neuen Stromkreis hinzu
     stromkreise[new_id] = {
         'name': name.strip(),
-        'description': description.strip(),
-        'relays': list(range(relay_start, relay_start + relay_count))
+        'description': description.strip()
     }
 
     # Speichern
@@ -128,7 +100,7 @@ def add_stromkreis(name, description='', relay_start=0, relay_count=10):
         return False, "Fehler beim Speichern", None
 
 
-def update_stromkreis(stromkreis_id, name, description='', relay_start=0, relay_count=10):
+def update_stromkreis(stromkreis_id, name, description=''):
     """
     Aktualisiert einen existierenden Stromkreis
 
@@ -136,8 +108,6 @@ def update_stromkreis(stromkreis_id, name, description='', relay_start=0, relay_
         stromkreis_id: ID des zu aktualisierenden Stromkreises
         name: Neuer Name
         description: Neue Beschreibung
-        relay_start: Neue Start-Relais-Nummer
-        relay_count: Neue Anzahl der Relais
 
     Returns:
         (success, message)
@@ -150,42 +120,15 @@ def update_stromkreis(stromkreis_id, name, description='', relay_start=0, relay_
         return False, "Ungültige Stromkreis-ID"
 
     if stromkreis_id not in stromkreise:
-        # Prüfe ob in config.py definiert
-        from config import STROMKREISE
-        if stromkreis_id in STROMKREISE:
-            return False, "Stromkreise aus config.py können nicht bearbeitet werden"
         return False, "Stromkreis nicht gefunden"
 
-    # Validierung
     if not name or not name.strip():
         return False, "Name darf nicht leer sein"
 
-    if relay_count < 1:
-        return False, "Mindestens 1 Relais erforderlich"
-
-    if relay_start < 0 or relay_start > 63:
-        return False, "Ungültige Start-Relais-Nummer"
-
-    if relay_start + relay_count > 64:
-        return False, f"Relais-Bereich überschreitet Maximum (64 Relais)"
-
-    # Prüfe Überschneidungen (außer mit sich selbst)
-    all_stromkreise = get_all_stromkreise()
-    new_range = set(range(relay_start, relay_start + relay_count))
-
-    for sk_id, sk_data in all_stromkreise.items():
-        if sk_id == stromkreis_id:
-            continue
-        existing_range = set(sk_data.get('relays', []))
-        overlap = new_range & existing_range
-        if overlap:
-            return False, f"Überschneidung mit Stromkreis '{sk_data['name']}' bei Relais {sorted(overlap)}"
-
-    # Update
+    # Update (relays-Feld beibehalten falls vorhanden, für Rückwärtskompatibilität)
     stromkreise[stromkreis_id] = {
         'name': name.strip(),
-        'description': description.strip(),
-        'relays': list(range(relay_start, relay_start + relay_count))
+        'description': description.strip()
     }
 
     if save_stromkreise_to_file(stromkreise):
@@ -212,9 +155,6 @@ def delete_stromkreis(stromkreis_id):
         return False, "Ungültige Stromkreis-ID"
 
     if stromkreis_id not in stromkreise:
-        from config import STROMKREISE
-        if stromkreis_id in STROMKREISE:
-            return False, "Stromkreise aus config.py können nicht gelöscht werden"
         return False, "Stromkreis nicht gefunden"
 
     stromkreis_name = stromkreise[stromkreis_id]['name']
