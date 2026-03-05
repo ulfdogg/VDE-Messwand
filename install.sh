@@ -73,7 +73,7 @@ check_root
 # ----------------------------------------------------------------------------
 # Schritt 1: Hostname abfragen
 # ----------------------------------------------------------------------------
-print_step "1/13" "System-Konfiguration"
+print_step "1/14" "System-Konfiguration"
 
 echo ""
 echo "Der Hostname wird für folgende Zwecke verwendet:"
@@ -100,7 +100,7 @@ fi
 # ----------------------------------------------------------------------------
 # Schritt 2: System aktualisieren
 # ----------------------------------------------------------------------------
-print_step "2/13" "System aktualisieren (apt update && upgrade)"
+print_step "2/14" "System aktualisieren (apt update && upgrade)"
 
 apt update
 apt upgrade -y
@@ -110,7 +110,7 @@ print_success "System aktualisiert"
 # ----------------------------------------------------------------------------
 # Schritt 3: Pakete installieren
 # ----------------------------------------------------------------------------
-print_step "3/13" "Erforderliche Pakete installieren"
+print_step "3/14" "Erforderliche Pakete installieren"
 
 apt install -y \
     python3 \
@@ -130,6 +130,7 @@ apt install -y \
     wlr-randr \
     wayvnc \
     swaybg \
+    samba \
     plymouth \
     plymouth-themes \
     fonts-noto-color-emoji
@@ -175,7 +176,7 @@ print_success "Bildschirmtastatur und Keyring komplett deaktiviert (systemd + D-
 # ----------------------------------------------------------------------------
 # Schritt 4: Display-Konfiguration
 # ----------------------------------------------------------------------------
-print_step "4/13" "Display konfigurieren (7\" Touchscreen)"
+print_step "4/14" "Display konfigurieren (7\" Touchscreen)"
 
 CONFIG_FILE="/boot/firmware/config.txt"
 
@@ -234,7 +235,7 @@ print_success "Display-Overlay konfiguriert + labwc Autostart erstellt (Rotation
 # ----------------------------------------------------------------------------
 # Schritt 5: Plymouth Boot-Splash konfigurieren
 # ----------------------------------------------------------------------------
-print_step "5/13" "Plymouth Boot-Splash einrichten"
+print_step "5/14" "Plymouth Boot-Splash einrichten"
 
 PLYMOUTH_THEME_DIR="/usr/share/plymouth/themes/vde-messwand"
 mkdir -p "$PLYMOUTH_THEME_DIR"
@@ -320,9 +321,53 @@ update-initramfs -u 2>&1 | tail -3
 print_success "Plymouth Boot-Splash eingerichtet und initramfs neu gebaut"
 
 # ----------------------------------------------------------------------------
-# Schritt 6: Hostname setzen
+# Schritt 6: Samba-Freigaben einrichten
 # ----------------------------------------------------------------------------
-print_step "6/13" "Hostname konfigurieren"
+print_step "6/14" "Samba-Freigaben einrichten (Dokumente & Videos)"
+
+mkdir -p "$INSTALL_DIR/pdfs" "$INSTALL_DIR/videos"
+chown -R $SERVICE_USER:$SERVICE_USER "$INSTALL_DIR/pdfs" "$INSTALL_DIR/videos"
+
+# Bestehende VDE-Einträge entfernen und neu schreiben
+SAMBA_CONF="/etc/samba/smb.conf"
+sed -i '/# VDE Messwand - Geteilte Ordner/,$ d' "$SAMBA_CONF"
+
+cat >> "$SAMBA_CONF" << SAMBA_EOF
+
+# ============================================================
+# VDE Messwand - Geteilte Ordner
+# ============================================================
+
+[Dokumente]
+   comment = VDE Messwand Dokumente (PDFs)
+   path = $INSTALL_DIR/pdfs
+   browseable = yes
+   read only = no
+   guest ok = yes
+   create mask = 0664
+   directory mask = 0775
+   force user = $SERVICE_USER
+
+[Videos]
+   comment = VDE Messwand Videos
+   path = $INSTALL_DIR/videos
+   browseable = yes
+   read only = no
+   guest ok = yes
+   create mask = 0664
+   directory mask = 0775
+   force user = $SERVICE_USER
+SAMBA_EOF
+
+systemctl enable smbd nmbd
+systemctl restart smbd nmbd
+
+print_success "Samba-Freigaben eingerichtet: \\\\\\\\$HOSTNAME\\\\Dokumente und \\\\\\\\$HOSTNAME\\\\Videos"
+
+# ----------------------------------------------------------------------------
+# Schritt 7: Hostname setzen
+# ----------------------------------------------------------------------------
+print_step "7/14" "Hostname konfigurieren"
 
 # Aktuellen Hostname speichern
 OLD_HOSTNAME=$(hostname)
@@ -343,7 +388,7 @@ print_success "Hostname gesetzt: $HOSTNAME"
 # ----------------------------------------------------------------------------
 # Schritt 7: Benutzerberechtigungen
 # ----------------------------------------------------------------------------
-print_step "8/13" "Benutzerberechtigungen konfigurieren"
+print_step "8/14" "Benutzerberechtigungen konfigurieren"
 
 # Benutzer zu notwendigen Gruppen hinzufügen
 usermod -a -G dialout $SERVICE_USER 2>/dev/null || true
@@ -367,7 +412,7 @@ print_success "Benutzerberechtigungen konfiguriert"
 # ----------------------------------------------------------------------------
 # Schritt 8: Virtuelle Umgebung und Python-Abhängigkeiten
 # ----------------------------------------------------------------------------
-print_step "9/13" "Python-Umgebung einrichten"
+print_step "9/14" "Python-Umgebung einrichten"
 
 cd "$INSTALL_DIR"
 
@@ -388,7 +433,7 @@ print_success "Python-Abhängigkeiten installiert"
 # ----------------------------------------------------------------------------
 # Schritt 9: Hotspot-Konfiguration aktualisieren
 # ----------------------------------------------------------------------------
-print_step "10/13" "Hotspot-Konfiguration anpassen"
+print_step "10/14" "Hotspot-Konfiguration anpassen"
 
 # network_manager.py mit korrekter SSID aktualisieren
 NETWORK_MANAGER_FILE="$INSTALL_DIR/network_manager.py"
@@ -402,7 +447,7 @@ fi
 # ----------------------------------------------------------------------------
 # Schritt 10: Systemd-Service einrichten
 # ----------------------------------------------------------------------------
-print_step "11/13" "Systemd-Service einrichten"
+print_step "11/14" "Systemd-Service einrichten"
 
 SERVICE_FILE="/etc/systemd/system/VDE-Messwand.service"
 cat > "$SERVICE_FILE" << EOF
@@ -435,7 +480,7 @@ print_success "Systemd-Service eingerichtet und aktiviert"
 # ----------------------------------------------------------------------------
 # Schritt 11: Power-Button (J2) konfigurieren
 # ----------------------------------------------------------------------------
-print_step "12/13" "Power-Button (J2-Header) konfigurieren"
+print_step "12/14" "Power-Button (J2-Header) konfigurieren"
 
 echo "Der Raspberry Pi 5 hat einen J2-Header für einen externen Power-Button."
 echo "Standard: Button kann Ein- UND Ausschalten"
@@ -493,7 +538,7 @@ fi
 # ----------------------------------------------------------------------------
 # Schritt 12: Datenbank initialisieren
 # ----------------------------------------------------------------------------
-print_step "12/13" "Datenbank initialisieren"
+print_step "13/14" "Datenbank initialisieren"
 
 cd "$INSTALL_DIR"
 if [ ! -f "vde_messwand.db" ]; then
@@ -506,7 +551,7 @@ fi
 # ----------------------------------------------------------------------------
 # Schritt 13: Kiosk-Modus konfigurieren
 # ----------------------------------------------------------------------------
-print_step "13/13" "Kiosk-Modus einrichten (Autologin + Chromium)"
+print_step "14/14" "Kiosk-Modus einrichten (Autologin + Chromium)"
 
 # Chromium installieren falls nicht vorhanden
 if ! command -v chromium &> /dev/null && ! command -v chromium-browser &> /dev/null; then
