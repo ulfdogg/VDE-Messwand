@@ -107,7 +107,10 @@ def api_set_wallbox_installed():
 def exam_mode():
     """Prüfungsmodus-Seite"""
     exam_number = generate_exam_number()
-    return render_template('exam_mode.html', exam_number=exam_number)
+    exam_settings = get_exam_settings()
+    return render_template('exam_mode.html',
+                           exam_number=exam_number,
+                           exam_duration_minutes=exam_settings['exam_duration_minutes'])
 
 
 @app.route('/start_exam', methods=['POST'])
@@ -1322,6 +1325,28 @@ def api_change_admin_code():
         'success': success,
         'message': message
     })
+
+
+@app.route('/admin_exam_config')
+def admin_exam_config():
+    """Admin: Prüfungsmodus-Konfiguration"""
+    exam_settings = get_exam_settings()
+    stromkreise = get_all_stromkreise()
+    return render_template('admin_exam_config.html',
+                           exam_settings=exam_settings,
+                           stromkreise=stromkreise)
+
+
+@app.route('/api/settings/exam', methods=['POST'])
+def api_save_exam_settings():
+    """API: Prüfungs-Einstellungen speichern"""
+    data = request.json
+    error_count = int(data.get('exam_error_count', 3))
+    duration_minutes = int(data.get('exam_duration_minutes', 20))
+    allowed_stromkreise = data.get('exam_allowed_stromkreise', [])
+
+    success, message = set_exam_settings(error_count, duration_minutes, allowed_stromkreise)
+    return jsonify({'success': success, 'message': message})
 
 
 @app.route('/shutdown_system', methods=['POST'])

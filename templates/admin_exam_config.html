@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+
+{% block title %}Prüfungsmodus-Konfiguration - VDE Messwand{% endblock %}
+
+{% block content %}
+<div class="glass-card">
+    <h1>⚙️ Prüfungsmodus-Konfiguration</h1>
+
+    <div id="message-box" style="display:none; margin-bottom:20px; padding:14px 20px; border-radius:10px; font-weight:600; text-align:center;"></div>
+
+    <form id="exam-config-form">
+
+        <!-- Stromkreis-Auswahl -->
+        <div class="config-section">
+            <h2>Stromkreise</h2>
+            <p style="color:rgba(255,255,255,0.6); margin-bottom:16px;">
+                Wähle welche Stromkreise im Prüfungsmodus berücksichtigt werden. Ohne Auswahl werden alle verwendet.
+            </p>
+
+            {% if stromkreise %}
+            <div class="stromkreis-grid">
+                {% for sk_id, sk in stromkreise.items() %}
+                <label class="stromkreis-toggle">
+                    <input type="checkbox"
+                           name="stromkreis"
+                           value="{{ sk_id }}"
+                           {% if not exam_settings.exam_allowed_stromkreise or sk_id|string in exam_settings.exam_allowed_stromkreise %}checked{% endif %}>
+                    <span class="toggle-label">
+                        <span class="toggle-name">{{ sk.name }}</span>
+                        {% if sk.description %}
+                        <span class="toggle-desc">{{ sk.description }}</span>
+                        {% endif %}
+                    </span>
+                </label>
+                {% endfor %}
+            </div>
+            <div style="margin-top:10px; display:flex; gap:10px;">
+                <button type="button" class="btn-secondary" onclick="selectAll(true)">Alle auswählen</button>
+                <button type="button" class="btn-secondary" onclick="selectAll(false)">Keine auswählen</button>
+            </div>
+            {% else %}
+            <p style="color:rgba(255,255,255,0.4);">Keine Stromkreise konfiguriert.</p>
+            {% endif %}
+        </div>
+
+        <!-- Fehleranzahl -->
+        <div class="config-section">
+            <h2>Anzahl Fehler</h2>
+            <p style="color:rgba(255,255,255,0.6); margin-bottom:16px;">
+                Wie viele zufällige Fehler sollen pro Prüfung eingebaut werden?
+                (Min. 1 – Max. Anzahl ausgewählter Stromkreise)
+            </p>
+            <div class="number-input-row">
+                <button type="button" class="num-btn" onclick="changeCount(-1)">−</button>
+                <input type="number" id="exam_error_count" name="exam_error_count"
+                       value="{{ exam_settings.exam_error_count }}"
+                       min="1" max="{{ stromkreise|length }}"
+                       style="width:80px; text-align:center; font-size:1.4rem; font-weight:700;
+                              background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.2);
+                              border-radius:8px; color:#fff; padding:10px;">
+                <button type="button" class="num-btn" onclick="changeCount(1)">+</button>
+                <span id="count-hint" style="color:rgba(255,255,255,0.5); margin-left:12px; align-self:center;"></span>
+            </div>
+        </div>
+
+        <!-- Prüfungsdauer -->
+        <div class="config-section">
+            <h2>Prüfungsdauer</h2>
+            <p style="color:rgba(255,255,255,0.6); margin-bottom:16px;">
+                Wie viele Minuten hat die Prüfung?
+            </p>
+            <div class="number-input-row">
+                <button type="button" class="num-btn" onclick="changeDuration(-5)">−5</button>
+                <button type="button" class="num-btn" onclick="changeDuration(-1)">−1</button>
+                <input type="number" id="exam_duration_minutes" name="exam_duration_minutes"
+                       value="{{ exam_settings.exam_duration_minutes }}"
+                       min="1" max="180"
+                       style="width:80px; text-align:center; font-size:1.4rem; font-weight:700;
+                              background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.2);
+                              border-radius:8px; color:#fff; padding:10px;">
+                <button type="button" class="num-btn" onclick="changeDuration(1)">+1</button>
+                <button type="button" class="num-btn" onclick="changeDuration(5)">+5</button>
+                <span style="color:rgba(255,255,255,0.5); margin-left:12px; align-self:center;">Minuten</span>
+            </div>
+        </div>
+
+        <button type="submit" class="btn-primary" style="margin-top:24px; width:100%; padding:18px; font-size:1.1rem;">
+            💾 Einstellungen speichern
+        </button>
+    </form>
+</div>
+
+<style>
+.config-section {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 14px;
+    padding: 24px;
+    margin-bottom: 20px;
+}
+.config-section h2 {
+    margin: 0 0 8px 0;
+    font-size: 1.1rem;
+    color: rgba(255,255,255,0.9);
+}
+.stromkreis-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 10px;
+}
+.stromkreis-toggle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 10px;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: background 0.15s;
+    touch-action: manipulation;
+}
+.stromkreis-toggle:active { background: rgba(227,6,19,0.15); }
+.stromkreis-toggle input[type="checkbox"] { width:20px; height:20px; accent-color:#e30613; flex-shrink:0; }
+.toggle-label { display:flex; flex-direction:column; }
+.toggle-name { font-weight:600; color:rgba(255,255,255,0.9); }
+.toggle-desc { font-size:0.8rem; color:rgba(255,255,255,0.45); }
+.number-input-row { display:flex; align-items:center; gap:10px; }
+.num-btn {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 8px;
+    color: #fff;
+    font-size: 1.2rem;
+    font-weight: 700;
+    padding: 10px 18px;
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: background 0.1s;
+}
+.num-btn:active { background: rgba(227,6,19,0.3); }
+.btn-secondary {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 8px;
+    color: rgba(255,255,255,0.8);
+    padding: 8px 16px;
+    font-size:0.9rem;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+.btn-primary {
+    background: linear-gradient(45deg, #c0010e, #e30613);
+    border: none;
+    border-radius: 12px;
+    color: #fff;
+    font-weight: 700;
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: opacity 0.15s;
+}
+.btn-primary:active { opacity: 0.85; }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function getSelectedCount() {
+    return document.querySelectorAll('input[name="stromkreis"]:checked').length;
+}
+
+function updateCountMax() {
+    const sel = getSelectedCount();
+    const inp = document.getElementById('exam_error_count');
+    const hint = document.getElementById('count-hint');
+    inp.max = Math.max(1, sel);
+    if (parseInt(inp.value) > sel) inp.value = Math.max(1, sel);
+    if (parseInt(inp.value) < 1) inp.value = 1;
+    hint.textContent = sel > 0 ? `max. ${sel} (gewählte Stromkreise)` : 'Bitte Stromkreis wählen';
+}
+
+document.querySelectorAll('input[name="stromkreis"]').forEach(cb => {
+    cb.addEventListener('change', updateCountMax);
+});
+updateCountMax();
+
+function changeCount(delta) {
+    const inp = document.getElementById('exam_error_count');
+    let v = parseInt(inp.value) + delta;
+    v = Math.max(1, Math.min(parseInt(inp.max), v));
+    inp.value = v;
+}
+
+function changeDuration(delta) {
+    const inp = document.getElementById('exam_duration_minutes');
+    let v = parseInt(inp.value) + delta;
+    v = Math.max(1, Math.min(180, v));
+    inp.value = v;
+}
+
+function selectAll(state) {
+    document.querySelectorAll('input[name="stromkreis"]').forEach(cb => cb.checked = state);
+    updateCountMax();
+}
+
+function showMsg(text, ok) {
+    const box = document.getElementById('message-box');
+    box.textContent = text;
+    box.style.display = 'block';
+    box.style.background = ok ? 'rgba(40,167,69,0.25)' : 'rgba(220,53,69,0.25)';
+    box.style.border = ok ? '1px solid rgba(40,167,69,0.5)' : '1px solid rgba(220,53,69,0.5)';
+    box.style.color = ok ? '#7dffb0' : '#ff8080';
+    setTimeout(() => { box.style.display = 'none'; }, 3000);
+}
+
+document.getElementById('exam-config-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const selectedSK = Array.from(document.querySelectorAll('input[name="stromkreis"]:checked')).map(cb => cb.value);
+    const errorCount = parseInt(document.getElementById('exam_error_count').value);
+    const duration = parseInt(document.getElementById('exam_duration_minutes').value);
+
+    if (selectedSK.length === 0) {
+        showMsg('Bitte mindestens einen Stromkreis auswählen!', false);
+        return;
+    }
+    if (errorCount < 1 || errorCount > selectedSK.length) {
+        showMsg(`Fehleranzahl muss zwischen 1 und ${selectedSK.length} liegen!`, false);
+        return;
+    }
+
+    fetch('/api/settings/exam', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            exam_error_count: errorCount,
+            exam_duration_minutes: duration,
+            exam_allowed_stromkreise: selectedSK
+        })
+    })
+    .then(r => r.json())
+    .then(data => showMsg(data.message, data.success))
+    .catch(() => showMsg('Netzwerkfehler', false));
+});
+</script>
+{% endblock %}

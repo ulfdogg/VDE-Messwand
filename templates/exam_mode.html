@@ -13,9 +13,10 @@
     </div>
     
     <div id="timerDisplay" class="timer-display" style="display: none;">
-        <div class="timer" id="timer">20:00</div>
+        <div class="timer" id="timer">{{ exam_duration_minutes }}:00</div>
         <p>Verbleibende Zeit</p>
     </div>
+    <input type="hidden" id="exam_duration_minutes" value="{{ exam_duration_minutes }}">
     
     <div class="btn-group">
         <button id="startBtn" class="btn" onclick="startExam('{{ exam_number }}')">
@@ -27,7 +28,7 @@
     </div>
     
     <div style="text-align: center; margin-top: 30px; opacity: 0.8;">
-        <p>Bei Start werden automatisch 3 zufällige Fehler zugeschaltet.</p>
+        <p>Prüfungsdauer: {{ exam_duration_minutes }} Minuten</p>
         <p>Maximal 1 Fehler pro Stromkreis.</p>
     </div>
 </div>

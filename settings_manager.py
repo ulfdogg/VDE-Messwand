@@ -12,8 +12,11 @@ def get_default_settings():
     """Gibt die Standard-Einstellungen zurück"""
     return {
         'admin_code': '1234',
-        'wallbox_installed': False,  # Ob eine Wallbox vorhanden ist
-        'wallbox_enabled': True      # Ob die Wallbox im Prüfmodus aktiv ist
+        'wallbox_installed': False,   # Ob eine Wallbox vorhanden ist
+        'wallbox_enabled': True,      # Ob die Wallbox im Prüfmodus aktiv ist
+        'exam_error_count': 3,        # Anzahl Fehler im Prüfungsmodus
+        'exam_duration_minutes': 20,  # Prüfungsdauer in Minuten
+        'exam_allowed_stromkreise': []  # Erlaubte Stromkreis-IDs (leer = alle)
     }
 
 def load_settings():
@@ -150,3 +153,31 @@ def set_wallbox_enabled(enabled: bool) -> Tuple[bool, str]:
         return True, f"Wallbox-Stromkreis {status}"
     else:
         return False, "Fehler beim Speichern der Einstellung"
+
+
+def get_exam_settings() -> dict:
+    """Gibt alle Prüfungs-Einstellungen zurück"""
+    settings = load_settings()
+    return {
+        'exam_error_count': settings.get('exam_error_count', 3),
+        'exam_duration_minutes': settings.get('exam_duration_minutes', 20),
+        'exam_allowed_stromkreise': settings.get('exam_allowed_stromkreise', [])
+    }
+
+
+def set_exam_settings(error_count: int, duration_minutes: int, allowed_stromkreise: list) -> Tuple[bool, str]:
+    """Speichert Prüfungs-Einstellungen"""
+    if error_count < 1:
+        return False, "Mindestens 1 Fehler erforderlich"
+    if duration_minutes < 1:
+        return False, "Mindestens 1 Minute erforderlich"
+
+    settings = load_settings()
+    settings['exam_error_count'] = int(error_count)
+    settings['exam_duration_minutes'] = int(duration_minutes)
+    settings['exam_allowed_stromkreise'] = [str(s) for s in allowed_stromkreise]
+
+    if save_settings(settings):
+        return True, "Prüfungs-Einstellungen gespeichert"
+    else:
+        return False, "Fehler beim Speichern"
