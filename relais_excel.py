@@ -5,6 +5,7 @@ from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from io import BytesIO
 from relais_manager import get_all_relais_config, bulk_update_relais
+from stromkreis_manager import get_all_kategorien, add_kategorie, get_all_stromkreise, add_stromkreis
 
 
 def create_excel_template(include_current_config=False):
@@ -58,7 +59,7 @@ def create_excel_template(include_current_config=False):
             relay_data = config.get(relay_num, {})
             row = relay_num + 2
 
-            ws.cell(row=row, column=1, value=relay_num).border = thin_border
+            ws.cell(row=row, column=1, value=relay_num + 1).border = thin_border
             ws.cell(row=row, column=2, value=relay_data.get('group_number', 0)).border = thin_border
             ws.cell(row=row, column=3, value=relay_data.get('name', '')).border = thin_border
             ws.cell(row=row, column=4, value=relay_data.get('category', '')).border = thin_border
@@ -67,7 +68,7 @@ def create_excel_template(include_current_config=False):
         # Leere Vorlage mit allen 64 Relais
         for relay_num in range(64):
             row = relay_num + 2
-            ws.cell(row=row, column=1, value=relay_num).border = thin_border
+            ws.cell(row=row, column=1, value=relay_num + 1).border = thin_border
             ws.cell(row=row, column=2, value=0).border = thin_border
             ws.cell(row=row, column=3, value='').border = thin_border
             ws.cell(row=row, column=4, value='').border = thin_border
@@ -82,14 +83,14 @@ def create_excel_template(include_current_config=False):
         ("", False),
         ("Anleitung:", True),
         ("1. Füllen Sie die Tabelle 'Relais-Konfiguration' aus", False),
-        ("2. Relais-Nr: 0-63 (nicht ändern!)", False),
+        ("2. Relais-Nr: 1-64 (nicht ändern!)", False),
         ("3. Gruppen-Nr: 0 = einzeln, 1-20 = Gruppennummer", False),
         ("4. Name: Beliebige Beschreibung (z.B. 'CEE L1')", False),
         ("5. Kategorie: z.B. RISO, Zi, Zs, RCD", False),
         ("6. Stromkreis: z.B. L1, L2, L3, N, PE", False),
         ("", False),
         ("Beispiele:", True),
-        ("Relais 0-2 gruppieren: Alle mit Gruppen-Nr = 1", False),
+        ("Relais 1-3 gruppieren: Alle mit Gruppen-Nr = 1", False),
         ("CEE 3-Phasen: L1, L2, L3 in Gruppe 1, N und PE einzeln", False),
         ("", False),
         ("Hinweis:", True),
@@ -156,11 +157,12 @@ def import_from_excel(file_stream):
                 continue
 
             try:
-                relay_num = int(relay_num)
+                relay_num_excel = int(relay_num)  # Wert aus Excel (1-basiert)
+                relay_num = relay_num_excel - 1    # Intern 0-basiert
                 group_number = int(group_number) if group_number is not None else 0
 
-                if not (0 <= relay_num <= 63):
-                    errors.append(f"Zeile {row_num}: Ungültige Relais-Nr {relay_num}")
+                if not (1 <= relay_num_excel <= 64):
+                    errors.append(f"Zeile {row_num}: Ungültige Relais-Nr {relay_num_excel} (muss 1-64 sein)")
                     continue
 
                 if not (0 <= group_number <= 20):
@@ -198,6 +200,21 @@ def import_from_excel(file_stream):
                 'success': False,
                 'message': 'Keine gültigen Daten in der Excel-Datei gefunden. Überprüfen Sie, ob die Datei Daten enthält und das richtige Format hat.'
             }
+
+        # Füge fehlende Kategorien automatisch hinzu
+        existing_kategorien = get_all_kategorien()
+        for relay_data in updates.values():
+            cat = relay_data.get('category', '')
+            if cat and cat not in existing_kategorien:
+                add_kategorie(cat)
+
+        # Füge fehlende Stromkreise automatisch hinzu
+        existing_stromkreise = {sk['name'] for sk in get_all_stromkreise().values()}
+        for relay_data in updates.values():
+            sk_name = relay_data.get('stromkreis', '')
+            if sk_name and sk_name not in existing_stromkreise:
+                add_stromkreis(sk_name)
+                existing_stromkreise.add(sk_name)
 
         # Importiere Daten
         result = bulk_update_relais(updates)
@@ -322,13 +339,13 @@ def create_predefined_template_excel(template_id):
 
                 if relay_num in config:
                     relay_data = config[relay_num]
-                    ws.cell(row=row, column=1, value=relay_num).border = thin_border
+                    ws.cell(row=row, column=1, value=relay_num + 1).border = thin_border
                     ws.cell(row=row, column=2, value=relay_data['group_number']).border = thin_border
                     ws.cell(row=row, column=3, value=relay_data['name']).border = thin_border
                     ws.cell(row=row, column=4, value=relay_data['category']).border = thin_border
                     ws.cell(row=row, column=5, value=relay_data['stromkreis']).border = thin_border
                 else:
-                    ws.cell(row=row, column=1, value=relay_num).border = thin_border
+                    ws.cell(row=row, column=1, value=relay_num + 1).border = thin_border
                     ws.cell(row=row, column=2, value=0).border = thin_border
                     ws.cell(row=row, column=3, value='').border = thin_border
                     ws.cell(row=row, column=4, value='').border = thin_border

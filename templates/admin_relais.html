@@ -65,7 +65,7 @@
              data-configured="{{ 'true' if relay_data.name or relay_data.category or relay_data.group_number > 0 else 'false' }}">
 
             <div class="relais-header">
-                <span class="relais-number">Relais {{ relay_num }}</span>
+                <span class="relais-number">Relais {{ relay_num + 1 }}</span>
                 {% if relay_data.group_number > 0 %}
                 <span class="group-badge">Gruppe {{ relay_data.group_number }}</span>
                 {% endif %}
@@ -328,7 +328,7 @@
             const result = await response.json();
 
             if (result.success) {
-                showMessage(`Relais ${relayNum} gespeichert`, 'success');
+                showMessage(`Relais ${relayNum + 1} gespeichert`, 'success');
                 changedRelais.delete(relayNum);
 
                 const card = document.querySelector(`[data-relay="${relayNum}"]`);

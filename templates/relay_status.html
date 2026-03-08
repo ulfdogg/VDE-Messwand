@@ -34,27 +34,27 @@
         </button>
     </div>
 
-    <!-- Relais 0-15 -->
+    <!-- Relais 1-16 -->
     <div class="relay-section">
-        <h3>Relais 0 - 15 (Modul 1)</h3>
+        <h3>Relais 1 - 16 (Modul 1)</h3>
         <div class="relay-grid" id="relayGrid0"></div>
     </div>
 
-    <!-- Relais 16-31 -->
+    <!-- Relais 17-32 -->
     <div class="relay-section">
-        <h3>Relais 16 - 31 (Modul 1)</h3>
+        <h3>Relais 17 - 32 (Modul 1)</h3>
         <div class="relay-grid" id="relayGrid1"></div>
     </div>
 
-    <!-- Relais 32-47 -->
+    <!-- Relais 33-48 -->
     <div class="relay-section">
-        <h3>Relais 32 - 47 (Modul 2)</h3>
+        <h3>Relais 33 - 48 (Modul 2)</h3>
         <div class="relay-grid" id="relayGrid2"></div>
     </div>
 
-    <!-- Relais 48-63 -->
+    <!-- Relais 49-64 -->
     <div class="relay-section">
-        <h3>Relais 48 - 63 (Modul 2)</h3>
+        <h3>Relais 49 - 64 (Modul 2)</h3>
         <div class="relay-grid" id="relayGrid3"></div>
     </div>
 
@@ -228,7 +228,7 @@
 
         const number = document.createElement('div');
         number.className = 'relay-number';
-        number.textContent = relayNum;
+        number.textContent = relayNum + 1;
 
         const status = document.createElement('div');
         status.className = 'relay-status';

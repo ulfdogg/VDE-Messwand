@@ -277,9 +277,9 @@
                                 <div class="relay-name">{{ relay.name }}</div>
                                 <div class="relay-number">
                                     {% if relay.is_group %}
-                                    Relais: {{ relay.group_relays|join(', ') }}
+                                    Relais: {% for r in relay.group_relays %}{{ r + 1 }}{% if not loop.last %}, {% endif %}{% endfor %}
                                     {% else %}
-                                    Relais {{ relay.number }}
+                                    Relais {{ relay.number + 1 }}
                                     {% endif %}
                                 </div>
                             </label>

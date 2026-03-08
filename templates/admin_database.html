@@ -36,7 +36,7 @@
                                     {% if relay_desc.is_group %}
                                     <span class="error-category">GRUPPE</span>
                                     {% else %}
-                                    <span class="error-category">R{{ relay_desc.number }}</span>
+                                    <span class="error-category">R{{ relay_desc.number + 1 }}</span>
                                     {% endif %}
                                     <span class="error-name">{{ relay_desc.name }}</span>
                                 </div>

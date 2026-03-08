@@ -15,7 +15,7 @@
                 <option value="">Kein Fehler</option>
                 {% for error in stromkreis_info.errors %}
                 <option value="{{ error.relay_id }}" title="{{ error.description }}">
-                    {{ error.name }} ({{ error.category }}, Relais {{ error.relay_id }})
+                    {{ error.name }} ({{ error.category }}, Relais {{ error.relay_id + 1 }})
                 </option>
                 {% endfor %}
             </select>
