@@ -21,6 +21,27 @@
             100% { transform: translate(-50%, -50%) scale(2);   opacity: 0; }
         }
 
+        /* === Prüfungs-Banner === */
+        .exam-banner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);
+            color: #fff;
+            padding: 10px 20px;
+            z-index: 9998;
+            font-size: 1.1rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-align: center;
+            box-shadow: 0 3px 14px rgba(230, 126, 34, 0.5);
+            transition: top 0.3s ease;
+        }
+        .exam-banner.hidden { display: none; }
+        /* Wenn GPIO-Warnung sichtbar, Banner nach unten schieben */
+        body.gpio-active .exam-banner { top: 56px; }
+
         /* === Bildschirmtastatur === */
         #osk {
             display: none;
@@ -95,6 +116,11 @@
         </div>
     </div>
 
+    <!-- Prüfungs-Warnung (fixiert, unterhalb GPIO-Warnung) -->
+    <div id="exam-banner" class="exam-banner hidden" onclick="window.location.href='/exam_mode'" style="cursor:pointer;" title="Zur aktiven Prüfung">
+        <span>🔒 PRÜFUNG AKTIV – Steuerung gesperrt &nbsp;→</span>
+    </div>
+
     <div class="container">
         {% block navigation %}
         <div class="navigation-bar">
@@ -166,6 +192,7 @@
 
                         if (data.gpio_status.active) {
                             warningDiv.classList.remove('hidden');
+                            document.body.classList.add('gpio-active');
 
                             // Zeige Countdown wenn Shutdown ansteht
                             if (data.gpio_status.shutdown_pending && data.gpio_status.shutdown_in_seconds !== null) {
@@ -178,6 +205,7 @@
                             }
                         } else {
                             warningDiv.classList.add('hidden');
+                            document.body.classList.remove('gpio-active');
                         }
                     }
                 })
@@ -186,11 +214,30 @@
                 });
         }
 
+        // Prüfungs-Status Überwachung
+        function checkExamBanner() {
+            fetch('/api/exam_status')
+                .then(r => r.json())
+                .then(data => {
+                    const banner = document.getElementById('exam-banner');
+                    if (data.exam_active) {
+                        banner.classList.remove('hidden');
+                    } else {
+                        banner.classList.add('hidden');
+                    }
+                })
+                .catch(() => {});
+        }
+
         // Starte Überwachung beim Laden
         document.addEventListener('DOMContentLoaded', function() {
             checkGPIOStatus();
             // Prüfe alle 500ms
             setInterval(checkGPIOStatus, 500);
+
+            checkExamBanner();
+            // Prüfe alle 5 Sekunden
+            setInterval(checkExamBanner, 5000);
         });
     </script>
     {% block scripts %}{% endblock %}

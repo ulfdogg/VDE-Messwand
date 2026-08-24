@@ -10,7 +10,7 @@ PORT = 80
 DEBUG = True  # Für Produktion auf False, für Entwicklung auf True
 
 # Datenbank
-DATABASE_PATH = 'vde_messwand.db'
+DATABASE_PATH = 'data/vde_messwand.db'
 
 # Serial/Modbus Konfiguration
 SERIAL_PORT = '/dev/ttyACM0' if os.path.exists('/dev/ttyACM0') else \
@@ -37,6 +37,11 @@ RELAY_NAMES = {}
 
 # Admin Login
 ADMIN_PASSWORD = '1234'
+
+# Sicherheitsrelais (letztes Relais, Index 63 = Relais 64)
+# Wird vor dem Schütz der Messpannungsfreigabe geschaltet
+# Immer beim Neustart AUS, Einschalten nur per Code
+SAFETY_RELAY_ID = 63
 
 # Prüfungs-Einstellungen
 DEFAULT_EXAM_RELAY_COUNT = 3  # Anzahl zufälliger Fehler

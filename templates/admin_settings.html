@@ -57,7 +57,68 @@
         </form>
     </div>
 
-    <!-- Weitere Einstellungen können hier hinzugefügt werden -->
+    <!-- Freigabe-Code ändern -->
+    <div class="settings-section">
+        <h2 class="section-title">🔑 Freigabe-Code ändern</h2>
+        <p class="section-description">
+            Aktueller Code: <span class="current-code">{{ freigabe_code }}</span><br>
+            Dieser Code wird benötigt, um das Sicherheitsrelais (Steuerungsfreigabe) einzuschalten.
+        </p>
+
+        <form id="freigabeForm">
+            <div class="form-group">
+                <label for="currentFreigabe">Aktueller Freigabe-Code</label>
+                <input type="password"
+                       id="currentFreigabe"
+                       class="form-control"
+                       placeholder="Aktuellen Code eingeben"
+                       required>
+            </div>
+
+            <div class="form-group">
+                <label for="newFreigabe">Neuer Code (4–20 Ziffern)</label>
+                <input type="password"
+                       id="newFreigabe"
+                       class="form-control"
+                       placeholder="Neuen Code eingeben"
+                       pattern="[0-9]{4,20}"
+                       required>
+            </div>
+
+            <div class="form-group">
+                <label for="confirmFreigabe">Neuen Code bestätigen</label>
+                <input type="password"
+                       id="confirmFreigabe"
+                       class="form-control"
+                       placeholder="Neuen Code wiederholen"
+                       required>
+            </div>
+
+            <div class="btn-group">
+                <button type="submit" class="btn">💾 Code ändern</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Notaus-Timeout -->
+    <div class="settings-section">
+        <h2 class="section-title">⏱️ Notaus-Shutdown-Timeout</h2>
+        <p class="section-description">
+            Wie lange der Notaus-Schließer aktiv sein muss, bevor das System automatisch herunterfährt.
+            Aktuell: <strong>{{ gpio_timeout }} Sekunden ({{ (gpio_timeout / 60) | round(1) }} Minuten)</strong>
+        </p>
+        <div class="form-group">
+            <label for="gpioTimeout">Timeout in Sekunden (10 – 3600)</label>
+            <input type="number" id="gpioTimeout" class="form-control"
+                   value="{{ gpio_timeout }}" min="10" max="3600" step="10">
+            <small style="color: rgba(255,255,255,0.6);">
+                Beispiele: 60 = 1 Min &nbsp;|&nbsp; 120 = 2 Min &nbsp;|&nbsp; 300 = 5 Min
+            </small>
+        </div>
+        <div class="btn-group">
+            <button type="button" class="btn" onclick="saveGpioTimeout()">💾 Speichern</button>
+        </div>
+    </div>
 </div>
 
 <style>
@@ -157,6 +218,57 @@ function showCode() {
         btn.textContent = '👁️ Code anzeigen';
     }
 }
+
+async function saveGpioTimeout() {
+    const seconds = parseInt(document.getElementById('gpioTimeout').value);
+    if (isNaN(seconds) || seconds < 10 || seconds > 3600) {
+        showMessage('Wert muss zwischen 10 und 3600 Sekunden liegen.', 'error');
+        return;
+    }
+    try {
+        const r = await fetch('/api/settings/gpio_timeout', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({seconds})
+        });
+        const result = await r.json();
+        showMessage(result.message, result.success ? 'success' : 'error');
+    } catch (e) {
+        showMessage('Verbindungsfehler', 'error');
+    }
+}
+
+document.getElementById('freigabeForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const currentCode = document.getElementById('currentFreigabe').value;
+    const newCode = document.getElementById('newFreigabe').value;
+    const confirmCode = document.getElementById('confirmFreigabe').value;
+
+    if (newCode !== confirmCode) {
+        showMessage('Die neuen Codes stimmen nicht überein!', 'error');
+        return;
+    }
+    if (newCode.length < 4 || newCode.length > 20 || !/^\d+$/.test(newCode)) {
+        showMessage('Code muss 4–20 Ziffern lang sein!', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/settings/change_freigabe_code', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({current_code: currentCode, new_code: newCode})
+        });
+        const result = await response.json();
+        showMessage(result.message, result.success ? 'success' : 'error');
+        if (result.success) {
+            document.getElementById('freigabeForm').reset();
+            setTimeout(() => location.reload(), 2000);
+        }
+    } catch (error) {
+        showMessage('Verbindungsfehler: ' + error.message, 'error');
+    }
+});
 
 document.getElementById('codeForm').addEventListener('submit', async (e) => {
     e.preventDefault();

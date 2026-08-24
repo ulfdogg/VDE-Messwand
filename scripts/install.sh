@@ -1,0 +1,674 @@
+#!/bin/bash
+#
+# VDE Messwand - Installations-Script
+# ====================================
+# Dieses Script installiert und konfiguriert das VDE Messwand System vollständig.
+#
+# Verwendung: sudo ./install.sh (im Ordner scripts/ oder Hauptordner)
+#
+
+set -e
+
+# Farben
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
+
+# Variablen
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Falls install.sh in scripts/ liegt, Basisverzeichnis = übergeordneter Ordner
+if [ -f "$SCRIPT_DIR/app.py" ]; then
+    INSTALL_DIR="$SCRIPT_DIR"
+else
+    INSTALL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+fi
+
+SERVICE_USER="vde"
+DEFAULT_HOSTNAME="VDE-Messwand"
+KIOSK_URL="http://localhost"
+
+# ============================================================================
+# Funktionen
+# ============================================================================
+
+print_header() {
+    echo ""
+    echo -e "${CYAN}======================================================"
+    echo " VDE MESSWAND - INSTALLATIONS-SCRIPT"
+    echo "======================================================${NC}"
+    echo ""
+}
+
+print_step() {
+    echo ""
+    echo -e "${BLUE}[STEP $1]${NC} $2"
+    echo "------------------------------------------------------"
+}
+
+print_success() {
+    echo -e "${GREEN}[OK]${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}[WARNUNG]${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}[FEHLER]${NC} $1"
+}
+
+check_root() {
+    if [ "$EUID" -ne 0 ]; then
+        print_error "Dieses Script muss als root ausgeführt werden!"
+        echo "Verwendung: sudo ./install.sh"
+        exit 1
+    fi
+}
+
+# ============================================================================
+# Hauptprogramm
+# ============================================================================
+
+print_header
+
+check_root
+
+# ----------------------------------------------------------------------------
+# Schritt 1: Hostname abfragen
+# ----------------------------------------------------------------------------
+print_step "1/14" "System-Konfiguration"
+
+echo ""
+echo "Der Hostname wird für folgende Zwecke verwendet:"
+echo "  - Systemname (hostname)"
+echo "  - WiFi-Hotspot SSID"
+echo "  - Netzwerkidentifikation"
+echo ""
+read -p "Hostname eingeben [Standard: $DEFAULT_HOSTNAME]: " INPUT_HOSTNAME
+
+HOSTNAME="${INPUT_HOSTNAME:-$DEFAULT_HOSTNAME}"
+# Entferne Leerzeichen und Sonderzeichen für SSID
+SSID=$(echo "$HOSTNAME" | tr ' ' '-' | tr -cd '[:alnum:]-_')
+
+echo ""
+echo -e "  Hostname:     ${GREEN}$HOSTNAME${NC}"
+echo -e "  Hotspot-SSID: ${GREEN}$SSID${NC}"
+echo -e "  Install-Dir:  ${GREEN}$INSTALL_DIR${NC}"
+echo ""
+read -p "Ist das korrekt? [J/n]: " CONFIRM
+if [[ "$CONFIRM" =~ ^[Nn]$ ]]; then
+    echo "Abbruch durch Benutzer."
+    exit 0
+fi
+
+# ----------------------------------------------------------------------------
+# Schritt 2: System aktualisieren
+# ----------------------------------------------------------------------------
+print_step "2/14" "System aktualisieren (apt update && upgrade)"
+
+apt update
+apt upgrade -y
+
+print_success "System aktualisiert"
+
+# ----------------------------------------------------------------------------
+# Schritt 3: Pakete installieren
+# ----------------------------------------------------------------------------
+print_step "3/14" "Erforderliche Pakete installieren"
+
+apt install -y \
+    python3 \
+    python3-pip \
+    python3-venv \
+    python3-serial \
+    python3-smbus \
+    python3-rpi.gpio \
+    python3-libgpiod \
+    python3-pil \
+    git \
+    network-manager \
+    curl \
+    evtest \
+    i2c-tools \
+    rsync \
+    wlr-randr \
+    wayvnc \
+    samba \
+    plymouth \
+    plymouth-themes \
+    fonts-noto-color-emoji
+
+print_success "Pakete installiert"
+
+# Bildschirmtastatur und Keyring deaktivieren (Kiosk-Mode)
+echo "Deaktiviere Bildschirmtastatur und Keyring..."
+apt remove -y squeekboard 2>/dev/null || true
+
+# Keyring: systemd user services maskieren
+sudo -u $SERVICE_USER systemctl --user mask gnome-keyring-daemon.service gnome-keyring-daemon.socket 2>/dev/null || true
+
+# Keyring: D-Bus activation deaktivieren (wichtig!)
+mv /usr/share/dbus-1/services/org.gnome.keyring.service /usr/share/dbus-1/services/org.gnome.keyring.service.disabled 2>/dev/null || true
+mv /usr/share/dbus-1/services/org.gnome.keyring.PrivatePrompter.service /usr/share/dbus-1/services/org.gnome.keyring.PrivatePrompter.service.disabled 2>/dev/null || true
+mv /usr/share/dbus-1/services/org.gnome.keyring.SystemPrompter.service /usr/share/dbus-1/services/org.gnome.keyring.SystemPrompter.service.disabled 2>/dev/null || true
+
+# Keyring: Autostart deaktivieren
+mkdir -p "/home/$SERVICE_USER/.config/autostart"
+cat > "/home/$SERVICE_USER/.config/autostart/gnome-keyring-secrets.desktop" << 'EOF'
+[Desktop Entry]
+Type=Application
+Name=GNOME Keyring: Secret Service
+Hidden=true
+EOF
+cat > "/home/$SERVICE_USER/.config/autostart/gnome-keyring-pkcs11.desktop" << 'EOF'
+[Desktop Entry]
+Type=Application
+Name=GNOME Keyring: PKCS#11 Component
+Hidden=true
+EOF
+cat > "/home/$SERVICE_USER/.config/autostart/gnome-keyring-ssh.desktop" << 'EOF'
+[Desktop Entry]
+Type=Application
+Name=GNOME Keyring: SSH Agent
+Hidden=true
+EOF
+chown -R $SERVICE_USER:$SERVICE_USER "/home/$SERVICE_USER/.config/autostart"
+
+print_success "Bildschirmtastatur und Keyring komplett deaktiviert (systemd + D-Bus + Autostart)"
+
+# ----------------------------------------------------------------------------
+# Schritt 4: Display-Konfiguration
+# ----------------------------------------------------------------------------
+print_step "4/14" "Display konfigurieren (7\" Touchscreen)"
+
+CONFIG_FILE="/boot/firmware/config.txt"
+
+# Prüfen ob Display-Overlay bereits vorhanden
+if ! grep -q "dtoverlay=vc4-kms-dsi-7inch" "$CONFIG_FILE"; then
+    # Unter [all] Section hinzufügen
+    if grep -q "^\[all\]" "$CONFIG_FILE"; then
+        # Nach [all] einfügen
+        sed -i '/^\[all\]$/a \\n# Manuelles Overlay für offizielles 7" Touchscreen Display\ndtoverlay=vc4-kms-dsi-7inch' "$CONFIG_FILE"
+        print_success "Display-Overlay hinzugefügt"
+    else
+        # [all] Section erstellen
+        echo -e "\n[all]\n# Manuelles Overlay für offizielles 7\" Touchscreen Display\ndtoverlay=vc4-kms-dsi-7inch" >> "$CONFIG_FILE"
+        print_success "Display-Overlay und [all] Section hinzugefügt"
+    fi
+else
+    print_warning "Display-Overlay bereits vorhanden"
+fi
+
+# labwc Autostart und Environment erstellen (Display-Rotation, VNC, Cursor ausblenden)
+LABWC_DIR="/home/$SERVICE_USER/.config/labwc"
+mkdir -p "$LABWC_DIR"
+
+cat > "$LABWC_DIR/environment" << 'ENV_EOF'
+XKB_DEFAULT_MODEL=pc105
+XKB_DEFAULT_LAYOUT=de
+XKB_DEFAULT_VARIANT=
+XKB_DEFAULT_OPTIONS=
+XCURSOR_THEME=blank
+XCURSOR_SIZE=1
+ENV_EOF
+
+cat > "$LABWC_DIR/autostart" << 'AUTOSTART_EOF'
+#!/bin/bash
+# VDE Messwand - labwc Autostart (KEIN Panel/Tastatur/Desktop!)
+
+# HINWEIS: labwc führt BEIDE Autostart-Dateien aus (user + system)!
+# Daher beenden wir unerwünschte Prozesse aus dem System-Autostart aktiv:
+(sleep 2 && pkill -f wf-panel-pi; pkill -f pcmanfm-pi; pkill -f lxsession-xdg-autostart) &
+
+# Wayland Umgebung setzen
+export WAYLAND_DISPLAY=wayland-0
+export XDG_RUNTIME_DIR=/run/user/1000
+
+# Keyring deaktivieren (keine Passwort-Popups)
+export GNOME_KEYRING_CONTROL=
+export GNOME_KEYRING_PID=
+
+# Display konfigurieren (nur DSI-1 nutzen, DSI-2 deaktivieren)
+wlr-randr --output DSI-2 --off 2>/dev/null || true
+wlr-randr --output DSI-1 --transform 270 2>/dev/null || true
+
+# VNC Server starten (Wayland-kompatibel, nur DSI-1 Display)
+wayvnc -o DSI-1 0.0.0.0 5900 &
+
+# WICHTIG: Wir starten hier KEIN Panel, keine Tastatur, keinen Desktop!
+# Chromium wird von kiosk.service gestartet
+AUTOSTART_EOF
+
+chmod +x "$LABWC_DIR/autostart"
+chown -R $SERVICE_USER:$SERVICE_USER "$LABWC_DIR"
+
+print_success "Display-Overlay konfiguriert + labwc Autostart & Environment erstellt (Rotation 270°, VNC, Mauszeiger unsichtbar)"
+
+# ----------------------------------------------------------------------------
+# Schritt 5: Plymouth Boot-Splash konfigurieren
+# ----------------------------------------------------------------------------
+print_step "5/14" "Plymouth Boot-Splash einrichten"
+
+PLYMOUTH_THEME_DIR="/usr/share/plymouth/themes/vde-messwand"
+mkdir -p "$PLYMOUTH_THEME_DIR"
+
+# Plymouth theme config
+cat > "$PLYMOUTH_THEME_DIR/vde-messwand.plymouth" << 'EOF'
+[Plymouth Theme]
+Name=VDE Messwand
+Description=VDE Messwand Boot-Splash
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/vde-messwand
+ScriptFile=/usr/share/plymouth/themes/vde-messwand/vde-messwand.script
+EOF
+
+# Plymouth script (weißer Hintergrund, Bild zentriert, kein Strecken)
+cat > "$PLYMOUTH_THEME_DIR/vde-messwand.script" << 'EOF'
+/* VDE Messwand Plymouth Theme */
+
+screen_width = Window.GetWidth();
+screen_height = Window.GetHeight();
+
+/* Hintergrund weiß füllen */
+Window.SetBackgroundTopColor(1.0, 1.0, 1.0);
+Window.SetBackgroundBottomColor(1.0, 1.0, 1.0);
+
+/* Splash-Bild laden und zentriert anzeigen (kein Skalieren) */
+theme_image = Image("splash.png");
+img_w = theme_image.GetWidth();
+img_h = theme_image.GetHeight();
+
+x = (screen_width  - img_w) / 2;
+y = (screen_height - img_h) / 2;
+
+sprite = Sprite(theme_image);
+sprite.SetPosition(x, y, -100);
+EOF
+
+# Splash-Bild generieren (720x1280, weißer Hintergrund, Logo zentriert, -90° gedreht)
+LOGO_SRC="$INSTALL_DIR/static/company_logo.png"
+SPLASH_DST="$PLYMOUTH_THEME_DIR/splash.png"
+DESKTOP_DST="$INSTALL_DIR/static/desktop_bg.png"
+
+if [ -f "$LOGO_SRC" ]; then
+    python3 -c "
+from PIL import Image
+logo = Image.open('$LOGO_SRC').convert('RGBA')
+lw, lh = logo.size
+scale = min(768/lw, 200/lh)
+nw, nh = int(lw*scale), int(lh*scale)
+logo = logo.resize((nw, nh), Image.LANCZOS)
+canvas = Image.new('RGBA', (1280, 720), (255,255,255,255))
+canvas.paste(logo, ((1280-nw)//2, (720-nh)//2), logo)
+splash = canvas.rotate(-90, expand=True).convert('RGB')
+splash.save('$SPLASH_DST')
+print(f'Plymouth splash generiert: {splash.size}')
+"
+
+    # Desktop-Hintergrundbild generieren (1280x720, Wayland-Logikgröße)
+    python3 -c "
+from PIL import Image
+logo = Image.open('$LOGO_SRC').convert('RGBA')
+lw, lh = logo.size
+scale = min(700/lw, 200/lh)
+nw, nh = int(lw*scale), int(lh*scale)
+logo = logo.resize((nw, nh), Image.LANCZOS)
+canvas = Image.new('RGBA', (1280, 720), (255,255,255,255))
+canvas.paste(logo, ((1280-nw)//2, (720-nh)//2), logo)
+canvas.convert('RGB').save('$DESKTOP_DST')
+print(f'Desktop-Hintergrund generiert: 1280x720')
+"
+else
+    print_warning "Logo nicht gefunden: $LOGO_SRC (Plymouth-Bildgenerierung übersprungen)"
+fi
+
+# Plymouth-Theme aktivieren und initramfs neu bauen
+if command -v plymouth-set-default-theme &>/dev/null; then
+    plymouth-set-default-theme vde-messwand
+    print_success "Plymouth-Theme 'vde-messwand' aktiviert"
+else
+    print_warning "plymouth-set-default-theme nicht gefunden"
+fi
+
+echo "Rebuilding initramfs (dauert ~30 Sekunden)..."
+update-initramfs -u 2>&1 | tail -3
+print_success "Plymouth Boot-Splash eingerichtet und initramfs neu gebaut"
+
+# ----------------------------------------------------------------------------
+# Schritt 6: Samba-Freigaben einrichten
+# ----------------------------------------------------------------------------
+print_step "6/14" "Samba-Freigaben einrichten (Dokumente & Videos)"
+
+mkdir -p "$INSTALL_DIR/pdfs" "$INSTALL_DIR/static/videos"
+chown -R $SERVICE_USER:$SERVICE_USER "$INSTALL_DIR/pdfs" "$INSTALL_DIR/static/videos"
+
+# Bestehende VDE-Einträge entfernen und neu schreiben
+SAMBA_CONF="/etc/samba/smb.conf"
+sed -i '/# VDE Messwand - Geteilte Ordner/,$ d' "$SAMBA_CONF"
+
+cat >> "$SAMBA_CONF" << SAMBA_EOF
+
+# ============================================================
+# VDE Messwand - Geteilte Ordner
+# ============================================================
+
+[Dokumente]
+   comment = VDE Messwand Dokumente (PDFs)
+   path = $INSTALL_DIR/pdfs
+   browseable = yes
+   read only = no
+   guest ok = yes
+   create mask = 0664
+   directory mask = 0775
+   force user = $SERVICE_USER
+
+[Videos]
+   comment = VDE Messwand Videos
+   path = $INSTALL_DIR/static/videos
+   browseable = yes
+   read only = no
+   guest ok = yes
+   create mask = 0664
+   directory mask = 0775
+   force user = $SERVICE_USER
+SAMBA_EOF
+
+systemctl enable smbd nmbd
+systemctl restart smbd nmbd
+
+print_success "Samba-Freigaben eingerichtet: \\\\\\\\$HOSTNAME\\\\Dokumente und \\\\\\\\$HOSTNAME\\\\Videos"
+
+# ----------------------------------------------------------------------------
+# Schritt 7: Hostname setzen
+# ----------------------------------------------------------------------------
+print_step "7/14" "Hostname konfigurieren"
+
+# Aktuellen Hostname speichern
+OLD_HOSTNAME=$(hostname)
+
+# Hostname setzen
+hostnamectl set-hostname "$HOSTNAME"
+
+# /etc/hosts aktualisieren
+sed -i "s/$OLD_HOSTNAME/$HOSTNAME/g" /etc/hosts 2>/dev/null || true
+
+# Falls nicht vorhanden, Eintrag hinzufügen
+if ! grep -q "$HOSTNAME" /etc/hosts; then
+    echo "127.0.1.1       $HOSTNAME" >> /etc/hosts
+fi
+
+print_success "Hostname gesetzt: $HOSTNAME"
+
+# ----------------------------------------------------------------------------
+# Schritt 8: Benutzerberechtigungen
+# ----------------------------------------------------------------------------
+print_step "8/14" "Benutzerberechtigungen konfigurieren"
+
+# Benutzer zu notwendigen Gruppen hinzufügen
+usermod -a -G dialout $SERVICE_USER 2>/dev/null || true
+usermod -a -G gpio $SERVICE_USER 2>/dev/null || true
+usermod -a -G i2c $SERVICE_USER 2>/dev/null || true
+usermod -a -G spi $SERVICE_USER 2>/dev/null || true
+
+# Sudoers-Eintrag für nmcli, iwconfig, shutdown, reboot ohne Passwort
+SUDOERS_FILE="/etc/sudoers.d/vde-messwand"
+cat > "$SUDOERS_FILE" << EOF
+# VDE Messwand - Netzwerk- und System-Rechte
+$SERVICE_USER ALL=(ALL) NOPASSWD: /usr/bin/nmcli
+$SERVICE_USER ALL=(ALL) NOPASSWD: /usr/bin/iwconfig
+$SERVICE_USER ALL=(ALL) NOPASSWD: /sbin/shutdown
+$SERVICE_USER ALL=(ALL) NOPASSWD: /sbin/reboot
+EOF
+chmod 440 "$SUDOERS_FILE"
+
+print_success "Benutzerberechtigungen konfiguriert ($SUDOERS_FILE)"
+
+# ----------------------------------------------------------------------------
+# Schritt 9: Virtuelle Umgebung und Python-Abhängigkeiten
+# ----------------------------------------------------------------------------
+print_step "9/14" "Python-Umgebung einrichten"
+
+cd "$INSTALL_DIR"
+
+# Virtuelle Umgebung erstellen (falls nicht vorhanden)
+if [ ! -d "venv" ]; then
+    sudo -u $SERVICE_USER python3 -m venv venv
+    print_success "Virtuelle Umgebung erstellt"
+else
+    print_warning "Virtuelle Umgebung existiert bereits"
+fi
+
+# Abhängigkeiten installieren
+sudo -u $SERVICE_USER bash -c "source $INSTALL_DIR/venv/bin/activate && pip install --upgrade pip"
+
+if [ -f "$INSTALL_DIR/requirements.txt" ]; then
+    sudo -u $SERVICE_USER bash -c "source $INSTALL_DIR/venv/bin/activate && pip install -r $INSTALL_DIR/requirements.txt"
+    print_success "requirements.txt installiert"
+fi
+
+# Zusätzliche Pakete sicherstellen
+sudo -u $SERVICE_USER bash -c "source $INSTALL_DIR/venv/bin/activate && pip install openpyxl gpiod Pillow"
+
+print_success "Python-Abhängigkeiten installiert"
+
+# ----------------------------------------------------------------------------
+# Schritt 10: Hotspot-Konfiguration aktualisieren
+# ----------------------------------------------------------------------------
+print_step "10/14" "Hotspot-Konfiguration anpassen"
+
+NETWORK_MANAGER_FILE="$INSTALL_DIR/managers/network_manager.py"
+if [ -f "$NETWORK_MANAGER_FILE" ]; then
+    sed -i "s/HOTSPOT_SSID = .*/HOTSPOT_SSID = '$SSID'/" "$NETWORK_MANAGER_FILE"
+    print_success "Hotspot-SSID gesetzt: $SSID in $NETWORK_MANAGER_FILE"
+else
+    print_warning "managers/network_manager.py nicht gefunden"
+fi
+
+# ----------------------------------------------------------------------------
+# Schritt 11: Systemd-Service einrichten
+# ----------------------------------------------------------------------------
+print_step "11/14" "Systemd-Service einrichten"
+
+SERVICE_FILE="/etc/systemd/system/VDE-Messwand.service"
+cat > "$SERVICE_FILE" << EOF
+[Unit]
+Description=VDE Messwand Flask App
+After=network.target
+
+[Service]
+User=$SERVICE_USER
+Group=$SERVICE_USER
+WorkingDirectory=$INSTALL_DIR
+ExecStart=$INSTALL_DIR/venv/bin/python app.py
+Restart=always
+RestartSec=10
+Environment="PATH=$INSTALL_DIR/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reload
+systemctl enable VDE-Messwand.service
+
+# Python Berechtigung für Port 80 (ohne Root)
+PYTHON_BIN=$(readlink -f /usr/bin/python3)
+setcap 'cap_net_bind_service=+ep' "$PYTHON_BIN" 2>/dev/null || true
+
+print_success "Systemd-Service eingerichtet und aktiviert"
+
+# ----------------------------------------------------------------------------
+# Schritt 12: Power-Button (J2) konfigurieren
+# ----------------------------------------------------------------------------
+print_step "12/14" "Power-Button (J2-Header) konfigurieren"
+
+echo "Der Raspberry Pi 5 hat einen J2-Header für einen externen Power-Button."
+echo "Standard: Button kann Ein- UND Ausschalten"
+echo ""
+read -p "Soll der Button NUR zum Einschalten funktionieren? [J/n]: " DISABLE_POWEROFF
+
+if [[ ! "$DISABLE_POWEROFF" =~ ^[Nn]$ ]]; then
+    # systemd-logind konfigurieren
+    mkdir -p /etc/systemd/logind.conf.d
+    cat > /etc/systemd/logind.conf.d/no-power-button.conf << 'EOF'
+[Login]
+HandlePowerKey=ignore
+HandlePowerKeyLongPress=ignore
+EOF
+    systemctl restart systemd-logind 2>/dev/null || true
+
+    # labwc Desktop-Konfiguration (falls vorhanden)
+    LABWC_USER_CONFIG="/home/$SERVICE_USER/.config/labwc/rc.xml"
+    LABWC_SYSTEM_CONFIG="/etc/xdg/labwc/rc.xml"
+
+    if [ -f "$LABWC_SYSTEM_CONFIG" ]; then
+        mkdir -p "/home/$SERVICE_USER/.config/labwc"
+        if [ ! -f "$LABWC_USER_CONFIG" ]; then
+            cp "$LABWC_SYSTEM_CONFIG" "$LABWC_USER_CONFIG"
+            chown $SERVICE_USER:$SERVICE_USER "$LABWC_USER_CONFIG"
+        fi
+        # Power-Button-Aktion entfernen
+        sed -i 's/<action name="Execute">.*<command>pwrkey<\/command>.*<\/action>//' "$LABWC_USER_CONFIG" 2>/dev/null || true
+    fi
+
+    # evtest-basierter Blocker als Service
+    cat > /etc/systemd/system/block-power-button.service << 'EOF'
+[Unit]
+Description=Block power button input events
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/evtest --grab /dev/input/event0
+Restart=always
+RestartSec=1
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    systemctl daemon-reload
+    systemctl enable block-power-button.service
+
+    print_success "Power-Button nur zum Einschalten konfiguriert"
+else
+    print_warning "Power-Button-Konfiguration übersprungen"
+fi
+
+# ----------------------------------------------------------------------------
+# Schritt 13: Datenbank initialisieren
+# ----------------------------------------------------------------------------
+print_step "13/14" "Datenbank initialisieren"
+
+mkdir -p "$INSTALL_DIR/data"
+chown -R $SERVICE_USER:$SERVICE_USER "$INSTALL_DIR/data"
+
+cd "$INSTALL_DIR"
+if [ ! -f "$INSTALL_DIR/data/vde_messwand.db" ]; then
+    sudo -u $SERVICE_USER bash -c "cd $INSTALL_DIR && source venv/bin/activate && python3 -c 'from managers.database import init_db; init_db()'"
+    print_success "Datenbank initialisiert"
+else
+    print_warning "Datenbank existiert bereits ($INSTALL_DIR/data/vde_messwand.db)"
+fi
+
+# ----------------------------------------------------------------------------
+# Schritt 14: Kiosk-Modus konfigurieren
+# ----------------------------------------------------------------------------
+print_step "14/14" "Kiosk-Modus einrichten (Autologin + Chromium)"
+
+# Chromium installieren falls nicht vorhanden
+if ! command -v chromium &> /dev/null && ! command -v chromium-browser &> /dev/null; then
+    apt install -y chromium-browser
+    print_success "Chromium installiert"
+else
+    print_warning "Chromium bereits installiert"
+fi
+
+# Autologin für User 'vde' konfigurieren
+AUTOLOGIN_DIR="/etc/systemd/system/getty@tty1.service.d"
+mkdir -p "$AUTOLOGIN_DIR"
+cat > "$AUTOLOGIN_DIR/autologin.conf" << EOF
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin $SERVICE_USER --noclear %I \$TERM
+EOF
+print_success "Autologin für Benutzer '$SERVICE_USER' konfiguriert"
+
+# Kiosk-Modus als systemd-Service einrichten
+KIOSK_SERVICE="/etc/systemd/system/kiosk.service"
+cat > "$KIOSK_SERVICE" << EOF
+[Unit]
+Description=Chromium Kiosk Modus für Benutzer $SERVICE_USER
+After=graphical.target sound.target VDE-Messwand.service
+Wants=sound.target
+Requires=VDE-Messwand.service
+
+[Service]
+User=$SERVICE_USER
+Type=simple
+# Wayland statt X11 (für labwc)
+Environment=WAYLAND_DISPLAY=wayland-0
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus
+Environment=PULSE_SERVER=unix:/run/user/1000/pulse/native
+# Warte bis Flask-Server wirklich antwortet (max 60 Sekunden)
+ExecStartPre=/bin/bash -c 'for i in \$(seq 1 60); do curl -s http://localhost >/dev/null 2>&1 && exit 0; sleep 1; done; exit 1'
+# Chromium im Wayland-Modus mit Touch- und Kiosk-Flags starten
+ExecStart=/usr/bin/chromium --ozone-platform=wayland --enable-features=UseOzonePlatform --kiosk --incognito --noerrdialogs --disable-infobars --autoplay-policy=no-user-gesture-required --check-for-update-interval=31536000 --touch-events=enabled --enable-touchview --disable-pinch --disable-features=Translate --overscroll-history-navigation=disabled --lang=de-DE $KIOSK_URL
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=graphical.target
+EOF
+
+systemctl daemon-reload
+systemctl enable kiosk.service
+
+print_success "Kiosk-Modus als systemd-Service konfiguriert (kiosk.service)"
+
+# ============================================================================
+# Zusammenfassung
+# ============================================================================
+
+echo ""
+echo -e "${CYAN}======================================================"
+echo " INSTALLATION ABGESCHLOSSEN"
+echo "======================================================${NC}"
+echo ""
+echo -e "  ${GREEN}Hostname:${NC}      $HOSTNAME"
+echo -e "  ${GREEN}Hotspot-SSID:${NC}  $SSID"
+echo -e "  ${GREEN}Hotspot-PW:${NC}    vde12345"
+echo -e "  ${GREEN}Install-Dir:${NC}   $INSTALL_DIR"
+echo -e "  ${GREEN}Service:${NC}       VDE-Messwand.service"
+echo -e "  ${GREEN}Kiosk-Service:${NC} kiosk.service (systemd)"
+echo ""
+echo "Nächste Schritte:"
+echo "  1. Neustart durchführen: sudo reboot"
+echo "  2. Nach Neustart:"
+echo "     - Automatischer Login als '$SERVICE_USER'"
+echo "     - kiosk.service startet Chromium automatisch im Kiosk-Modus"
+echo "     - Web-Interface wird auf dem Display angezeigt"
+echo ""
+echo "Web-Zugriff von anderen Geräten:"
+echo "     - http://$HOSTNAME.local (falls mDNS aktiv)"
+echo "     - http://<IP-ADRESSE>"
+echo "     - Bei Hotspot: http://192.168.50.1"
+echo ""
+echo "Service-Befehle:"
+echo "  sudo systemctl status VDE-Messwand"
+echo "  sudo systemctl restart VDE-Messwand"
+echo "  sudo journalctl -u VDE-Messwand -f"
+echo ""
+echo -e "${YELLOW}WICHTIG: Bitte jetzt neu starten!${NC}"
+echo ""
+read -p "Jetzt neu starten? [J/n]: " REBOOT_NOW
+if [[ ! "$REBOOT_NOW" =~ ^[Nn]$ ]]; then
+    echo "System wird neu gestartet..."
+    reboot
+fi

@@ -5,7 +5,12 @@
 {% block content %}
 <div class="glass-card">
     <h1>Admin Panel</h1>
-    
+
+    <div id="exam-warning" style="display:none; background:#c0392b; color:#fff; padding:12px 18px; border-radius:8px; margin-bottom:16px; font-weight:bold; align-items:center; justify-content:space-between; gap:16px;">
+        <span>⚠️ Prüfung aktiv – Konfigurationsänderungen und Relais-Reset sind gesperrt!</span>
+        <button onclick="forceEndExam()" style="background:#fff; color:#c0392b; border:none; padding:8px 16px; border-radius:6px; font-weight:bold; cursor:pointer; white-space:nowrap;">Prüfung beenden</button>
+    </div>
+
     <div class="menu-grid">
         <a href="{{ url_for('admin_database') }}" class="menu-item">
             <h3>📊 Datenbank</h3>
@@ -52,6 +57,11 @@
             <p>Alle 64 Relais nacheinander testen</p>
         </a>
 
+        <a href="{{ url_for('wartungstest') }}" class="menu-item">
+            <h3>✔ Wartungstest</h3>
+            <p>Relais nach Stromkreis auswählen und mit Protokoll prüfen</p>
+        </a>
+
         <div class="menu-item" onclick="resetRelays()">
             <h3>🔄 Relais Reset</h3>
             <p>Alle Relais zurücksetzen</p>
@@ -64,4 +74,109 @@
     </div>
 </div>
 
+<!-- Modal: Admin-Code für Prüfung beenden -->
+<div id="force-end-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:999999; justify-content:center; align-items:center;">
+    <div style="background: linear-gradient(135deg, rgba(15,15,25,0.98), rgba(25,25,40,0.98)); border: 1px solid rgba(227,6,19,0.5); border-radius: 18px; padding: 28px 28px 24px; max-width: 320px; width: 90%; box-shadow: 0 12px 48px rgba(0,0,0,0.7);">
+        <p style="color: rgba(255,255,255,0.9); margin: 0 0 6px 0; text-align:center; font-size: 1.1rem; font-weight:600;">Admin-Code eingeben</p>
+        <p style="color: rgba(255,255,255,0.5); margin: 0 0 18px 0; text-align:center; font-size: 0.85rem;">um die Prüfung zu beenden</p>
+        <!-- Anzeige der eingegebenen Ziffern -->
+        <div id="force-end-display" style="background:rgba(255,255,255,0.06); border:2px solid rgba(255,255,255,0.2); border-radius:10px; padding:12px; text-align:center; font-size:1.8rem; letter-spacing:10px; color:#fff; min-height:54px; margin-bottom:16px;">&#8203;</div>
+        <!-- Zahlentastatur -->
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px;">
+            <button onclick="pinKey('1')" style="padding:18px; font-size:1.3rem; font-weight:600; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.18); border-radius:10px; color:#fff; cursor:pointer; touch-action:manipulation;">1</button>
+            <button onclick="pinKey('2')" style="padding:18px; font-size:1.3rem; font-weight:600; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.18); border-radius:10px; color:#fff; cursor:pointer; touch-action:manipulation;">2</button>
+            <button onclick="pinKey('3')" style="padding:18px; font-size:1.3rem; font-weight:600; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.18); border-radius:10px; color:#fff; cursor:pointer; touch-action:manipulation;">3</button>
+            <button onclick="pinKey('4')" style="padding:18px; font-size:1.3rem; font-weight:600; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.18); border-radius:10px; color:#fff; cursor:pointer; touch-action:manipulation;">4</button>
+            <button onclick="pinKey('5')" style="padding:18px; font-size:1.3rem; font-weight:600; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.18); border-radius:10px; color:#fff; cursor:pointer; touch-action:manipulation;">5</button>
+            <button onclick="pinKey('6')" style="padding:18px; font-size:1.3rem; font-weight:600; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.18); border-radius:10px; color:#fff; cursor:pointer; touch-action:manipulation;">6</button>
+            <button onclick="pinKey('7')" style="padding:18px; font-size:1.3rem; font-weight:600; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.18); border-radius:10px; color:#fff; cursor:pointer; touch-action:manipulation;">7</button>
+            <button onclick="pinKey('8')" style="padding:18px; font-size:1.3rem; font-weight:600; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.18); border-radius:10px; color:#fff; cursor:pointer; touch-action:manipulation;">8</button>
+            <button onclick="pinKey('9')" style="padding:18px; font-size:1.3rem; font-weight:600; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.18); border-radius:10px; color:#fff; cursor:pointer; touch-action:manipulation;">9</button>
+            <button onclick="document.getElementById('force-end-modal').style.display='none'" style="padding:18px; font-size:0.9rem; font-weight:600; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); border-radius:10px; color:rgba(255,255,255,0.5); cursor:pointer; touch-action:manipulation;">✕</button>
+            <button onclick="pinKey('0')" style="padding:18px; font-size:1.3rem; font-weight:600; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.18); border-radius:10px; color:#fff; cursor:pointer; touch-action:manipulation;">0</button>
+            <button onclick="pinDelete()" style="padding:18px; font-size:1.3rem; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); border-radius:10px; color:rgba(255,255,255,0.7); cursor:pointer; touch-action:manipulation;">⌫</button>
+        </div>
+        <!-- Bestätigen -->
+        <button onclick="submitForceEnd()" style="width:100%; margin-top:14px; padding:16px; font-size:1.05rem; font-weight:600; background:linear-gradient(45deg,#dc3545,#e74c3c); border:none; border-radius:10px; color:#fff; cursor:pointer; touch-action:manipulation;">Bestätigen</button>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function resetRelays() {
+    fetch('/reset_relays', {method: 'POST', headers: {'Content-Type': 'application/json'}})
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success && data.error === 'Prüfung aktiv') {
+                showMessage('Prüfung aktiv – Reset nicht möglich!', 'error');
+            } else {
+                showMessage(data.success ? 'Alle Relais zurückgesetzt.' : 'Fehler: ' + (data.message || data.error), data.success ? 'success' : 'error');
+            }
+        })
+        .catch(() => showMessage('Verbindungsfehler', 'error'));
+}
+
+function shutdownSystem() {
+    showConfirm('System wirklich herunterfahren?', function() {
+        fetch('/shutdown_system', {method: 'POST'}).catch(() => {});
+    });
+}
+
+var _pinValue = '';
+
+function pinKey(digit) {
+    _pinValue += digit;
+    document.getElementById('force-end-display').textContent = '●'.repeat(_pinValue.length);
+}
+
+function pinDelete() {
+    _pinValue = _pinValue.slice(0, -1);
+    const display = document.getElementById('force-end-display');
+    display.textContent = _pinValue.length ? '●'.repeat(_pinValue.length) : '\u200B';
+}
+
+function forceEndExam() {
+    _pinValue = '';
+    document.getElementById('force-end-display').textContent = '\u200B';
+    document.getElementById('force-end-modal').style.display = 'flex';
+}
+
+function submitForceEnd() {
+    const code = _pinValue;
+    if (!code) { showMessage('Bitte Code eingeben!', 'error'); return; }
+    document.getElementById('force-end-modal').style.display = 'none';
+    fetch('/api/exam/force_end', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({code: code})
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showMessage(data.message, 'success');
+            checkExamStatus();
+            if (typeof checkExamBanner === 'function') checkExamBanner();
+        } else {
+            showMessage(data.error || data.message, 'error');
+        }
+    })
+    .catch(() => showMessage('Verbindungsfehler', 'error'));
+}
+
+function checkExamStatus() {
+    fetch('/api/exam_status')
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('exam-warning').style.display = data.exam_active ? 'flex' : 'none';
+        })
+        .catch(() => {});
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    checkExamStatus();
+    setInterval(checkExamStatus, 5000);
+});
+</script>
 {% endblock %}

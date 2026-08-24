@@ -46,6 +46,14 @@
         margin-bottom: 30px;
     }
 
+    .menu-item h3 {
+        font-size: 1.75rem;
+    }
+
+    .menu-item p {
+        font-size: 1.15rem;
+    }
+
     /* Modal */
     .info-modal {
         display: none;
@@ -122,6 +130,89 @@
         color: rgba(255, 255, 255, 0.95);
     }
 
+    /* Fehler-Buttons im Modal */
+    .fehler-section {
+        margin: 20px 0;
+        padding: 15px 20px;
+        background: rgba(255, 68, 68, 0.05);
+        border-radius: 12px;
+        border: 2px solid rgba(255, 68, 68, 0.3);
+    }
+
+    .fehler-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+
+    .fehler-header strong {
+        color: #ff4444;
+        font-size: 1rem;
+    }
+
+    .fehler-reset-btn {
+        background: rgba(255, 68, 68, 0.15);
+        border: 1px solid rgba(255, 68, 68, 0.4);
+        border-radius: 8px;
+        color: rgba(255, 255, 255, 0.7);
+        padding: 5px 12px;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .fehler-reset-btn:hover {
+        background: rgba(255, 68, 68, 0.3);
+        color: #fff;
+    }
+
+    .fehler-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .fehler-btn {
+        background: rgba(255, 255, 255, 0.07);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 10px;
+        color: rgba(255, 255, 255, 0.8);
+        padding: 10px 14px;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: left;
+        min-width: 160px;
+    }
+
+    .fehler-btn:hover {
+        background: rgba(255, 68, 68, 0.15);
+        border-color: rgba(255, 68, 68, 0.5);
+    }
+
+    .fehler-btn.active {
+        background: rgba(255, 68, 68, 0.3);
+        border-color: #ff4444;
+        color: #fff;
+    }
+
+    .fehler-btn-name {
+        display: block;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    .fehler-btn-sk {
+        display: block;
+        font-size: 0.78rem;
+        color: rgba(255, 255, 255, 0.55);
+        margin-top: 3px;
+    }
+
+    .fehler-btn.active .fehler-btn-sk {
+        color: rgba(255, 200, 200, 0.8);
+    }
+
     .video-toggle-btn {
         display: block;
         width: 100%;
@@ -162,24 +253,6 @@
 
 <div class="glass-card">
     <h1>Übungsmodus</h1>
-    <p style="text-align: center; opacity: 0.8; margin-bottom: 30px;">
-        Prüfung elektrischer Anlagen nach DIN VDE 0100-600
-    </p>
-
-    <div class="info-section">
-        <h2>Allgemeine Hinweise</h2>
-        <p>Die Erstprüfung nach DIN VDE 0100-600 ist vor Inbetriebnahme jeder neuen oder wesentlich geänderten Anlage zwingend durchzuführen. Der Prüfungsablauf folgt einer festen Reihenfolge:</p>
-        <ol>
-            <li><strong>Besichtigen</strong> – Sichtprüfung der Anlage</li>
-            <li><strong>Erproben</strong> – Funktionsprüfungen (z.B. RCD-Testtaste)</li>
-            <li><strong>Messen</strong> – Elektrische Messungen durchführen</li>
-            <li><strong>Dokumentieren</strong> – Messwerte und Bewertung protokollieren</li>
-        </ol>
-        <p style="margin-top: 15px;">
-            <strong style="color: #ff4444;">5 Sicherheitsregeln:</strong>
-            Freischalten → Gegen Wiedereinschalten sichern → Spannungsfreiheit feststellen → Erden und kurzschließen → Benachbarte spannungsführende Teile abdecken
-        </p>
-    </div>
 
     <div class="section-label">Vorbereitung</div>
     <div class="menu-grid">
@@ -191,14 +264,22 @@
             <h3>Sichtprüfung</h3>
             <p>Anlage visuell auf Mängel und korrekte Installation prüfen</p>
         </div>
-        <div class="menu-item" onclick="openModal('sicherheit')">
-            <h3>Sicherheit</h3>
-            <p>Spannungsfreischalten und Spannungsfreiheit feststellen</p>
+    </div>
+
+    <div class="section-label">Erprobung</div>
+    <div class="menu-grid">
+        <div class="menu-item" onclick="openModal('funktionstest')">
+            <h3>Funktionsprüfung</h3>
+            <p>Funktionen der Anlage unter Spannung prüfen</p>
         </div>
     </div>
 
     <div class="section-label">Spannungsfreie Messungen</div>
     <div class="menu-grid">
+        <div class="menu-item" onclick="openModal('sicherheit')">
+            <h3>Sicherheit</h3>
+            <p>Spannungsfreischalten und Spannungsfreiheit feststellen</p>
+        </div>
         <div class="menu-item" onclick="openModal('rlo')">
             <h3>Schutzleiter (R-Low)</h3>
             <p>Durchgängigkeit des Schutzleiters prüfen</p>
@@ -235,10 +316,6 @@
 
     <div class="section-label">Abschluss</div>
     <div class="menu-grid">
-        <div class="menu-item" onclick="openModal('funktionstest')">
-            <h3>Funktionsprüfung</h3>
-            <p>Funktionen der Anlage ohne Messwerte prüfen</p>
-        </div>
         <div class="menu-item" onclick="openModal('doku')">
             <h3>Dokumentation</h3>
             <p>Messwerte, Prüfer und Mängel protokollieren</p>
@@ -260,18 +337,6 @@
             <p>Bedienung und Funktionen des Benning-Messgeräts</p>
         </div>
     </div>
-
-    <div class="section-label">Messarten mit Relais-Steuerung</div>
-    <div class="menu-grid">
-        <a href="{{ url_for('training_spannungsfrei') }}" class="menu-item">
-            <h3>Spannungsfrei üben</h3>
-            <p>Schutzleiter (PE) und Isolationswiderstand (RISO) mit Relais</p>
-        </a>
-        <a href="{{ url_for('training_unter_spannung') }}" class="menu-item">
-            <h3>Unter Spannung üben</h3>
-            <p>Schleifenimpedanz, Zi, RCD und Drehfeld mit Relais</p>
-        </a>
-    </div>
 </div>
 
 <div id="infoModal" class="info-modal">
@@ -279,6 +344,13 @@
         <span class="info-modal-close" onclick="closeModal()">&times;</span>
         <h2 id="modalTitle" class="modal-title"></h2>
         <div id="modalTextContent" class="modal-text-content"></div>
+        <div id="fehlerSection" class="fehler-section" style="display:none;">
+            <div class="fehler-header">
+                <strong>Fehler zuschalten:</strong>
+                <button class="fehler-reset-btn" onclick="resetAllRelays()">Alle zurücksetzen</button>
+            </div>
+            <div id="fehlerButtons" class="fehler-buttons"></div>
+        </div>
         <button class="video-toggle-btn" id="videoToggleBtn" onclick="toggleVideo()">Video ansehen</button>
         <div class="video-container" id="videoContainer">
             <video id="videoPlayer" controls>
@@ -317,6 +389,22 @@
                     <li>Sind Stromkreise beschriftet und richtig zuordnbar?</li>
                 </ul>
                 <p>Schwere Mängel bei der Sichtprüfung: zuerst beheben, dann weitermessen.</p>
+            `
+        },
+        funktionstest: {
+            title: 'Funktionsprüfung',
+            url: '/static/videos/Funktionstest.mp4',
+            description: `
+                <h3>Funktionsprüfung der Anlage</h3>
+                <p>Die Funktionsprüfung erfolgt nach der Sichtprüfung, bevor die Anlage spannungsfreigeschaltet wird. Alle Funktionen werden unter Spannung geprüft, ohne Messwerte aufzunehmen.</p>
+                <h3>Durchführung</h3>
+                <ul>
+                    <li>Anlage einschalten</li>
+                    <li>Hauptschalter, Stromkreise und Abgänge betätigen und auf Funktion prüfen</li>
+                    <li>Verbraucher an der Messwand prüfen</li>
+                    <li>RCD-Prüftaste testen, danach RCD wieder einschalten</li>
+                </ul>
+                <p>Festgestellte Mängel werden dokumentiert.</p>
             `
         },
         sicherheit: {
@@ -442,22 +530,6 @@
                 </ul>
             `
         },
-        funktionstest: {
-            title: 'Funktionsprüfung',
-            url: '/static/videos/Funktionstest.mp4',
-            description: `
-                <h3>Funktionsprüfung der Anlage</h3>
-                <p>Prüfung aller Funktionen unter Spannung, ohne Messwerte aufzunehmen.</p>
-                <h3>Durchführung</h3>
-                <ul>
-                    <li>Anlage einschalten</li>
-                    <li>Hauptschalter, Stromkreise und Abgänge betätigen und auf Funktion prüfen</li>
-                    <li>Verbraucher an der Messwand prüfen</li>
-                    <li>RCD-Prüftaste testen, danach RCD wieder einschalten</li>
-                </ul>
-                <p>Festgestellte Mängel werden dokumentiert.</p>
-            `
-        },
         doku: {
             title: 'Dokumentation',
             url: '/static/videos/Doku.mp4',
@@ -527,15 +599,26 @@
         }
     };
 
+    // Welcher Modal-Key bekommt welche Fehler-Kategorie
+    const modalToCategory = {
+        'sichtpruefung': 'Verdrahtungsfehler',
+        'funktionstest': 'Verdrahtungsfehler',
+        'rlo':           'RLO',
+        'riso':          'RISO',
+        'impedanzen':    'Impedanzen',
+    };
+
     let currentVideoUrl = '';
     let videoVisible = false;
+    const activeRelays = new Set();
 
-    function openModal(key) {
+    async function openModal(key) {
         const data = videos[key];
         if (!data) return;
 
         currentVideoUrl = data.url;
         videoVisible = false;
+        activeRelays.clear();
 
         document.getElementById('modalTitle').textContent = data.title;
         document.getElementById('modalTextContent').innerHTML = data.description;
@@ -548,7 +631,65 @@
         btn.textContent = 'Video ansehen';
         btn.classList.remove('active');
 
+        document.getElementById('fehlerSection').style.display = 'none';
+        document.getElementById('fehlerButtons').innerHTML = '';
+
         document.getElementById('infoModal').style.display = 'block';
+
+        const category = modalToCategory[key];
+        if (category) {
+            try {
+                const response = await fetch(`/api/training/relays_by_category/${category}`);
+                const result = await response.json();
+                if (result.success && result.relays.length > 0) {
+                    renderFehlerButtons(result.relays);
+                }
+            } catch (e) { /* keine Relais – ok */ }
+        }
+    }
+
+    function renderFehlerButtons(relays) {
+        const container = document.getElementById('fehlerButtons');
+        container.innerHTML = relays.map(relay => `
+            <button class="fehler-btn"
+                    id="fehler-btn-${relay.relay_num}"
+                    onclick="toggleRelay(${relay.relay_num})">
+                <span class="fehler-btn-name">${relay.name}</span>
+                ${relay.stromkreis ? `<span class="fehler-btn-sk">${relay.stromkreis}</span>` : ''}
+            </button>
+        `).join('');
+        document.getElementById('fehlerSection').style.display = 'block';
+    }
+
+    async function toggleRelay(relayNum) {
+        const btn = document.getElementById(`fehler-btn-${relayNum}`);
+        const isActive = activeRelays.has(relayNum);
+        const endpoint = isActive ? '/api/training/deactivate_single' : '/api/training/activate_single';
+        try {
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ relay_num: relayNum })
+            });
+            const result = await response.json();
+            if (result.success) {
+                if (isActive) {
+                    activeRelays.delete(relayNum);
+                    btn.classList.remove('active');
+                } else {
+                    activeRelays.add(relayNum);
+                    btn.classList.add('active');
+                }
+            }
+        } catch (e) { /* Verbindungsfehler */ }
+    }
+
+    async function resetAllRelays() {
+        try {
+            await fetch('/reset_relays', { method: 'POST' });
+        } catch (e) { /* ok */ }
+        activeRelays.clear();
+        document.querySelectorAll('.fehler-btn.active').forEach(b => b.classList.remove('active'));
     }
 
     function toggleVideo() {
@@ -577,6 +718,7 @@
     function closeModal() {
         document.getElementById('videoPlayer').pause();
         document.getElementById('infoModal').style.display = 'none';
+        resetAllRelays();
     }
 
     document.getElementById('infoModal').addEventListener('click', function(event) {

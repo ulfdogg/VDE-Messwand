@@ -33,3 +33,25 @@
     </div>
 </div>
 {% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    fetch('/api/exam_status')
+        .then(r => r.json())
+        .then(data => {
+            if (data.exam_active && data.is_exam_owner && data.elapsed_seconds > 0) {
+                // Prüfung läuft bereits – Timer und UI wiederherstellen
+                const durationMinutes = parseInt(document.getElementById('exam_duration_minutes').value);
+                currentExamNumber = '{{ exam_number }}';
+                examStartTime = Date.now() - (data.elapsed_seconds * 1000);
+                document.getElementById('startBtn').style.display = 'none';
+                document.getElementById('finishBtn').style.display = 'inline-block';
+                document.getElementById('timerDisplay').style.display = 'block';
+                startTimer();
+            }
+        })
+        .catch(() => {});
+});
+</script>
+{% endblock %}

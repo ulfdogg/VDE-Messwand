@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1600, initial-scale=1.0">
+    <title>Prüfungsdatenbank – VDE Messwand</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0b0d14;
+            color: #e8eaf0;
+            min-height: 100vh;
+        }
+
+        /* ── Hintergrund ── */
+        .bg {
+            position: fixed; inset: 0; z-index: 0;
+            background:
+                radial-gradient(ellipse 80% 50% at 20% 20%, rgba(227,6,19,0.08) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 40% at 80% 80%, rgba(60,80,200,0.06) 0%, transparent 60%),
+                #0b0d14;
+        }
+
+        .wrap { position: relative; z-index: 1; padding: 28px 36px 40px; }
+
+        /* ── Header ── */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+            padding-bottom: 18px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .header-left { display: flex; align-items: center; gap: 18px; }
+
+        .logo-accent {
+            width: 6px; height: 48px;
+            background: linear-gradient(180deg, #e30613, #ff6b6b);
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+
+        .header h1 {
+            font-size: 1.65rem;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: 0.5px;
+        }
+
+        .header-sub {
+            font-size: 0.82rem;
+            color: rgba(255,255,255,0.38);
+            margin-top: 3px;
+            letter-spacing: 0.3px;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        /* ── Auto-Refresh Indicator ── */
+        .btn-clear {
+            background: rgba(227,6,19,0.15);
+            border: 1px solid rgba(227,6,19,0.45);
+            color: #ff6b6b;
+            border-radius: 8px;
+            padding: 8px 18px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s;
+            letter-spacing: 0.3px;
+        }
+
+        .btn-clear:hover {
+            background: rgba(227,6,19,0.28);
+            border-color: rgba(227,6,19,0.7);
+        }
+
+        .refresh-info {
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.35);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .refresh-dot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            background: #51cf66;
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50%       { opacity: 0.3; }
+        }
+
+        /* ── Stats ── */
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            margin-bottom: 22px;
+        }
+
+        .stat-card {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .stat-card.green { border-color: rgba(81,207,102,0.25); }
+        .stat-card.red   { border-color: rgba(255,107,107,0.25); }
+        .stat-card.blue  { border-color: rgba(80,130,255,0.25); }
+
+        .stat-icon {
+            font-size: 1.6rem;
+            opacity: 0.75;
+        }
+
+        .stat-num {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #fff;
+            line-height: 1;
+        }
+
+        .stat-card.green .stat-num { color: #51cf66; }
+        .stat-card.red   .stat-num { color: #ff6b6b; }
+        .stat-card.blue  .stat-num { color: #82b4ff; }
+
+        .stat-label {
+            font-size: 0.78rem;
+            color: rgba(255,255,255,0.4);
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* ── Tabelle ── */
+        .table-wrap {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px;
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead tr {
+            background: rgba(255,255,255,0.04);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        th {
+            padding: 13px 18px;
+            text-align: left;
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: rgba(255,255,255,0.38);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            white-space: nowrap;
+        }
+
+        th.center { text-align: center; }
+
+        tbody tr {
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            transition: background 0.12s;
+        }
+
+        tbody tr:last-child { border-bottom: none; }
+
+        tbody tr:hover { background: rgba(255,255,255,0.04); }
+
+        tbody tr.incomplete {
+            border-left: 3px solid rgba(255,107,107,0.55);
+        }
+
+        tbody tr.completed {
+            border-left: 3px solid rgba(81,207,102,0.45);
+        }
+
+        td {
+            padding: 13px 18px;
+            vertical-align: middle;
+            font-size: 0.9rem;
+        }
+
+        /* Nr. Spalte */
+        .td-num {
+            font-weight: 700;
+            font-size: 0.98rem;
+            color: #fff;
+            white-space: nowrap;
+            min-width: 90px;
+        }
+
+        /* Datum Spalte */
+        .td-date {
+            white-space: nowrap;
+            min-width: 110px;
+        }
+        .date-main { color: rgba(255,255,255,0.85); font-size: 0.88rem; }
+        .date-time { color: rgba(255,255,255,0.38); font-size: 0.78rem; margin-top: 2px; }
+
+        /* Fehler Spalte */
+        .td-errors { width: 100%; }
+
+        .chip-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 20px;
+            padding: 3px 10px 3px 6px;
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.82);
+            white-space: nowrap;
+        }
+
+        .chip.is-group {
+            background: rgba(80,130,255,0.1);
+            border-color: rgba(80,130,255,0.3);
+        }
+
+        .chip-cat {
+            background: rgba(227,6,19,0.7);
+            color: #fff;
+            border-radius: 10px;
+            padding: 1px 6px;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+
+        .chip.is-group .chip-cat {
+            background: rgba(80,130,255,0.75);
+        }
+
+        .no-errors {
+            color: rgba(255,255,255,0.25);
+            font-style: italic;
+            font-size: 0.82rem;
+        }
+
+        /* Dauer Spalte */
+        .td-duration {
+            white-space: nowrap;
+            min-width: 80px;
+            text-align: right;
+        }
+
+        .dur-val {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: rgba(255,255,255,0.7);
+        }
+
+        .dur-na { color: rgba(255,255,255,0.2); }
+
+        /* Status Spalte */
+        .td-status {
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.4px;
+        }
+
+        .badge-ok {
+            background: rgba(81,207,102,0.15);
+            color: #51cf66;
+            border: 1px solid rgba(81,207,102,0.3);
+        }
+
+        .badge-warn {
+            background: rgba(255,107,107,0.15);
+            color: #ff6b6b;
+            border: 1px solid rgba(255,107,107,0.3);
+        }
+
+        /* ── Leer-Zustand ── */
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: rgba(255,255,255,0.35);
+        }
+
+        .empty-state .icon { font-size: 3.5rem; margin-bottom: 18px; opacity: 0.4; }
+        .empty-state h3 { font-size: 1.2rem; margin-bottom: 8px; color: rgba(255,255,255,0.5); }
+        .empty-state p  { font-size: 0.88rem; }
+
+        /* ── Footer ── */
+        .footer {
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.78rem;
+            color: rgba(255,255,255,0.25);
+        }
+    </style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="wrap">
+
+    <!-- Header -->
+    <div class="header">
+        <div class="header-left">
+            <div class="logo-accent"></div>
+            <div>
+                <h1>Prüfungsdatenbank</h1>
+                <div class="header-sub">VDE Messwand &nbsp;·&nbsp; Eiffage Elomech</div>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="refresh-info">
+                <div class="refresh-dot"></div>
+                <span>Aktualisierung in <span id="countdown">60</span>s</span>
+            </div>
+            <button class="btn-clear" onclick="clearDatabase()">Datenbank leeren</button>
+        </div>
+    </div>
+
+    <!-- Statistiken -->
+    <div class="stats-bar">
+        <div class="stat-card">
+            <div class="stat-icon">📋</div>
+            <div>
+                <div class="stat-num">{{ total_count }}</div>
+                <div class="stat-label">Gesamt</div>
+            </div>
+        </div>
+        <div class="stat-card green">
+            <div class="stat-icon">✅</div>
+            <div>
+                <div class="stat-num">{{ completed_count }}</div>
+                <div class="stat-label">Abgeschlossen</div>
+            </div>
+        </div>
+        <div class="stat-card red">
+            <div class="stat-icon">⚠️</div>
+            <div>
+                <div class="stat-num">{{ incomplete_count }}</div>
+                <div class="stat-label">Unterbrochen</div>
+            </div>
+        </div>
+        <div class="stat-card blue">
+            <div class="stat-icon">⏱</div>
+            <div>
+                <div class="stat-num">{{ avg_duration_str }}</div>
+                <div class="stat-label">Ø Dauer (min)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabelle -->
+    <div class="table-wrap">
+        {% if examinations %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Nr.</th>
+                    <th>Datum</th>
+                    <th>Aktivierte Fehler</th>
+                    <th style="text-align:right">Dauer</th>
+                    <th class="center">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for exam in examinations %}
+                <tr class="{{ 'completed' if exam.is_completed else 'incomplete' }}">
+
+                    <!-- Prüfungsnummer -->
+                    <td class="td-num">{{ exam.exam_number }}</td>
+
+                    <!-- Datum & Uhrzeit -->
+                    <td class="td-date">
+                        <div class="date-main">{{ exam.formatted_date }}</div>
+                        <div class="date-time">{{ exam.formatted_time }}</div>
+                    </td>
+
+                    <!-- Fehler-Chips -->
+                    <td class="td-errors">
+                        {% if exam.relay_descriptions and exam.relay_descriptions|length > 0 %}
+                        <div class="chip-list">
+                            {% for rd in exam.relay_descriptions %}
+                            <span class="chip {{ 'is-group' if rd.is_group else '' }}">
+                                {% if rd.category %}
+                                <span class="chip-cat">{{ rd.category }}</span>
+                                {% endif %}
+                                {{ rd.name }}
+                            </span>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <span class="no-errors">Keine Fehler aktiviert</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- Dauer -->
+                    <td class="td-duration">
+                        {% if exam.is_completed %}
+                        <span class="dur-val">{{ exam.formatted_duration }}</span>
+                        {% else %}
+                        <span class="dur-val dur-na">—</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- Status -->
+                    <td class="td-status">
+                        {% if exam.is_completed %}
+                        <span class="badge badge-ok">Abgeschlossen</span>
+                        {% else %}
+                        <span class="badge badge-warn">Unterbrochen</span>
+                        {% endif %}
+                    </td>
+
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state">
+            <div class="icon">📋</div>
+            <h3>Keine Prüfungsdaten vorhanden</h3>
+            <p>Es wurden noch keine Prüfungen durchgeführt.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <span>{{ examinations|length }} Einträge angezeigt</span>
+        <span>Letzte Aktualisierung: <span id="last-updated"></span></span>
+    </div>
+
+</div>
+
+<script>
+    // Uhrzeit der letzten Aktualisierung
+    const updated = document.getElementById('last-updated');
+    const now = new Date();
+    updated.textContent = now.toLocaleTimeString('de-DE');
+
+    // Datenbank leeren
+    function clearDatabase() {
+        if (!confirm('Gesamte Datenbank unwiderruflich löschen?')) return;
+        fetch('/clear_database', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+            .then(r => r.json())
+            .then(d => { if (d.success) location.reload(); else alert('Fehler beim Leeren der Datenbank!'); })
+            .catch(() => alert('Verbindungsfehler!'));
+    }
+
+    // Countdown + Auto-Refresh
+    let seconds = 60;
+    const countdownEl = document.getElementById('countdown');
+    setInterval(() => {
+        seconds--;
+        countdownEl.textContent = seconds;
+        if (seconds <= 0) location.reload();
+    }, 1000);
+</script>
+</body>
+</html>

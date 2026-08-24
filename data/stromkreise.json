@@ -1,0 +1,54 @@
+{
+  "1": {
+    "name": "CEE 16A",
+    "relays": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "description": "CEE Steckdose 16A"
+  },
+  "2": {
+    "name": "Herdanschlussdose",
+    "relays": [
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+    ],
+    "description": "Herdanschlussdose 400V"
+  },
+  "3": {
+    "name": "Steckdose Taster Lampe 1",
+    "description": "Steckdosenkreis 1 mit Beleuchtung"
+  },
+  "4": {
+    "name": "Steckdose Taster Lampe 2",
+    "description": "Steckdosenkreis 2 mit Beleuchtung"
+  },
+  "6": {
+    "name": "Lampen",
+    "description": "Beide Lampen"
+  },
+  "5": {
+    "name": "Bad Steckdose",
+    "description": "RCBO Steckdose"
+  },
+  "7": {
+    "name": "Rohre",
+    "description": "Außenrohre"
+  }
+}

@@ -90,7 +90,8 @@ function startExam(examNumber) {
 function startTimer() {
     const durationInput = document.getElementById('exam_duration_minutes');
     const durationMinutes = durationInput ? parseInt(durationInput.value) || 20 : 20;
-    let remainingTime = durationMinutes * 60;
+    const elapsedSeconds = examStartTime ? Math.floor((Date.now() - examStartTime) / 1000) : 0;
+    let remainingTime = Math.max(0, durationMinutes * 60 - elapsedSeconds);
     const timerElement = document.getElementById('timer');
     
     if (!timerElement) {

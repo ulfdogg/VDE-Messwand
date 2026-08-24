@@ -11,81 +11,68 @@
             Export CSV
         </button>
     </div>
-    
+
     {% if examinations %}
-    <div class="table-container">
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>Prüfungsnummer</th>
-                    <th>Zugeschaltete Fehler</th>
-                    <th>Zeitstempel</th>
-                    <th>Dauer</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for exam in examinations %}
-                <tr>
-                    <td><strong>{{ exam.exam_number }}</strong></td>
-                    <td class="error-cell">
-                        <div class="error-list">
-                            {% if exam.relay_descriptions and exam.relay_descriptions|length > 0 %}
-                                {% for relay_desc in exam.relay_descriptions %}
-                                <div class="error-item">
-                                    {% if relay_desc.is_group %}
-                                    <span class="error-category">GRUPPE</span>
-                                    {% else %}
-                                    <span class="error-category">R{{ relay_desc.number + 1 }}</span>
-                                    {% endif %}
-                                    <span class="error-name">{{ relay_desc.name }}</span>
-                                </div>
-                                {% endfor %}
-                            {% else %}
-                                <div class="error-item">
-                                    <span class="no-errors">Keine Relais aktiviert</span>
-                                </div>
+
+    <div class="db-stats-row">
+        <div class="db-stat">
+            <span class="db-stat-num">{{ examinations|length }}</span>
+            <span class="db-stat-label">Gesamt</span>
+        </div>
+        <div class="db-stat db-stat-ok">
+            <span class="db-stat-num">{{ completed_count }}</span>
+            <span class="db-stat-label">Abgeschlossen</span>
+        </div>
+        <div class="db-stat db-stat-warn">
+            <span class="db-stat-num">{{ incomplete_count }}</span>
+            <span class="db-stat-label">Unterbrochen</span>
+        </div>
+    </div>
+
+    <div class="exam-list">
+        {% for exam in examinations %}
+        <div class="exam-row {% if not exam.is_completed %}exam-row--incomplete{% endif %}">
+
+            <!-- Linke Seite: Nummer + Zeitstempel -->
+            <div class="exam-left">
+                <div class="exam-number">{{ exam.exam_number }}</div>
+                <div class="exam-date">{{ exam.formatted_date }}</div>
+                <div class="exam-time">{{ exam.formatted_time }}</div>
+            </div>
+
+            <!-- Mitte: Fehler-Chips -->
+            <div class="exam-middle">
+                {% if exam.relay_descriptions and exam.relay_descriptions|length > 0 %}
+                    <div class="chip-wrap">
+                        {% for relay_desc in exam.relay_descriptions %}
+                        <span class="chip {% if relay_desc.is_group %}chip--group{% endif %}">
+                            {% if relay_desc.is_group %}
+                                <span class="chip-badge chip-badge--group">{{ relay_desc.category if relay_desc.category else 'Gruppe' }}</span>
                             {% endif %}
-                        </div>
-                    </td>
-                    <td>
-                        <div class="timestamp">
-                            <div class="date">{{ exam.formatted_date }}</div>
-                            <div class="time">{{ exam.formatted_time }}</div>
-                        </div>
-                    </td>
-                    <td>
-                        {% if exam.is_completed %}
-                            <span class="duration">{{ exam.formatted_duration }}</span>
-                        {% else %}
-                            <span class="duration-incomplete">Nicht beendet</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if exam.is_completed %}
-                            <span class="status-complete">✓ Abgeschlossen</span>
-                        {% else %}
-                            <span class="status-incomplete">⚠ Unterbrochen</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                            {{ relay_desc.name }}
+                        </span>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <span class="no-errors">Keine Relais aktiviert</span>
+                {% endif %}
+            </div>
+
+            <!-- Rechte Seite: Dauer + Status -->
+            <div class="exam-right">
+                {% if exam.is_completed %}
+                    <span class="exam-duration">{{ exam.formatted_duration }}</span>
+                    <span class="exam-status exam-status--ok">Abgeschlossen</span>
+                {% else %}
+                    <span class="exam-duration exam-duration--na">—</span>
+                    <span class="exam-status exam-status--warn">Unterbrochen</span>
+                {% endif %}
+            </div>
+
+        </div>
+        {% endfor %}
     </div>
-    
-    <div class="database-stats">
-        <div class="stat-item">
-            <strong>Gesamt Prüfungen:</strong> {{ examinations|length }}
-        </div>
-        <div class="stat-item">
-            <strong>Abgeschlossene:</strong> {{ completed_count }}
-        </div>
-        <div class="stat-item">
-            <strong>Unterbrochene:</strong> {{ incomplete_count }}
-        </div>
-    </div>
-    
+
     {% else %}
     <div class="empty-state">
         <div class="empty-icon">📋</div>
@@ -96,105 +83,184 @@
 </div>
 
 <style>
-.error-cell {
-    max-width: 400px;
+/* === Stats-Leiste === */
+.db-stats-row {
+    display: flex;
+    gap: 12px;
+    margin: 20px 0;
 }
 
-.error-list {
+.db-stat {
+    flex: 1;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 14px 16px;
+    text-align: center;
+}
+
+.db-stat-ok  { border-color: rgba(81,207,102,0.3); }
+.db-stat-warn { border-color: rgba(255,107,107,0.3); }
+
+.db-stat-num {
+    display: block;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1;
+}
+
+.db-stat-ok .db-stat-num  { color: #51cf66; }
+.db-stat-warn .db-stat-num { color: #ff6b6b; }
+
+.db-stat-label {
+    display: block;
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.45);
+    margin-top: 4px;
+}
+
+/* === Exam-Liste === */
+.exam-list {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    margin-top: 4px;
 }
 
-.error-item {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 6px;
-    padding: 8px 12px;
-    border-left: 4px solid #ff4444;
+.exam-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-left: 3px solid rgba(81,207,102,0.5);
+    border-radius: 10px;
+    padding: 12px 16px;
+    transition: background 0.15s;
 }
 
-.error-category {
-    display: inline-block;
-    background: #ff4444;
-    color: white;
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 0.8em;
-    font-weight: bold;
-    margin-right: 8px;
+.exam-row--incomplete {
+    border-left-color: rgba(255,107,107,0.6);
 }
 
-.error-name {
-    font-weight: 600;
-    color: #ffffff;
-    display: block;
-    margin: 4px 0 2px 0;
+.exam-row:hover {
+    background: rgba(255,255,255,0.07);
 }
 
-.error-description {
-    font-size: 0.9em;
-    opacity: 0.8;
-    font-style: italic;
-    color: rgba(255, 255, 255, 0.8);
+/* Linke Spalte */
+.exam-left {
+    min-width: 90px;
+    flex-shrink: 0;
+}
+
+.exam-number {
+    font-weight: 700;
+    font-size: 1rem;
+    color: #fff;
+    margin-bottom: 4px;
+}
+
+.exam-date {
+    font-size: 0.82rem;
+    color: rgba(255,255,255,0.6);
+}
+
+.exam-time {
+    font-size: 0.78rem;
+    color: rgba(255,255,255,0.35);
+}
+
+/* Mittlere Spalte */
+.exam-middle {
+    flex: 1;
+    min-width: 0;
+}
+
+.chip-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 20px;
+    padding: 3px 10px 3px 5px;
+    font-size: 0.82rem;
+    color: rgba(255,255,255,0.85);
+    white-space: nowrap;
+}
+
+.chip--group {
+    border-color: rgba(130,180,255,0.35);
+    background: rgba(80,130,255,0.12);
+}
+
+.chip-badge {
+    background: rgba(227,6,19,0.7);
+    color: #fff;
+    border-radius: 10px;
+    padding: 1px 6px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.chip-badge--group {
+    background: rgba(80,130,255,0.7);
 }
 
 .no-errors {
-    opacity: 0.6;
-    font-style: italic;
-    color: rgba(255, 255, 255, 0.6);
-}
-
-.timestamp {
-    text-align: center;
-}
-
-.date {
-    font-weight: 600;
-    margin-bottom: 2px;
-    color: #ffffff;
-}
-
-.time {
-    font-size: 0.9em;
-    opacity: 0.8;
-    color: rgba(255, 255, 255, 0.8);
-}
-
-.duration {
-    font-weight: 600;
-    color: #ff4444;
-}
-
-.duration-incomplete {
-    color: #ff6b6b;
+    font-size: 0.82rem;
+    color: rgba(255,255,255,0.3);
     font-style: italic;
 }
 
-.status-complete {
-    color: #51cf66;
-    font-weight: 600;
-}
-
-.status-incomplete {
-    color: #ff6b6b;
-    font-weight: 600;
-}
-
-.database-stats {
+/* Rechte Spalte */
+.exam-right {
+    min-width: 100px;
+    flex-shrink: 0;
+    text-align: right;
     display: flex;
-    justify-content: space-around;
-    margin-top: 20px;
-    padding: 20px;
-    background: rgba(255, 255, 255, 0.05);
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+}
+
+.exam-duration {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #ff6b6b;
+}
+
+.exam-duration--na {
+    color: rgba(255,255,255,0.2);
+}
+
+.exam-status {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 2px 8px;
     border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.stat-item {
-    text-align: center;
-    color: #ffffff;
+.exam-status--ok {
+    background: rgba(81,207,102,0.15);
+    color: #51cf66;
 }
 
+.exam-status--warn {
+    background: rgba(255,107,107,0.15);
+    color: #ff6b6b;
+}
+
+/* === Empty State === */
 .empty-state {
     text-align: center;
     padding: 60px 20px;
@@ -210,56 +276,21 @@
 .empty-state h3 {
     margin-bottom: 10px;
     opacity: 0.8;
-    color: #ffffff;
 }
 
 .empty-state p {
     opacity: 0.6;
-    color: rgba(255, 255, 255, 0.6);
-}
-
-.table-container {
-    overflow-x: auto;
-    margin: 20px 0;
-}
-
-.data-table {
-    width: 100%;
-    border-collapse: collapse;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 10px;
-    overflow: hidden;
-}
-
-.data-table th {
-    background: rgba(255, 68, 68, 0.2);
-    padding: 15px;
-    text-align: left;
-    font-weight: 600;
-    color: #ff4444;
-    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
-}
-
-.data-table td {
-    padding: 15px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    vertical-align: top;
-    color: #ffffff;
-}
-
-.data-table tr:hover {
-    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255,255,255,0.6);
 }
 </style>
 
 <script>
+
 function clearDatabase() {
     if (confirm('Sind Sie sicher, dass Sie die gesamte Datenbank löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden!')) {
         fetch('/clear_database', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
+            headers: { 'Content-Type': 'application/json' }
         })
         .then(response => response.json())
         .then(data => {
@@ -278,42 +309,29 @@ function clearDatabase() {
 }
 
 function exportDatabase() {
-    // Erstelle CSV-Export
-    const table = document.querySelector('.data-table');
-    if (!table) {
+    const rows = document.querySelectorAll('.exam-row');
+    if (rows.length === 0) {
         alert('Keine Daten zum Exportieren vorhanden!');
         return;
     }
-    
-    let csv = 'Prüfungsnummer,Fehler,Kategorie,Zeitstempel,Dauer (Sek),Status\n';
-    
-    const rows = table.querySelectorAll('tbody tr');
+
+    let csv = 'Prüfungsnummer,Fehler,Zeitstempel,Dauer,Status\n';
+
     rows.forEach(row => {
-        const cells = row.querySelectorAll('td');
-        const examNumber = cells[0].textContent.trim();
-        const timestamp = cells[2].textContent.trim().replace(/\n/g, ' ');
-        const duration = cells[3].textContent.trim();
-        const status = cells[4].textContent.trim();
-        
-        // Extrahiere Fehlerinformationen
-        const errorItems = cells[1].querySelectorAll('.error-item');
-        if (errorItems.length > 0) {
-            errorItems.forEach(errorItem => {
-                const category = errorItem.querySelector('.error-category').textContent;
-                const name = errorItem.querySelector('.error-name').textContent;
-                csv += `"${examNumber}","${name}","${category}","${timestamp}","${duration}","${status}"\n`;
-            });
-        } else {
-            csv += `"${examNumber}","Keine Fehler","","${timestamp}","${duration}","${status}"\n`;
-        }
+        const number = row.querySelector('.exam-number').textContent.trim();
+        const date   = row.querySelector('.exam-date').textContent.trim();
+        const time   = row.querySelector('.exam-time').textContent.trim();
+        const dur    = row.querySelector('.exam-duration') ? row.querySelector('.exam-duration').textContent.trim() : '';
+        const status = row.querySelector('.exam-status') ? row.querySelector('.exam-status').textContent.trim() : '';
+        const chips  = Array.from(row.querySelectorAll('.chip')).map(c => c.textContent.trim().replace(/\s+/g,' '));
+        const fehler = chips.length > 0 ? chips.join(' | ') : 'Keine';
+        csv += `"${number}","${fehler}","${date} ${time}","${dur}","${status}"\n`;
     });
-    
-    // Download CSV
+
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `vde_pruefungen_${new Date().toISOString().split('T')[0]}.csv`);
+    link.href = URL.createObjectURL(blob);
+    link.download = `vde_pruefungen_${new Date().toISOString().split('T')[0]}.csv`;
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();

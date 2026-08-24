@@ -90,6 +90,88 @@
             border-radius: 8px;
         }
 
+        .fehler-section {
+            margin-bottom: 20px;
+            padding: 15px 20px;
+            background: rgba(255, 68, 68, 0.05);
+            border-radius: 12px;
+            border: 2px solid rgba(255, 68, 68, 0.3);
+        }
+
+        .fehler-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .fehler-header strong {
+            color: #ff4444;
+            font-size: 1rem;
+        }
+
+        .fehler-reset-btn {
+            background: rgba(255, 68, 68, 0.15);
+            border: 1px solid rgba(255, 68, 68, 0.4);
+            border-radius: 8px;
+            color: rgba(255, 255, 255, 0.7);
+            padding: 5px 12px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .fehler-reset-btn:hover {
+            background: rgba(255, 68, 68, 0.3);
+            color: #fff;
+        }
+
+        .fehler-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .fehler-btn {
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            color: rgba(255, 255, 255, 0.8);
+            padding: 10px 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+            min-width: 160px;
+        }
+
+        .fehler-btn:hover {
+            background: rgba(255, 68, 68, 0.15);
+            border-color: rgba(255, 68, 68, 0.5);
+        }
+
+        .fehler-btn.active {
+            background: rgba(255, 68, 68, 0.3);
+            border-color: #ff4444;
+            color: #fff;
+        }
+
+        .fehler-btn-name {
+            display: block;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .fehler-btn-sk {
+            display: block;
+            font-size: 0.78rem;
+            color: rgba(255, 255, 255, 0.55);
+            margin-top: 3px;
+        }
+
+        .fehler-btn.active .fehler-btn-sk {
+            color: rgba(255, 200, 200, 0.8);
+        }
+
         @media (max-width: 768px) {
             .modal-content {
                 width: 95%;
@@ -132,9 +214,12 @@
         <div class="modal-content">
             <span class="modal-close" onclick="closeModal()">&times;</span>
             <h2 id="modalTitle" style="color: #ff4444; margin-bottom: 20px;"></h2>
-            <div id="relayInfo" style="display: none; margin-bottom: 20px; padding: 15px 20px; background: rgba(255, 68, 68, 0.1); border-radius: 12px; border: 2px solid rgba(255, 68, 68, 0.3);">
-                <strong style="color: #ff4444;">Aktivierte Relais:</strong>
-                <div id="relayList" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;"></div>
+            <div id="fehlerSection" class="fehler-section" style="display: none;">
+                <div class="fehler-header">
+                    <strong>Fehler zuschalten:</strong>
+                    <button class="fehler-reset-btn" onclick="resetAllRelays()">Alle zurücksetzen</button>
+                </div>
+                <div id="fehlerButtons" class="fehler-buttons"></div>
             </div>
             <div id="modalContent" style="color: #ffffff; font-size: 1.1rem; line-height: 1.8; max-width: 900px; margin: 0 auto;"></div>
         </div>
@@ -303,11 +388,13 @@
         };
 
         const sectionToCategory = {
-            'schleife': 'Zs',
-            'zi': 'Zi',
+            'schleife': 'Impedanzen',
+            'zi': 'Impedanzen',
             'rcd': 'RCD',
             'drehfeld': 'Drehfeld'
         };
+
+        const activeRelays = new Set();
 
         async function showSection(section) {
             const data = content[section];
@@ -315,29 +402,69 @@
 
             document.getElementById('modalTitle').textContent = data.title;
             document.getElementById('modalContent').innerHTML = data.content;
-            document.getElementById('relayInfo').style.display = 'none';
+            document.getElementById('fehlerSection').style.display = 'none';
+            document.getElementById('fehlerButtons').innerHTML = '';
+            activeRelays.clear();
             document.getElementById('contentModal').style.display = 'block';
 
             const category = sectionToCategory[section];
             if (category) {
                 try {
-                    const response = await fetch('/api/training/activate', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ page_id: 'unter_spannung', category: category })
-                    });
+                    const response = await fetch(`/api/training/relay_details/unter_spannung/${category}`);
                     const result = await response.json();
-                    if (result.success && result.activated_relais && result.activated_relais.length > 0) {
-                        document.getElementById('relayList').innerHTML = result.activated_relais
-                            .map(r => `<span style="background:rgba(255,68,68,0.3);color:#ff4444;padding:6px 12px;border-radius:8px;border:1px solid rgba(255,68,68,0.5);font-weight:bold;">Relais ${r}</span>`)
-                            .join('');
-                        document.getElementById('relayInfo').style.display = 'block';
+                    if (result.success && result.relays.length > 0) {
+                        renderFehlerButtons(result.relays);
                     }
-                } catch (e) { /* kein Relay konfiguriert – ok */ }
+                } catch (e) { /* keine Relais konfiguriert – ok */ }
             }
         }
 
+        function renderFehlerButtons(relays) {
+            const container = document.getElementById('fehlerButtons');
+            container.innerHTML = relays.map(relay => `
+                <button class="fehler-btn"
+                        id="fehler-btn-${relay.relay_num}"
+                        onclick="toggleRelay(${relay.relay_num})">
+                    <span class="fehler-btn-name">${relay.name}</span>
+                    ${relay.stromkreis ? `<span class="fehler-btn-sk">${relay.stromkreis}</span>` : ''}
+                </button>
+            `).join('');
+            document.getElementById('fehlerSection').style.display = 'block';
+        }
+
+        async function toggleRelay(relayNum) {
+            const btn = document.getElementById(`fehler-btn-${relayNum}`);
+            const isActive = activeRelays.has(relayNum);
+            const endpoint = isActive ? '/api/training/deactivate_single' : '/api/training/activate_single';
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ relay_num: relayNum })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    if (isActive) {
+                        activeRelays.delete(relayNum);
+                        btn.classList.remove('active');
+                    } else {
+                        activeRelays.add(relayNum);
+                        btn.classList.add('active');
+                    }
+                }
+            } catch (e) { /* Verbindungsfehler */ }
+        }
+
+        async function resetAllRelays() {
+            try {
+                await fetch('/reset_relays', { method: 'POST' });
+            } catch (e) { /* ok */ }
+            activeRelays.clear();
+            document.querySelectorAll('.fehler-btn.active').forEach(btn => btn.classList.remove('active'));
+        }
+
         function closeModal() {
+            resetAllRelays();
             document.getElementById('contentModal').style.display = 'none';
         }
 

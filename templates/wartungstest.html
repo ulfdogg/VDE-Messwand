@@ -1,0 +1,784 @@
+{% extends "base.html" %}
+
+{% block title %}Wartungstest - VDE Messwand{% endblock %}
+
+{% block content %}
+<style>
+    .wt-container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 0 10px;
+    }
+
+    .wt-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .wt-header h1 {
+        font-size: 1.6rem;
+        color: #fff;
+        margin: 0;
+    }
+
+    .wt-progress-wrap {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .wt-counter {
+        font-size: 1.1rem;
+        color: rgba(255,255,255,0.7);
+        white-space: nowrap;
+    }
+
+    .wt-progress-bar {
+        width: 200px;
+        height: 8px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .wt-progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #e30613, #ff4444);
+        border-radius: 4px;
+        transition: width 0.4s ease;
+    }
+
+    /* === Haupt-Karte === */
+    .wt-card {
+        background: linear-gradient(135deg, rgba(20,20,35,0.95), rgba(30,30,50,0.95));
+        border: 1px solid rgba(227,6,19,0.35);
+        border-radius: 20px;
+        padding: 30px 28px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04);
+        margin-bottom: 16px;
+    }
+
+    .wt-relais-nr {
+        font-size: 0.85rem;
+        color: rgba(255,255,255,0.4);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+    }
+
+    .wt-relais-name {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #fff;
+        line-height: 1.2;
+        margin-bottom: 12px;
+    }
+
+    .wt-meta {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 22px;
+    }
+
+    .wt-badge {
+        background: rgba(255,255,255,0.07);
+        border: 1px solid rgba(255,255,255,0.15);
+        border-radius: 20px;
+        padding: 5px 14px;
+        font-size: 0.85rem;
+        color: rgba(255,255,255,0.75);
+    }
+
+    .wt-badge.cat { border-color: rgba(227,6,19,0.5); color: #ff6b6b; }
+    .wt-badge.sk  { border-color: rgba(80,180,255,0.4); color: #80c8ff; }
+
+    .wt-relay-status {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 16px;
+        background: rgba(255,255,255,0.04);
+        border-radius: 10px;
+        margin-bottom: 22px;
+        font-size: 0.9rem;
+        color: rgba(255,255,255,0.6);
+    }
+
+    .wt-relay-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #333;
+        transition: background 0.3s;
+        flex-shrink: 0;
+    }
+
+    .wt-relay-dot.active { background: #00e676; box-shadow: 0 0 8px #00e676; }
+
+    /* === Bewertungs-Buttons === */
+    .wt-bewertung {
+        display: flex;
+        gap: 14px;
+        margin-bottom: 22px;
+    }
+
+    .wt-btn-ok, .wt-btn-fail {
+        flex: 1;
+        padding: 22px 10px;
+        border: none;
+        border-radius: 14px;
+        font-size: 1.6rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: transform 0.12s, box-shadow 0.12s, opacity 0.2s;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .wt-btn-ok {
+        background: linear-gradient(135deg, #1a6b3c, #27ae60);
+        color: #fff;
+        box-shadow: 0 4px 20px rgba(39,174,96,0.3);
+    }
+
+    .wt-btn-fail {
+        background: linear-gradient(135deg, #7a1a1a, #c0392b);
+        color: #fff;
+        box-shadow: 0 4px 20px rgba(192,57,43,0.3);
+    }
+
+    .wt-btn-ok:active, .wt-btn-fail:active { transform: scale(0.96); }
+
+    .wt-btn-ok.selected {
+        box-shadow: 0 0 0 3px #27ae60, 0 4px 20px rgba(39,174,96,0.5);
+        transform: scale(1.03);
+    }
+
+    .wt-btn-fail.selected {
+        box-shadow: 0 0 0 3px #c0392b, 0 4px 20px rgba(192,57,43,0.5);
+        transform: scale(1.03);
+    }
+
+    .wt-btn-label {
+        font-size: 0.85rem;
+        font-weight: 400;
+        opacity: 0.85;
+    }
+
+    /* === Kommentar === */
+    .wt-kommentar-label {
+        font-size: 0.85rem;
+        color: rgba(255,255,255,0.5);
+        margin-bottom: 6px;
+        display: block;
+    }
+
+    .wt-kommentar {
+        width: 100%;
+        box-sizing: border-box;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.15);
+        border-radius: 10px;
+        color: #fff;
+        font-size: 1rem;
+        font-family: inherit;
+        padding: 12px 14px;
+        resize: none;
+        min-height: 70px;
+        margin-bottom: 22px;
+        outline: none;
+        transition: border-color 0.2s;
+    }
+
+    .wt-kommentar:focus { border-color: rgba(227,6,19,0.6); }
+
+    /* === Navigation === */
+    .wt-nav {
+        display: flex;
+        gap: 12px;
+    }
+
+    .wt-btn-back, .wt-btn-next {
+        padding: 16px 24px;
+        border: none;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+        transition: transform 0.1s, opacity 0.2s;
+    }
+
+    .wt-btn-back {
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.2);
+        color: rgba(255,255,255,0.7);
+        flex: 0 0 auto;
+    }
+
+    .wt-btn-next {
+        background: linear-gradient(135deg, rgba(227,6,19,0.7), rgba(200,0,10,0.9));
+        color: #fff;
+        flex: 1;
+        box-shadow: 0 4px 16px rgba(227,6,19,0.3);
+    }
+
+    .wt-btn-next:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+    }
+
+    .wt-btn-back:active:not(:disabled),
+    .wt-btn-next:active:not(:disabled) { transform: scale(0.97); }
+
+    /* === Abschluss === */
+    #wt-summary {
+        display: none;
+    }
+
+    .wt-summary-header {
+        text-align: center;
+        margin-bottom: 28px;
+    }
+
+    .wt-summary-header h2 {
+        font-size: 2rem;
+        color: #fff;
+        margin-bottom: 8px;
+    }
+
+    .wt-stats {
+        display: flex;
+        gap: 16px;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-bottom: 28px;
+    }
+
+    .wt-stat-box {
+        background: rgba(255,255,255,0.06);
+        border-radius: 14px;
+        padding: 18px 28px;
+        text-align: center;
+        min-width: 100px;
+    }
+
+    .wt-stat-num { font-size: 2.2rem; font-weight: 700; }
+    .wt-stat-label { font-size: 0.8rem; color: rgba(255,255,255,0.5); }
+    .wt-stat-ok .wt-stat-num { color: #27ae60; }
+    .wt-stat-fail .wt-stat-num { color: #e74c3c; }
+    .wt-stat-skip .wt-stat-num { color: #f39c12; }
+
+    .wt-summary-list {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        max-height: 45vh;
+        overflow-y: auto;
+    }
+
+    .wt-summary-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        background: rgba(255,255,255,0.04);
+        border-radius: 10px;
+        padding: 12px 14px;
+        border-left: 3px solid transparent;
+    }
+
+    .wt-summary-item.ok   { border-left-color: #27ae60; }
+    .wt-summary-item.fail { border-left-color: #e74c3c; }
+    .wt-summary-item.skip { border-left-color: #f39c12; }
+
+    .wt-summary-icon { font-size: 1.3rem; flex-shrink: 0; margin-top: 1px; }
+    .wt-summary-info { flex: 1; }
+    .wt-summary-name { font-size: 0.95rem; color: #fff; font-weight: 600; }
+    .wt-summary-meta { font-size: 0.78rem; color: rgba(255,255,255,0.45); }
+    .wt-summary-comment { font-size: 0.82rem; color: rgba(255,200,100,0.8); margin-top: 3px; font-style: italic; }
+
+    .wt-btn-restart {
+        width: 100%;
+        padding: 18px;
+        background: linear-gradient(135deg, rgba(227,6,19,0.7), rgba(200,0,10,0.9));
+        border: none;
+        border-radius: 14px;
+        color: #fff;
+        font-size: 1.1rem;
+        font-weight: 700;
+        cursor: pointer;
+        touch-action: manipulation;
+        box-shadow: 0 4px 16px rgba(227,6,19,0.3);
+    }
+</style>
+
+<div class="wt-container">
+    <div class="wt-header">
+        <h1>Wartungstest</h1>
+        <div class="wt-progress-wrap">
+            <span class="wt-counter" id="wt-counter">– / {{ relais|length }}</span>
+            <div class="wt-progress-bar">
+                <div class="wt-progress-fill" id="wt-progress-fill" style="width: 0%"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Start-Bildschirm -->
+    <div id="wt-start-view">
+        <div class="wt-card">
+            <div style="text-align:center; margin-bottom:24px;">
+                <div style="font-size:2.5rem; margin-bottom:10px;">🔧</div>
+                <h2 style="color:#fff; font-size:1.6rem; margin:0;">Wartungstest</h2>
+            </div>
+
+            <!-- Filter-Tabs -->
+            <div style="display:flex; gap:0; margin-bottom:18px; border-radius:12px; overflow:hidden; border:1px solid rgba(255,255,255,0.12);">
+                <button id="wt-tab-sk" onclick="switchTab('sk')"
+                        style="flex:1; padding:11px 10px; border:none; border-right:1px solid rgba(255,255,255,0.12); background:rgba(227,6,19,0.25); color:#fff; font-size:0.9rem; font-weight:600; cursor:pointer; touch-action:manipulation; transition:background 0.2s;">
+                    Stromkreise
+                </button>
+                <button id="wt-tab-kat" onclick="switchTab('kat')"
+                        style="flex:1; padding:11px 10px; border:none; background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.55); font-size:0.9rem; font-weight:600; cursor:pointer; touch-action:manipulation; transition:background 0.2s;">
+                    Kategorien
+                </button>
+            </div>
+
+            <!-- Stromkreis-Filter -->
+            <div id="wt-panel-sk" style="margin-bottom:20px;">
+                <div style="display:flex; justify-content:flex-end; gap:10px; margin-bottom:10px;">
+                    <button onclick="selectAllSk(true)"  style="background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.2); border-radius:8px; color:rgba(255,255,255,0.7); padding:6px 14px; font-size:0.82rem; cursor:pointer; touch-action:manipulation;">Alle</button>
+                    <button onclick="selectAllSk(false)" style="background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.2); border-radius:8px; color:rgba(255,255,255,0.7); padding:6px 14px; font-size:0.82rem; cursor:pointer; touch-action:manipulation;">Keine</button>
+                </div>
+                <div id="wt-sk-list" style="display:flex; flex-direction:column; gap:8px;">
+                    {% for sk in stromkreise %}
+                    <label style="display:flex; align-items:center; gap:14px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:14px 16px; cursor:pointer; touch-action:manipulation; user-select:none;">
+                        <input type="checkbox" class="wt-sk-cb" value="{{ sk.name }}" checked
+                               style="width:22px; height:22px; accent-color:#e30613; cursor:pointer; flex-shrink:0;">
+                        <span style="flex:1; font-size:1rem; color:#fff;">{{ sk.name }}</span>
+                        <span style="font-size:0.8rem; color:rgba(255,255,255,0.35);">{{ sk.count }} Relais</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Kategorie-Filter -->
+            <div id="wt-panel-kat" style="margin-bottom:20px; display:none;">
+                <div style="display:flex; justify-content:flex-end; gap:10px; margin-bottom:10px;">
+                    <button onclick="selectAllKat(true)"  style="background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.2); border-radius:8px; color:rgba(255,255,255,0.7); padding:6px 14px; font-size:0.82rem; cursor:pointer; touch-action:manipulation;">Alle</button>
+                    <button onclick="selectAllKat(false)" style="background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.2); border-radius:8px; color:rgba(255,255,255,0.7); padding:6px 14px; font-size:0.82rem; cursor:pointer; touch-action:manipulation;">Keine</button>
+                </div>
+                <div id="wt-kat-list" style="display:flex; flex-direction:column; gap:8px;">
+                    {% for kat in kategorien %}
+                    <label style="display:flex; align-items:center; gap:14px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:14px 16px; cursor:pointer; touch-action:manipulation; user-select:none;">
+                        <input type="checkbox" class="wt-kat-cb" value="{{ kat.name }}" checked
+                               style="width:22px; height:22px; accent-color:#e30613; cursor:pointer; flex-shrink:0;">
+                        <span style="flex:1; font-size:1rem; color:#fff;">{{ kat.name }}</span>
+                        <span style="font-size:0.8rem; color:rgba(255,255,255,0.35);">{{ kat.count }} Relais</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div id="wt-start-info" style="text-align:center; color:rgba(255,255,255,0.45); font-size:0.9rem; margin-bottom:20px;">
+                {{ relais|length }} Relais ausgewählt
+            </div>
+
+            <button class="wt-btn-restart" id="wt-btn-start" style="font-size:1.2rem; padding:20px;" onclick="startTest()">
+                Test starten
+            </button>
+        </div>
+    </div>
+
+    <!-- Testformular -->
+    <div id="wt-test-view" style="display:none;">
+        <div class="wt-card">
+            <div class="wt-relais-nr" id="wt-relais-nr">Relais –</div>
+            <div class="wt-relais-name" id="wt-relais-name">–</div>
+
+            <div class="wt-meta">
+                <span class="wt-badge cat" id="wt-category"></span>
+                <span class="wt-badge sk" id="wt-stromkreis"></span>
+            </div>
+
+            <div class="wt-relay-status">
+                <div class="wt-relay-dot" id="wt-relay-dot"></div>
+                <span id="wt-relay-status-text">Relais wird geschaltet…</span>
+            </div>
+
+            <div class="wt-bewertung">
+                <button class="wt-btn-ok" id="wt-btn-ok" onclick="bewerten('ok')">
+                    ✔
+                    <span class="wt-btn-label">In Ordnung</span>
+                </button>
+                <button class="wt-btn-fail" id="wt-btn-fail" onclick="bewerten('fail')">
+                    ✘
+                    <span class="wt-btn-label">Fehler</span>
+                </button>
+            </div>
+
+            <label class="wt-kommentar-label" for="wt-kommentar">Kommentar (optional)</label>
+            <textarea class="wt-kommentar" id="wt-kommentar" placeholder="Anmerkung eingeben…" rows="2"></textarea>
+
+            <div class="wt-nav">
+                <button class="wt-btn-back" id="wt-btn-back" onclick="navigate(-1)">← Zurück</button>
+                <button class="wt-btn-next" id="wt-btn-next" onclick="navigate(1)">Weiter →</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Zusammenfassung -->
+    <div id="wt-summary">
+        <div class="wt-card">
+            <div class="wt-summary-header">
+                <h2>Testabschluss</h2>
+                <p style="color:rgba(255,255,255,0.5); margin:0;">Alle Relais wurden geprüft</p>
+            </div>
+
+            <div class="wt-stats">
+                <div class="wt-stat-box wt-stat-ok">
+                    <div class="wt-stat-num" id="stat-ok">0</div>
+                    <div class="wt-stat-label">In Ordnung</div>
+                </div>
+                <div class="wt-stat-box wt-stat-fail">
+                    <div class="wt-stat-num" id="stat-fail">0</div>
+                    <div class="wt-stat-label">Fehler</div>
+                </div>
+                <div class="wt-stat-box wt-stat-skip">
+                    <div class="wt-stat-num" id="stat-skip">0</div>
+                    <div class="wt-stat-label">Übersprungen</div>
+                </div>
+            </div>
+
+            <ul class="wt-summary-list" id="wt-summary-list"></ul>
+
+            <!-- Export-Bereich -->
+            <div style="margin-bottom: 16px;">
+                <label class="wt-kommentar-label" for="wt-tester">Prüfer (für Export, optional)</label>
+                <input type="text" id="wt-tester" class="wt-kommentar"
+                       style="min-height:unset; height:48px; margin-bottom:12px;"
+                       placeholder="Name des Prüfers…">
+
+                <div style="display:flex; gap:10px; margin-bottom:12px;">
+                    <button class="wt-btn-restart" id="wt-btn-export-pdf"
+                            style="flex:1; background: linear-gradient(135deg,rgba(180,30,30,0.8),rgba(227,6,19,0.9)); box-shadow: 0 4px 16px rgba(227,6,19,0.3);"
+                            onclick="exportPdf()">
+                        PDF exportieren
+                    </button>
+                    <button class="wt-btn-restart" id="wt-btn-export"
+                            style="flex:1; background: linear-gradient(135deg,rgba(39,110,174,0.8),rgba(52,152,219,0.9)); box-shadow: 0 4px 16px rgba(52,152,219,0.3);"
+                            onclick="exportExcel()">
+                        Excel (.xlsx)
+                    </button>
+                </div>
+                <div id="wt-export-status" style="text-align:center; font-size:0.85rem; color:rgba(255,255,255,0.45); min-height:20px;"></div>
+            </div>
+
+            <button class="wt-btn-restart" onclick="restart()">Neuen Test starten</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Alle Relais-Daten vom Server
+const ALL_RELAIS = {{ relais_json | safe }};
+
+// Aktive (gefilterte) Liste für den laufenden Test
+let RELAIS = [];
+let currentIdx = 0;
+let results = {};   // { relay_id: { status: 'ok'|'fail'|null, kommentar: '' } }
+
+// Ergebnisspeicher für alle Relais vorinitialisieren
+ALL_RELAIS.forEach(r => {
+    results[r.id] = { status: null, kommentar: '' };
+});
+
+// === Startbildschirm ===
+
+let activeTab = 'sk'; // 'sk' oder 'kat'
+
+function switchTab(tab) {
+    activeTab = tab;
+    document.getElementById('wt-panel-sk').style.display  = tab === 'sk'  ? '' : 'none';
+    document.getElementById('wt-panel-kat').style.display = tab === 'kat' ? '' : 'none';
+    document.getElementById('wt-tab-sk').style.background  = tab === 'sk'  ? 'rgba(227,6,19,0.25)' : 'rgba(255,255,255,0.05)';
+    document.getElementById('wt-tab-sk').style.color       = tab === 'sk'  ? '#fff' : 'rgba(255,255,255,0.55)';
+    document.getElementById('wt-tab-kat').style.background = tab === 'kat' ? 'rgba(227,6,19,0.25)' : 'rgba(255,255,255,0.05)';
+    document.getElementById('wt-tab-kat').style.color      = tab === 'kat' ? '#fff' : 'rgba(255,255,255,0.55)';
+    updateStartInfo();
+}
+
+function getSelectedStromkreise() {
+    return Array.from(document.querySelectorAll('.wt-sk-cb:checked')).map(cb => cb.value);
+}
+
+function getSelectedKategorien() {
+    return Array.from(document.querySelectorAll('.wt-kat-cb:checked')).map(cb => cb.value);
+}
+
+function getFilteredRelais() {
+    if (activeTab === 'sk') {
+        const selected = getSelectedStromkreise();
+        return ALL_RELAIS.filter(r => selected.includes(r.stromkreis));
+    } else {
+        const selected = getSelectedKategorien();
+        return ALL_RELAIS.filter(r => selected.includes(r.category));
+    }
+}
+
+function updateStartInfo() {
+    const count = getFilteredRelais().length;
+    const btn = document.getElementById('wt-btn-start');
+    const info = document.getElementById('wt-start-info');
+    info.textContent = count === 0 ? 'Keine Auswahl getroffen' : count + ' Relais ausgewählt';
+    btn.disabled = count === 0;
+}
+
+function selectAllSk(val) {
+    document.querySelectorAll('.wt-sk-cb').forEach(cb => cb.checked = val);
+    updateStartInfo();
+}
+
+function selectAllKat(val) {
+    document.querySelectorAll('.wt-kat-cb').forEach(cb => cb.checked = val);
+    updateStartInfo();
+}
+
+// Alte Funktion für Rückwärtskompatibilität
+function selectAll(val) { selectAllSk(val); }
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.wt-sk-cb, .wt-kat-cb').forEach(cb => {
+        cb.addEventListener('change', updateStartInfo);
+    });
+    updateStartInfo();
+});
+
+function startTest() {
+    RELAIS = getFilteredRelais();
+    if (RELAIS.length === 0) return;
+
+    // Ergebnisse für diesen Durchlauf zurücksetzen
+    RELAIS.forEach(r => { results[r.id] = { status: null, kommentar: '' }; });
+    currentIdx = 0;
+
+    document.getElementById('wt-start-view').style.display = 'none';
+    document.getElementById('wt-test-view').style.display = '';
+    showItem(0);
+}
+
+function restart() {
+    document.getElementById('wt-summary').style.display = 'none';
+    document.getElementById('wt-start-view').style.display = '';
+    updateStartInfo();
+}
+
+// === Test-Ablauf ===
+
+function showItem(idx) {
+    const r = RELAIS[idx];
+    if (!r) return;
+
+    document.getElementById('wt-relais-nr').textContent = 'Relais ' + (r.id + 1);
+    document.getElementById('wt-relais-name').textContent = r.name;
+    document.getElementById('wt-category').textContent = r.category || '–';
+    document.getElementById('wt-stromkreis').textContent = r.stromkreis || '–';
+
+    document.getElementById('wt-counter').textContent = (idx + 1) + ' / ' + RELAIS.length;
+    document.getElementById('wt-progress-fill').style.width = ((idx + 1) / RELAIS.length * 100) + '%';
+
+    const saved = results[r.id];
+    setBewertungUI(saved.status);
+    document.getElementById('wt-kommentar').value = saved.kommentar;
+
+    document.getElementById('wt-btn-back').style.display = idx === 0 ? 'none' : '';
+    const nextBtn = document.getElementById('wt-btn-next');
+    nextBtn.textContent = idx === RELAIS.length - 1 ? 'Abschließen →' : 'Weiter →';
+    nextBtn.disabled = false;
+
+    activateRelay(r.id);
+}
+
+function activateRelay(relayId) {
+    const dot = document.getElementById('wt-relay-dot');
+    const txt = document.getElementById('wt-relay-status-text');
+    dot.className = 'wt-relay-dot';
+    txt.textContent = 'Relais wird geschaltet…';
+
+    fetch('/api/wartungstest/relay/' + relayId, { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                dot.classList.add('active');
+                txt.textContent = 'Relais ' + (relayId + 1) + ' aktiv';
+            } else {
+                txt.textContent = 'Fehler beim Schalten: ' + (data.error || '?');
+            }
+        })
+        .catch(() => { txt.textContent = 'Verbindungsfehler'; });
+}
+
+function bewerten(status) {
+    const r = RELAIS[currentIdx];
+    results[r.id].status = results[r.id].status === status ? null : status;
+    setBewertungUI(results[r.id].status);
+}
+
+function setBewertungUI(status) {
+    document.getElementById('wt-btn-ok').classList.toggle('selected', status === 'ok');
+    document.getElementById('wt-btn-fail').classList.toggle('selected', status === 'fail');
+}
+
+function saveKommentar() {
+    results[RELAIS[currentIdx].id].kommentar = document.getElementById('wt-kommentar').value;
+}
+
+function navigate(dir) {
+    saveKommentar();
+    const nextIdx = currentIdx + dir;
+    if (nextIdx >= RELAIS.length) {
+        fetch('/reset_relays', { method: 'POST' }).catch(() => {});
+        showSummary();
+        return;
+    }
+    if (nextIdx < 0) return;
+    currentIdx = nextIdx;
+    showItem(currentIdx);
+}
+
+function showSummary() {
+    document.getElementById('wt-test-view').style.display = 'none';
+    document.getElementById('wt-summary').style.display = 'block';
+
+    let ok = 0, fail = 0, skip = 0;
+    const list = document.getElementById('wt-summary-list');
+    list.innerHTML = '';
+
+    RELAIS.forEach(r => {
+        const res = results[r.id];
+        if (res.status === 'ok') ok++;
+        else if (res.status === 'fail') fail++;
+        else skip++;
+
+        const icon = res.status === 'ok' ? '✔' : res.status === 'fail' ? '✘' : '–';
+        const cls  = res.status === 'ok' ? 'ok' : res.status === 'fail' ? 'fail' : 'skip';
+
+        const li = document.createElement('li');
+        li.className = 'wt-summary-item ' + cls;
+        li.innerHTML = `
+            <span class="wt-summary-icon">${icon}</span>
+            <div class="wt-summary-info">
+                <div class="wt-summary-name">Relais ${r.id + 1}: ${escHtml(r.name)}</div>
+                <div class="wt-summary-meta">${escHtml(r.category || '')}${r.category && r.stromkreis ? ' · ' : ''}${escHtml(r.stromkreis || '')}</div>
+                ${res.kommentar ? '<div class="wt-summary-comment">' + escHtml(res.kommentar) + '</div>' : ''}
+            </div>`;
+        list.appendChild(li);
+    });
+
+    document.getElementById('stat-ok').textContent   = ok;
+    document.getElementById('stat-fail').textContent = fail;
+    document.getElementById('stat-skip').textContent = skip;
+}
+
+function buildExportPayload() {
+    const tester = document.getElementById('wt-tester').value.trim();
+    const now = new Date();
+    const datum = now.getDate().toString().padStart(2,'0') + '.' +
+                  (now.getMonth()+1).toString().padStart(2,'0') + '.' +
+                  now.getFullYear();
+    const exportData = RELAIS.map(r => ({
+        id: r.id,
+        name: r.name,
+        category: r.category,
+        stromkreis: r.stromkreis,
+        status: results[r.id].status,
+        kommentar: results[r.id].kommentar
+    }));
+    return { results: exportData, tester, datum };
+}
+
+function exportPdf() {
+    const btn = document.getElementById('wt-btn-export-pdf');
+    const statusEl = document.getElementById('wt-export-status');
+    btn.disabled = true;
+    statusEl.textContent = 'PDF wird erstellt…';
+
+    const payload = buildExportPayload();
+
+    fetch('/api/wartungstest/export/pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+    .then(resp => {
+        if (!resp.ok) throw new Error('Server-Fehler ' + resp.status);
+        return resp.blob();
+    })
+    .then(blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'Wartungstest_' + payload.datum.replace(/\./g,'-') + '.pdf';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+        statusEl.textContent = 'PDF gespeichert – im Dokument-Menü verfügbar.';
+    })
+    .catch(err => {
+        statusEl.textContent = 'Fehler: ' + err.message;
+    })
+    .finally(() => { btn.disabled = false; });
+}
+
+function exportExcel() {
+    const btn = document.getElementById('wt-btn-export');
+    const statusEl = document.getElementById('wt-export-status');
+    btn.disabled = true;
+    statusEl.textContent = 'Export wird erstellt…';
+
+    const payload = buildExportPayload();
+
+    fetch('/api/wartungstest/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+    .then(resp => {
+        if (!resp.ok) throw new Error('Server-Fehler ' + resp.status);
+        return resp.blob();
+    })
+    .then(blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'Wartungstest_' + payload.datum.replace(/\./g,'-') + '.xlsx';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+        statusEl.textContent = 'Export erfolgreich gespeichert.';
+    })
+    .catch(err => {
+        statusEl.textContent = 'Fehler: ' + err.message;
+    })
+    .finally(() => { btn.disabled = false; });
+}
+
+function escHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Nichts automatisch starten – Start-Button abwarten
+</script>
+{% endblock %}

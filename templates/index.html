@@ -80,6 +80,38 @@
     </div>
 </div>
 
+<!-- Sicherheitsrelais-Freigabe (unten links, fixiert) -->
+<div id="safety-wrap" style="position:fixed; bottom:24px; left:24px; z-index:9000;">
+    <button id="safety-btn" onclick="toggleSafetyRelay()" style="display:flex; align-items:center; gap:10px; padding:12px 18px; background:rgba(15,15,25,0.92); border:2px solid rgba(255,255,255,0.15); border-radius:14px; color:#fff; cursor:pointer; font-size:0.95rem; font-weight:600; touch-action:manipulation; box-shadow:0 4px 18px rgba(0,0,0,0.5);" title="Spannungsfreigabe">
+        <span id="safety-indicator" style="width:14px; height:14px; border-radius:50%; background:#555; flex-shrink:0; transition:background 0.3s;"></span>
+        <span id="safety-label">Freigabe: AUS</span>
+    </button>
+</div>
+
+<!-- PIN-Modal für Sicherheitsrelais einschalten -->
+<div id="safety-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:999999; justify-content:center; align-items:center;">
+    <div style="background:linear-gradient(135deg,rgba(15,15,25,0.98),rgba(25,25,40,0.98)); border:1px solid rgba(76,175,80,0.5); border-radius:18px; padding:28px 28px 24px; max-width:320px; width:90%; box-shadow:0 12px 48px rgba(0,0,0,0.7);">
+        <p style="color:rgba(255,255,255,0.9); margin:0 0 6px 0; text-align:center; font-size:1.1rem; font-weight:600;">Spannungsfreigabe</p>
+        <p style="color:rgba(255,255,255,0.5); margin:0 0 18px 0; text-align:center; font-size:0.85rem;">Code eingeben zum Einschalten</p>
+        <div id="safety-display" style="background:rgba(255,255,255,0.06); border:2px solid rgba(255,255,255,0.2); border-radius:10px; padding:12px; text-align:center; font-size:1.8rem; letter-spacing:10px; color:#fff; min-height:54px; margin-bottom:16px;">&#8203;</div>
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px;">
+            <button onclick="safetyKey('1')" style="padding:18px; font-size:1.3rem; font-weight:600; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.18); border-radius:10px; color:#fff; cursor:pointer; touch-action:manipulation;">1</button>
+            <button onclick="safetyKey('2')" style="padding:18px; font-size:1.3rem; font-weight:600; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.18); border-radius:10px; color:#fff; cursor:pointer; touch-action:manipulation;">2</button>
+            <button onclick="safetyKey('3')" style="padding:18px; font-size:1.3rem; font-weight:600; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.18); border-radius:10px; color:#fff; cursor:pointer; touch-action:manipulation;">3</button>
+            <button onclick="safetyKey('4')" style="padding:18px; font-size:1.3rem; font-weight:600; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.18); border-radius:10px; color:#fff; cursor:pointer; touch-action:manipulation;">4</button>
+            <button onclick="safetyKey('5')" style="padding:18px; font-size:1.3rem; font-weight:600; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.18); border-radius:10px; color:#fff; cursor:pointer; touch-action:manipulation;">5</button>
+            <button onclick="safetyKey('6')" style="padding:18px; font-size:1.3rem; font-weight:600; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.18); border-radius:10px; color:#fff; cursor:pointer; touch-action:manipulation;">6</button>
+            <button onclick="safetyKey('7')" style="padding:18px; font-size:1.3rem; font-weight:600; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.18); border-radius:10px; color:#fff; cursor:pointer; touch-action:manipulation;">7</button>
+            <button onclick="safetyKey('8')" style="padding:18px; font-size:1.3rem; font-weight:600; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.18); border-radius:10px; color:#fff; cursor:pointer; touch-action:manipulation;">8</button>
+            <button onclick="safetyKey('9')" style="padding:18px; font-size:1.3rem; font-weight:600; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.18); border-radius:10px; color:#fff; cursor:pointer; touch-action:manipulation;">9</button>
+            <button onclick="document.getElementById('safety-modal').style.display='none'" style="padding:18px; font-size:0.9rem; font-weight:600; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); border-radius:10px; color:rgba(255,255,255,0.5); cursor:pointer; touch-action:manipulation;">✕</button>
+            <button onclick="safetyKey('0')" style="padding:18px; font-size:1.3rem; font-weight:600; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.18); border-radius:10px; color:#fff; cursor:pointer; touch-action:manipulation;">0</button>
+            <button onclick="safetyDeleteKey()" style="padding:18px; font-size:1.3rem; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); border-radius:10px; color:rgba(255,255,255,0.7); cursor:pointer; touch-action:manipulation;">⌫</button>
+        </div>
+        <button onclick="submitSafetyEnable()" style="width:100%; margin-top:14px; padding:16px; font-size:1.05rem; font-weight:600; background:linear-gradient(45deg,#2e7d32,#43a047); border:none; border-radius:10px; color:#fff; cursor:pointer; touch-action:manipulation;">Freigabe erteilen</button>
+    </div>
+</div>
+
 <!-- Dokument-Button unten rechts -->
 <div id="doc-btn-wrap" style="position:fixed; bottom:24px; right:24px; z-index:9000;">
     <button id="doc-btn" onclick="toggleDocMenu()" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); border-radius:50%; width:52px; height:52px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background 0.2s, border-color 0.2s; touch-action:manipulation;" title="Dokumente">
@@ -165,12 +197,22 @@ function loadPdfList() {
             list.innerHTML = '<div style="padding:16px; color:rgba(255,255,255,0.3); font-size:0.9rem; text-align:center;">Keine Dokumente vorhanden.<br>PDFs in den Ordner <em>pdfs/</em> legen.</div>';
             return;
         }
-        list.innerHTML = data.files.map(f => `
-            <button onclick="openPdf('${f}')" style="width:100%; padding:13px 16px; background:none; border:none; border-bottom:1px solid rgba(255,255,255,0.06); color:rgba(255,255,255,0.82); font-size:0.92rem; cursor:pointer; display:flex; align-items:center; gap:10px; text-align:left; touch-action:manipulation;">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#e30613" stroke-width="2" flex-shrink="0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${f.replace('.pdf','').replace(/_/g,' ')}</span>
-            </button>
-        `).join('');
+        list.innerHTML = data.files.map(f => {
+            const isXlsx = f.toLowerCase().endsWith('.xlsx');
+            const label = f.replace(/\.(pdf|xlsx)$/i, '').replace(/_/g, ' ');
+            const icon = isXlsx
+                ? `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#27ae60" stroke-width="2" style="flex-shrink:0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>`
+                : `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#e30613" stroke-width="2" style="flex-shrink:0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
+            const action = isXlsx
+                ? `window.location='/documents/${encodeURIComponent(f)}'`
+                : `openPdf('${f}')`;
+            const hint = isXlsx ? `<span style="font-size:0.72rem; color:rgba(255,255,255,0.3); margin-left:auto; flex-shrink:0;">xlsx</span>` : '';
+            return `<button onclick="${action}" style="width:100%; padding:13px 16px; background:none; border:none; border-bottom:1px solid rgba(255,255,255,0.06); color:rgba(255,255,255,0.82); font-size:0.92rem; cursor:pointer; display:flex; align-items:center; gap:10px; text-align:left; touch-action:manipulation;">
+                ${icon}
+                <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;">${label}</span>
+                ${hint}
+            </button>`;
+        }).join('');
     })
     .catch(() => {
         list.innerHTML = '<div style="padding:16px; color:#e30613; font-size:0.9rem; text-align:center;">Fehler beim Laden.</div>';
@@ -246,5 +288,88 @@ if (wallboxToggle) {
         }
     });
 }
+
+// ---- Sicherheitsrelais ----
+var _safetyPin = '';
+
+function updateSafetyUI(enabled) {
+    const indicator = document.getElementById('safety-indicator');
+    const label = document.getElementById('safety-label');
+    const btn = document.getElementById('safety-btn');
+    if (enabled) {
+        indicator.style.background = '#4caf50';
+        label.textContent = 'Freigabe: EIN';
+        btn.style.borderColor = 'rgba(76,175,80,0.6)';
+    } else {
+        indicator.style.background = '#555';
+        label.textContent = 'Freigabe: AUS';
+        btn.style.borderColor = 'rgba(255,255,255,0.15)';
+    }
+}
+
+function loadSafetyStatus() {
+    fetch('/api/safety_relay')
+        .then(r => r.json())
+        .then(data => updateSafetyUI(data.enabled))
+        .catch(() => {});
+}
+
+function toggleSafetyRelay() {
+    fetch('/api/safety_relay')
+        .then(r => r.json())
+        .then(data => {
+            if (data.enabled) {
+                // Ausschalten – kein Code nötig
+                fetch('/api/safety_relay/set', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({enable: false})
+                })
+                .then(r => r.json())
+                .then(d => { if (d.success) updateSafetyUI(false); })
+                .catch(() => {});
+            } else {
+                // Einschalten – PIN-Modal öffnen
+                _safetyPin = '';
+                document.getElementById('safety-display').textContent = '\u200B';
+                document.getElementById('safety-modal').style.display = 'flex';
+            }
+        })
+        .catch(() => {});
+}
+
+function safetyKey(digit) {
+    _safetyPin += digit;
+    document.getElementById('safety-display').textContent = '●'.repeat(_safetyPin.length);
+}
+
+function safetyDeleteKey() {
+    _safetyPin = _safetyPin.slice(0, -1);
+    const display = document.getElementById('safety-display');
+    display.textContent = _safetyPin.length ? '●'.repeat(_safetyPin.length) : '\u200B';
+}
+
+function submitSafetyEnable() {
+    if (!_safetyPin) { showMessage('Bitte Code eingeben!', 'error'); return; }
+    document.getElementById('safety-modal').style.display = 'none';
+    fetch('/api/safety_relay/set', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({enable: true, code: _safetyPin})
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            updateSafetyUI(true);
+            showMessage('Spannungsfreigabe erteilt', 'success');
+        } else {
+            showMessage(data.error || 'Fehler', 'error');
+        }
+    })
+    .catch(() => showMessage('Verbindungsfehler', 'error'));
+}
+
+document.addEventListener('DOMContentLoaded', loadSafetyStatus);
+setInterval(loadSafetyStatus, 10000);
 </script>
 {% endblock %}

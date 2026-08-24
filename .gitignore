@@ -32,7 +32,11 @@ __pycache__/
 venv/
 env/
 
-# VDE Messwand specific
+# Backups and temporary files
+*.bak
+backup_*/
+
+# VDE Messwand runtime data
 *.db
 settings.json
 relay_groups.json
@@ -40,6 +44,14 @@ relay_names.json
 hotspot_state.json
 relais_config.json
 kategorien.json
+data/*.db
+data/settings.json
+data/relay_groups.json
+data/relay_names.json
+data/hotspot_state.json
+data/relais_config.json
+data/kategorien.json
+pdfs/Wartungstest_*
 
 # Test/Debug artifacts
 stress_test_screenshots/
